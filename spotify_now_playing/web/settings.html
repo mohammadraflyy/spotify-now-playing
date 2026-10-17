@@ -13,6 +13,8 @@
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
+  /* tempat scrollbar selalu disisakan, supaya layout tidak bergeser saat pindah ke tab yang lebih pendek */
+  html { scrollbar-gutter: stable; }
   body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 Inter, "Segoe UI", sans-serif; }
   a { color: var(--accent); }
   code { font: 12px ui-monospace, Consolas, monospace; background: #0b0b0c; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--line); }
@@ -852,7 +854,7 @@ function showTab(name) {
   if (name === "requests") { loadChat(); loadRequests(); }
   requestAnimationFrame(fitPreviews);
 }
-document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { showTab(b.dataset.tab); scrollTo(0, 0); });
 document.querySelectorAll("[data-goto]").forEach(b => b.onclick = () => { showTab(b.dataset.goto); scrollTo(0, 0); });
 window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
 

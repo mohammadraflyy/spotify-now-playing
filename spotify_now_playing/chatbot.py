@@ -1,27 +1,41 @@
-"""Bot chat bawaan: menjawab !song (dan !lastsong) di chat Twitch dan YouTube.
+"""Bot chat bawaan: menjawab !song, !lastsong, perintah buatan user, dan menerima !request lagu.
 
-Setiap platform punya koneksinya sendiri (chat_twitch.py, chat_youtube.py). Semuanya memanggil
-ChatBot.handle(platform, user, text), dan jawabannya dikirim balik ke platform asal pesan.
+Setiap platform punya koneksinya sendiri (chat_twitch.py, chat_youtube.py, chat_tiktok.py).
+Semuanya memanggil ChatBot.handle(platform, user, text), dan jawabannya dikirim balik ke
+platform asal pesan. TikTok hanya listener: request dicatat, tapi tidak ada balasan di chat.
 """
 
 import threading
 import time
 
 from . import i18n
+from .chat_tiktok import TikTokChat
 from .chat_twitch import TwitchChat
 from .chat_youtube import YouTubeChat
+from .song_requests import RequestQueue
 
-DEFAULTS = {"song_cmd": "!song", "last_cmd": "!lastsong", "cooldown": 5}
+DEFAULTS = {"song_cmd": "!song", "last_cmd": "!lastsong", "cooldown": 5,
+            "request_enabled": True, "request_cmd": "!request", "request_max_user": 2, "request_max_total": 50}
 REPLIES = {
     "id": {
         "song": "@{user} Sekarang diputar: {artist} - {title}",
         "last": "@{user} Lagu sebelumnya: {artist} - {title}",
         "none": "@{user} Tidak ada lagu yang diputar",
+        "request_added": "@{user} request masuk: {request} (antrian ke-{position})",
+        "request_duplicate": "@{user} {request} sudah ada di antrian (ke-{position})",
+        "request_user_limit": "@{user} kamu sudah punya {max} request di antrian",
+        "request_full": "@{user} antrian request sedang penuh",
+        "request_empty": "@{user} ketik {cmd} judul lagu, misalnya {cmd} Tulus - Pamit",
     },
     "en": {
         "song": "@{user} Now playing: {artist} - {title}",
         "last": "@{user} Previous song: {artist} - {title}",
         "none": "@{user} Nothing is playing right now",
+        "request_added": "@{user} request added: {request} (#{position} in the queue)",
+        "request_duplicate": "@{user} {request} is already in the queue (#{position})",
+        "request_user_limit": "@{user} you already have {max} requests in the queue",
+        "request_full": "@{user} the request queue is full right now",
+        "request_empty": "@{user} type {cmd} and a song title, for example {cmd} Tulus - Pamit",
     },
 }
 MAX_REPLY = 200  # YouTube membatasi 200 karakter, Twitch 500
@@ -38,12 +52,14 @@ def render(template, fallback, **values):
 
 
 class ChatBot:
-    def __init__(self, app):
+    def __init__(self, app, data_dir=None):
         self.app = app
         self.lock = threading.Lock()
         self._last_used = {}
+        self.requests = RequestQueue(f"{data_dir}/requests.json" if data_dir else None)
         self.twitch = TwitchChat(app.cfg, self.handle)
         self.youtube = YouTubeChat(app.cfg, self.handle)
+        self.tiktok = TikTokChat(app.cfg, self.handle)
 
     def settings(self):
         return {**DEFAULTS, **(self.app.cfg.get("chat") or {})}
@@ -60,6 +76,8 @@ class ChatBot:
         for kind in ("song", "last"):
             if s.get(f"{kind}_cmd") and cmd == s[f"{kind}_cmd"].strip().lower():
                 return kind
+        if s.get("request_enabled") and s.get("request_cmd") and cmd == s["request_cmd"].strip().lower():
+            return "request"
         for i, c in enumerate(self.custom()):
             if cmd == c["cmd"].lower():
                 return f"custom:{i}"
@@ -75,6 +93,10 @@ class ChatBot:
         kind = self.command_kind(text)
         if not kind:
             return None
+        if kind == "request":  # punya batas per penonton sendiri, tanpa cooldown
+            return self.request(user, text, platform)
+        if platform == "tiktok":
+            return None  # TikTok hanya listener: perintah yang butuh balasan diabaikan
         cooldown = max(0, min(600, float(self.settings().get("cooldown") or 0)))
         now = time.monotonic()
         with self.lock:
@@ -84,7 +106,10 @@ class ChatBot:
             self._last_used[(platform, kind)] = now
         return self.answer(kind, user)
 
-    def answer(self, kind, user):
+    def answer(self, kind, user, text=""):
+        """Balasan untuk perintah. Request di sini hanya pratinjau (tidak masuk antrian)."""
+        if kind == "request":
+            return self.request(user, text, None, dry_run=True)
         if kind.startswith("custom:"):
             reply = self.custom()[int(kind[7:])]["reply"]
             song = self.current_song() or {}
@@ -97,6 +122,19 @@ class ChatBot:
         tpl, fallback = self.template(kind)
         return render(tpl, fallback, user=user, title=song["title"], artist=song["artist"],
                       album=song.get("album", ""))
+
+    def request(self, user, text, platform, dry_run=False):
+        s = self.settings()
+        cmd = s["request_cmd"]
+        song = text.strip()[len(cmd):].strip() if text.strip().lower().startswith(cmd.lower()) else ""
+        lang = i18n.lang(self.app.cfg)
+        if dry_run:
+            status, info = ("added", {"position": len(self.requests.list()) + 1, "text": song}) if song else ("empty", {})
+        else:
+            status, info = self.requests.add(song, user, platform, s["request_max_user"], s["request_max_total"])
+        tpl = REPLIES[lang][f"request_{status}"]
+        return render(tpl, tpl, user=user, request=info.get("text", song), position=info.get("position", ""),
+                      max=info.get("max", ""), cmd=cmd)
 
     def current_song(self):
         s = self.app.snapshot()
@@ -116,6 +154,7 @@ class ChatBot:
     def start(self):
         self.twitch.start()
         self.youtube.start()
+        self.tiktok.start()
 
     def status(self):
         s = self.settings()
@@ -125,7 +164,10 @@ class ChatBot:
             "song_reply": s.get("song_reply") or "", "last_reply": s.get("last_reply") or "",
             "none_reply": s.get("none_reply") or "",
             "custom": self.custom(),
+            "request_enabled": bool(s["request_enabled"]), "request_cmd": s["request_cmd"],
+            "request_max_user": s["request_max_user"], "request_max_total": s["request_max_total"],
             "default_replies": REPLIES[lang],
             "twitch": self.twitch.status(),
             "youtube": self.youtube.status(),
+            "tiktok": self.tiktok.status(),
         }

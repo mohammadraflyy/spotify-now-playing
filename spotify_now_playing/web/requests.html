@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Song Requests</title>
+<link href="/static/fonts.css" rel="stylesheet">
+<link rel="icon" href="/favicon.ico">
+<style>
+  /* Opsi lewat URL: ?count=5 (jumlah ditampilkan) ?hint=0 (sembunyikan petunjuk perintah)
+     ?hideEmpty=1 (sembunyikan saat antrian kosong) ?accent=1db954 */
+  :root { --accent: #1db954; --fg: #fff; --muted: rgba(255,255,255,.66); }
+  html, body { margin: 0; background: transparent; overflow: hidden; font-family: Inter, "Segoe UI", sans-serif; }
+  body { padding: 10px; }
+  .box { box-sizing: border-box; width: 100%; padding: 16px 18px; border-radius: 16px; color: var(--fg);
+    background: rgba(18,18,18,.82); box-shadow: 0 8px 28px rgba(0,0,0,.4); transition: opacity .4s; }
+  .hidden .box { opacity: 0; }
+  .head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  .head svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .head .count { margin-left: auto; color: var(--muted); font-weight: 600; letter-spacing: 0; }
+  ol { list-style: none; margin: 0; padding: 0; }
+  li { display: flex; gap: 10px; align-items: baseline; padding: 7px 0; border-top: 1px solid rgba(255,255,255,.08);
+    animation: in .4s ease both; }
+  li:first-child { border-top: 0; }
+  @keyframes in { from { opacity: 0; transform: translateX(-12px); } }
+  .num { flex: 0 0 auto; width: 20px; color: var(--accent); font-weight: 800; font-variant-numeric: tabular-nums; }
+  .song { flex: 1; min-width: 0; font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .who { flex: 0 0 auto; max-width: 40%; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .empty { color: var(--muted); font-size: 15px; padding: 4px 0; }
+  .more { color: var(--muted); font-size: 13px; padding-top: 6px; }
+  .hint { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.08); font-size: 13px; color: var(--muted); }
+  .hint b { color: var(--fg); }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="head">
+    <!-- Ikon: Lucide list-music (ISC License) -->
+    <svg viewBox="0 0 24 24"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></svg>
+    <span id="title"></span><span class="count" id="count"></span>
+  </div>
+  <ol id="list"></ol>
+  <div class="hint" id="hint"></div>
+</div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const COUNT = Math.max(1, Math.min(20, parseInt(q.get("count")) || 5));
+  const SHOW_HINT = q.get("hint") !== "0";
+  const HIDE_EMPTY = q.get("hideEmpty") === "1";
+  if (q.get("accent")) document.documentElement.style.setProperty("--accent", "#" + q.get("accent").replace("#", ""));
+  const TEXT = {
+    id: { title: "Request lagu", empty: "Belum ada request", more: "+{n} lagi", hint: "Ketik <b>{cmd} judul lagu</b> di chat untuk request" },
+    en: { title: "Song requests", empty: "No requests yet", more: "+{n} more", hint: "Type <b>{cmd} song title</b> in chat to request" },
+  };
+  const PLATFORM = { twitch: "Twitch", youtube: "YouTube", tiktok: "TikTok" };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  let last = "";
+
+  async function poll() {
+    try {
+      const r = await (await fetch("/api/requests", { cache: "no-store" })).json();
+      const T = TEXT[r.lang] || TEXT.id;
+      const key = JSON.stringify([r.items.map(i => i.id), r.lang, r.cmd, r.enabled]);
+      document.body.classList.toggle("hidden", !r.enabled || (HIDE_EMPTY && !r.items.length));
+      if (key === last) return;
+      last = key;
+      document.getElementById("title").textContent = T.title;
+      document.getElementById("count").textContent = r.items.length || "";
+      const list = document.getElementById("list");
+      list.innerHTML = r.items.length ? "" : `<div class="empty">${esc(T.empty)}</div>`;
+      r.items.slice(0, COUNT).forEach((it, n) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="num">${n + 1}</span><span class="song">${esc(it.text)}</span>` +
+          `<span class="who">${esc(it.user)}${PLATFORM[it.platform] ? " · " + PLATFORM[it.platform] : ""}</span>`;
+        list.appendChild(li);
+      });
+      if (r.items.length > COUNT) {
+        const more = document.createElement("div");
+        more.className = "more";
+        more.textContent = T.more.replace("{n}", r.items.length - COUNT);
+        list.appendChild(more);
+      }
+      const hint = document.getElementById("hint");
+      hint.hidden = !SHOW_HINT || !r.cmd;
+      hint.innerHTML = T.hint.replace("{cmd}", esc(r.cmd));
+    } catch {
+      document.body.classList.add("hidden");   // aplikasi tidak berjalan
+      last = "";
+    }
+  }
+  poll();
+  setInterval(poll, 2000);
+</script>
+</body>
+</html>

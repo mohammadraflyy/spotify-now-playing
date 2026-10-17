@@ -198,6 +198,32 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(r["reply"], "discord.gg/x")
         self.post("/api/chat/config", {"custom": [], "twitch": {"channel": ""}})
 
+    def test_request_queue_endpoints(self):
+        q = self.app.chat.requests
+        q.clear()
+        a = q.add("Lagu A", "budi", "tiktok")[1]["id"]
+        b = q.add("Lagu B", "ani", "twitch")[1]["id"]
+        status, ctype, body = self.get("/api/requests")
+        r = json.loads(body)
+        self.assertEqual(([i["text"] for i in r["items"]], r["cmd"], r["enabled"]), (["Lagu A", "Lagu B"], "!request", True))
+        _, r = self.post("/api/requests/move", {"id": b, "delta": -1})
+        self.assertEqual([i["id"] for i in r["items"]], [b, a])
+        _, r = self.post("/api/requests/move", {"id": b, "delta": "naik"})  # input aneh tidak bikin error
+        _, r = self.post("/api/requests/remove", {"id": a})
+        self.assertEqual([i["id"] for i in r["items"]], [b])
+        _, r = self.post("/api/requests/clear", {})
+        self.assertEqual(r["items"], [])
+        self.assertIn(b"Song Requests", self.get("/requests")[2])
+
+    def test_tiktok_config(self):
+        status, chat = self.post("/api/chat/config", {"tiktok": {"username": "@Tulus.Music", "api_key": "abcd1234"}})
+        self.assertEqual(status, 200)
+        self.assertEqual((chat["tiktok"]["username"], chat["tiktok"]["has_key"]), ("tulus.music", True))
+        self.assertNotIn("abcd1234", json.dumps(chat))
+        status, _ = self.post("/api/chat/config", {"tiktok": {"username": "nama aneh!"}})
+        self.assertEqual(status, 400)
+        self.post("/api/chat/config", {"tiktok": {"username": "", "api_key": ""}})
+
     def test_chat_secrets_not_exposed(self):
         self.post("/api/chat/config", {"youtube": {"client_id": "abc.apps.googleusercontent.com",
                                                    "client_secret": "rahasia1234"}})

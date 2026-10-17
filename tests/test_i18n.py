@@ -20,7 +20,7 @@ SAME = {
     "OAuth Redirect URLs", "Category", "Chat Bot", "Client Type", "Public", "Create", "Manage",
     "Google Cloud Console", "APIs & Services → Library", "YouTube Data API v3", "OAuth consent screen",
     "External", "Test users", "Credentials → Create credentials → OAuth client ID", "Desktop app", "Testing",
-    "TulusBot",
+    "TulusBot", "eulerstream.com", "Dashboard", "API key",
 }
 
 

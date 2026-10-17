@@ -31,7 +31,7 @@
   .dot.ok { background: var(--accent); box-shadow: 0 0 0 3px rgba(29,185,84,.18); }
   .dot.warn { background: var(--warn); } .dot.err { background: var(--err); }
   nav { display: flex; gap: 4px; margin-top: 12px; overflow-x: auto; scrollbar-width: none; }
-  nav button { background: none; border: 0; border-radius: 0; color: var(--muted); font: 600 13px Inter, sans-serif; padding: 10px 14px; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+  nav button { background: none; border: 0; border-radius: 0; color: var(--muted); font: 600 13px Inter, sans-serif; padding: 10px 11px; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
   nav button:hover { color: var(--fg); border-color: transparent; }
   nav button.active { color: var(--fg); border-bottom-color: var(--accent); }
 
@@ -174,6 +174,14 @@
   .cmd-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 8px; }
   .custom-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 8px; margin-bottom: 8px; }
   @media (max-width: 560px) { .cmd-row, .custom-row { grid-template-columns: minmax(0, 1fr); } }
+  /* ---------- request ---------- */
+  .rq { display: flex; gap: 12px; align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+  .rq .n { width: 22px; color: var(--accent); font-weight: 800; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+  .rq .t { flex: 1; min-width: 0; }
+  .rq .t b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rq .t span { color: var(--dim); font-size: 12px; }
+  .rq .acts { display: flex; gap: 4px; flex: 0 0 auto; }
+  .rq .acts button { padding: 6px 8px; }
   .pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
   .pager button:disabled { opacity: .4; cursor: default; }
   .lang { background: var(--panel2); border: 1px solid var(--line); color: var(--muted); border-radius: 99px; padding: 4px 8px; font: 600 12px Inter, sans-serif; width: auto; }
@@ -213,6 +221,9 @@
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
   <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
   <symbol id="i-message" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol>
+  <symbol id="i-list-music" viewBox="0 0 24 24"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+  <symbol id="i-done" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
 </svg>
 <header>
   <div class="bar">
@@ -229,6 +240,7 @@
       <button data-tab="source"><svg class="i"><use href="#i-plug"/></svg>Sumber Musik</button>
       <button data-tab="files"><svg class="i"><use href="#i-file"/></svg>File Teks</button>
       <button data-tab="chat"><svg class="i"><use href="#i-message"/></svg>Chatbot</button>
+      <button data-tab="requests"><svg class="i"><use href="#i-list-music"/></svg>Request</button>
       <button data-tab="history"><svg class="i"><use href="#i-history"/></svg>Riwayat</button>
       <button data-tab="app"><svg class="i"><use href="#i-settings"/></svg>Aplikasi</button>
     </nav>
@@ -713,9 +725,26 @@
         </details>
       </div>
 
-      <div class="panel">
-        <div class="p-head"><h3>TikTok</h3></div>
-        <p class="muted" style="margin:0">TikTok belum menyediakan cara resmi bagi aplikasi untuk membaca atau membalas chat TikTok LIVE, jadi bot belum bisa dipakai di sana. Penonton TikTok tetap bisa melihat lagu yang sedang diputar lewat kartu Now Playing di layar.</p>
+      <div class="panel" id="tt-box">
+        <div class="p-head"><h3>TikTok</h3><label class="check" style="padding:0"><input type="checkbox" id="tt-enabled"> Aktif</label></div>
+        <div class="p-status"><span class="dot" id="tt-dot"></span><span id="tt-status"></span></div>
+        <p class="muted small" style="margin:0 0 12px">Hanya mendengarkan: request lagu dari chat TikTok masuk ke antrian, tapi bot tidak membalas di chat TikTok, karena TikTok tidak menyediakan cara resmi untuk itu. Perintah lain seperti <code>!song</code> tidak berlaku di TikTok.</p>
+        <div class="field">
+          <input type="text" class="mono" id="tt-user" placeholder="Username TikTok (tanpa @)" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field">
+          <input type="password" class="mono" id="tt-key" placeholder="API key Euler Stream" autocomplete="off" spellcheck="false">
+          <div class="muted small" id="tt-key-saved" style="margin-top:6px"></div>
+        </div>
+        <button class="primary" id="tt-save">Simpan</button>
+        <details id="tt-setup" style="margin-top:14px">
+          <summary>API key Euler Stream (gratis, cukup sekali)</summary>
+          <ol class="how">
+            <li>Daftar di <a href="https://www.eulerstream.com/register" target="_blank" rel="noopener">eulerstream.com</a>. Gratis, tanpa kartu kredit.</li>
+            <li>Buka <b>Dashboard</b>, buat <b>API key</b> baru, lalu salin ke kolom di atas.</li>
+          </ol>
+          <p class="muted small" style="margin:10px 0 0">Euler Stream adalah layanan pihak ketiga yang menyambungkan aplikasi ke chat TikTok LIVE. Username TikTok dan API key-mu dikirim ke sana. Saat kamu belum live, aplikasi mengecek ulang setiap 3 menit.</p>
+        </details>
       </div>
     </div>
 
@@ -733,6 +762,47 @@
         <li>Nightbot dan bot cloud lain <b>tidak bisa</b> memakai URL ini, karena hanya bisa diakses dari PC ini.</li>
       </ol>
     </div>
+    </div>
+  </section>
+
+  <!-- ======================= REQUEST ======================= -->
+  <section class="page" id="page-requests">
+    <h2 class="page-title">Request Lagu</h2>
+    <p class="page-sub">Penonton mengetik <code id="rq-example">!request judul lagu</code> di chat Twitch, YouTube, atau TikTok, lalu request-nya masuk ke antrian ini. Request otomatis hilang dari antrian saat lagunya kamu putar.</p>
+
+    <div class="editor">
+      <div>
+        <div class="panel">
+          <div class="p-head"><h3>Antrian</h3><button class="danger sm" id="rq-clear" hidden><svg class="i"><use href="#i-trash"/></svg> Hapus semua</button></div>
+          <div id="rq-list"></div>
+        </div>
+        <div class="panel">
+          <h3>Pengaturan</h3>
+          <label class="check"><input type="checkbox" id="rq-enabled"> Terima request lagu</label>
+          <div class="field" style="margin-top:12px">
+            <span class="label">Perintah</span>
+            <input type="text" class="mono" id="rq-cmd" style="max-width:200px" spellcheck="false">
+          </div>
+          <div class="slider"><span>Per orang</span><input type="range" id="rq-max-user" min="0" max="10" step="1"><span class="numwrap"><input type="number" class="num" id="rq-max-user-v" data-range="rq-max-user">lagu</span></div>
+          <div class="slider"><span>Maksimal</span><input type="range" id="rq-max-total" min="0" max="200" step="1"><span class="numwrap"><input type="number" class="num" id="rq-max-total-v" data-range="rq-max-total">lagu</span></div>
+          <p class="muted small" style="margin:0 0 14px">Isi 0 untuk tanpa batas. Penonton Twitch dan YouTube mendapat balasan di chat. Penonton TikTok tidak mendapat balasan, tapi bisa melihat request-nya di overlay.</p>
+          <button class="primary" id="rq-save">Simpan</button>
+          <p class="muted small" style="margin:12px 0 0">Request dibaca dari platform yang aktif di tab <a href="#chat">Chatbot</a>.</p>
+        </div>
+      </div>
+      <div class="sticky">
+        <div class="preview" id="rq-preview-box"><span class="tag">preview</span><iframe id="rq-frame" title="Preview request"></iframe></div>
+        <div class="obs">
+          <h3><svg class="i"><use href="#i-plus"/></svg> Tambahkan ke OBS</h3>
+          <div class="row">
+            <input type="text" class="mono" id="rq-url" readonly>
+            <button class="primary" data-copy="rq-url">Salin</button>
+          </div>
+          <div class="size">Ukuran Browser Source: <span>Width <b>440</b></span><span>Height <b>380</b></span><span>(boleh diubah)</span></div>
+          <a class="drag" id="rq-drag" draggable="true"><svg class="i"><use href="#i-grip"/></svg> <b>Atau seret kotak ini ke jendela preview OBS</b></a>
+          <p class="muted small" style="margin:10px 0 0">Opsi URL: <code>?count=5</code> jumlah yang ditampilkan, <code>?hideEmpty=1</code> sembunyikan saat kosong, <code>?hint=0</code> tanpa petunjuk perintah.</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -826,6 +896,7 @@ function showTab(name) {
   if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
   if (name === "history") loadHistory(historyDate);
   if (name === "chat") loadChat();
+  if (name === "requests") loadRequests();
   requestAnimationFrame(fitPreviews);
 }
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
@@ -865,6 +936,7 @@ function fitPreviews() {
   const box = cardBox(o);
   fitPreview($("card-preview"), $("card-frame"), box.w, box.h);
   fitPreview($("ly-preview-box"), $("ly-frame"), 800, 340);
+  fitPreview($("rq-preview-box"), $("rq-frame"), 440, 380);
 }
 window.addEventListener("resize", fitPreviews);
 
@@ -1234,6 +1306,7 @@ function fillChat(c) {
   c.custom.forEach(addCustomRow);
   if (c.twitch.channel_setting) $("tw-bot").open = true;
   $("yt-cid").value = c.youtube.client_id;
+  $("tt-user").value = c.tiktok.username;
 }
 function addCustomRow(c = {}) {
   const row = document.createElement("div");
@@ -1298,6 +1371,19 @@ function renderChat(c) {
   $("yt-bot-login").hidden = yt.bot_login;
   $("yt-bot-logout").hidden = !yt.bot_login;
   if (yt.bot_login && !$("yt-bot").dataset.auto) { $("yt-bot").open = true; $("yt-bot").dataset.auto = "1"; }
+  const tt = c.tiktok;
+  $("tt-enabled").checked = tt.enabled;
+  const ttText = {
+    off: t("Mati. Centang Aktif untuk mendengarkan request dari TikTok."),
+    setup: t("Isi username TikTok dan API key Euler Stream dulu."),
+    waiting: t("Menunggu @{user} live… (dicek setiap 3 menit)", { user: tt.username }),
+    connected: t("Mendengarkan chat live @{user}", { user: tt.username }),
+    error: t(tt.error),
+  }[tt.state] || "";
+  $("tt-status").textContent = ttText;
+  $("tt-dot").className = "dot " + ({ connected: "ok", waiting: "warn", error: "err" }[tt.state] || "");
+  $("tt-key-saved").textContent = tt.has_key ? t("API key tersimpan: {hint}", { hint: tt.key_hint }) : "";
+  if (!tt.has_key && !$("tt-setup").dataset.auto) { $("tt-setup").open = true; $("tt-setup").dataset.auto = "1"; }
   $("yt-secret-saved").textContent = yt.has_secret ? t("Secret tersimpan: {hint}", { hint: yt.secret_hint }) : "";
   if (!(yt.client_id && yt.has_secret) && !$("yt-setup").dataset.auto) { $("yt-setup").open = true; $("yt-setup").dataset.auto = "1"; }
 }
@@ -1342,12 +1428,70 @@ $("yt-login").addEventListener("click", async e => {
 });
 $("tw-channel-save").onclick = () => chatAction("config", { twitch: { channel: $("tw-channel").value } }, "Tersimpan");
 $("yt-bot-logout").onclick = () => chatAction("youtube/logout-bot", {}, "Akun bot YouTube dilepas");
+$("tt-enabled").onchange = () => chatAction("config", { tiktok: { enabled: $("tt-enabled").checked } });
+$("tt-save").onclick = async () => {
+  const body = { username: $("tt-user").value };
+  if ($("tt-key").value.trim()) body.api_key = $("tt-key").value.trim();
+  if (await chatAction("config", { tiktok: body }, "Tersimpan")) $("tt-key").value = "";
+};
 $("yt-logout").onclick = () => chatAction("youtube/logout", {}, "Logout YouTube berhasil");
 $("yt-save").onclick = async () => {
   const body = { client_id: $("yt-cid").value };
   if ($("yt-secret").value.trim()) body.client_secret = $("yt-secret").value.trim();
   if (await chatAction("config", { youtube: body }, "Tersimpan")) $("yt-secret").value = "";
 };
+
+// ---------------------------------------------------------- request --
+
+const PLATFORM_NAMES = { twitch: "Twitch", youtube: "YouTube", tiktok: "TikTok" };
+let rqLoaded = false;
+async function loadRequests() {
+  try {
+    const [r, c] = await Promise.all([api("/api/requests"), api("/api/chat")]);
+    if (!rqLoaded) {
+      rqLoaded = true;
+      $("rq-enabled").checked = c.request_enabled;
+      $("rq-cmd").value = c.request_cmd;
+      $("rq-max-user").value = c.request_max_user; setNum("rq-max-user-v", c.request_max_user);
+      $("rq-max-total").value = c.request_max_total; setNum("rq-max-total-v", c.request_max_total);
+      $("rq-frame").src = "/requests";
+      makeDrag($("rq-drag"), $("rq-url").value, "Song Requests", 440, 380);
+      fitPreview($("rq-preview-box"), $("rq-frame"), 440, 380);
+    }
+    $("rq-example").textContent = (r.cmd || "!request") + " " + t("judul lagu");
+    renderRequests(r.items);
+  } catch (e) { toast(e.message, true); }
+}
+function renderRequests(items) {
+  const list = $("rq-list");
+  list.innerHTML = items.length ? "" : `<p class="muted" style="margin:0">${t("Belum ada request.")}</p>`;
+  $("rq-clear").hidden = !items.length;
+  items.forEach((it, n) => {
+    const row = document.createElement("div");
+    row.className = "rq";
+    row.innerHTML = `<span class="n">${n + 1}</span><div class="t"><b></b><span></span></div><div class="acts">` +
+      `<button class="ghost" data-a="up"><svg class="i"><use href="#i-up"/></svg></button>` +
+      `<button class="ghost" data-a="done"><svg class="i"><use href="#i-done"/></svg></button></div>`;
+    row.querySelector("b").textContent = it.text;
+    row.querySelector(".t span").textContent = [it.user, PLATFORM_NAMES[it.platform] || it.platform,
+      new Date(it.time * 1000).toLocaleTimeString(LANG === "en" ? "en-GB" : "id-ID", { hour: "2-digit", minute: "2-digit" }).replace(".", ":")].join(" · ");
+    const [up, done] = row.querySelectorAll("button");
+    up.title = t("Naikkan"); done.title = t("Selesai diputar");
+    up.disabled = n === 0;
+    up.onclick = async () => renderRequests((await api("/api/requests/move", { id: it.id, delta: -1 })).items);
+    done.onclick = async () => renderRequests((await api("/api/requests/remove", { id: it.id })).items);
+    list.appendChild(row);
+  });
+}
+$("rq-clear").onclick = async () => {
+  if (!confirm(t("Hapus semua request di antrian?"))) return;
+  renderRequests((await api("/api/requests/clear", {})).items);
+};
+$("rq-save").onclick = () => chatAction("config", {
+  request_enabled: $("rq-enabled").checked, request_cmd: $("rq-cmd").value,
+  request_max_user: +$("rq-max-user").value, request_max_total: +$("rq-max-total").value,
+}, "Tersimpan").then(loadRequests);
+["rq-max-user", "rq-max-total"].forEach(id => $(id).addEventListener("input", () => setNum(id + "-v", $(id).value)));
 
 // ---------------------------------------------------------- riwayat --
 
@@ -1446,6 +1590,7 @@ function renderConfig(c) {
   setCardUrl();
   $("lyrics-url").value = base + "/lyrics";
   $("now-txt-url").value = base + "/api/now.txt";
+  $("rq-url").value = base + "/requests";
   $("datadir").value = c.data_dir;
   $("redirect").value = c.redirect_uri;
   $("outdir").value = c.output_dir;
@@ -1539,6 +1684,7 @@ async function refresh() {
     renderStatus(c, now);
     renderLyricsStatus(ly);
     if ($("page-chat").classList.contains("active")) loadChat();
+    if ($("page-requests").classList.contains("active")) loadRequests();
   } catch {
     $("pill-dot").className = "dot err";
     $("pill-text").textContent = t("Aplikasi tidak berjalan");

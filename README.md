@@ -34,6 +34,7 @@ Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 - **Overlay lirik**: tampil seperti di Spotify, dengan latar mengikuti warna cover lagu. Liriknya dari [LRCLIB](https://lrclib.net), tersimpan di PC supaya tetap ada walaupun LRCLIB sedang down
 - **Bukan cuma Spotify**: opsional, bisa juga membaca YouTube Music, Apple Music, TIDAL, dan player lain di PC yang sama
 - **Chatbot bawaan**: penonton mengetik `!song` di chat Twitch atau YouTube, bot membalas judul lagunya
+- **Request lagu dari penonton** lewat chat Twitch, YouTube, dan TikTok, dengan antrian dan overlay OBS
 - **File teks dan cover** untuk OBS Text/Image source
 - **Riwayat lagu** per hari, bisa di-download sebagai `.txt` untuk deskripsi VOD
 - **Berjalan di system tray**, tanpa jendela console. Pengaturan lewat browser, dalam bahasa Indonesia atau Inggris
@@ -193,13 +194,22 @@ Balasan bisa dikirim atas nama **akun bot terpisah** (misalnya TulusBot). Untuk 
 |---|---|
 | **Twitch** | Sekali saja: buat aplikasi di [Twitch Developer Console](https://dev.twitch.tv/console/apps/create) (Category *Chat Bot*, Client Type *Public*), lalu tempel Client ID-nya. Setelah itu klik **Hubungkan Twitch** dan masukkan kode yang muncul di `twitch.tv/activate`. |
 | **YouTube** | Sekali saja: buat project di Google Cloud, aktifkan *YouTube Data API v3*, buat OAuth client tipe *Desktop app*, lalu tempel Client ID dan Client Secret-nya. Setelah itu klik **Login dengan Google**. Bot mulai membaca chat otomatis saat kamu live. Karena kuota API gratis terbatas, chat dibaca setiap 10 detik. Selama aplikasi Google masih berstatus *Testing*, login perlu diulang seminggu sekali. |
-| **TikTok** | Belum bisa. TikTok tidak menyediakan cara resmi bagi aplikasi untuk membaca atau membalas chat TikTok LIVE. Penonton TikTok tetap bisa melihat lagu lewat kartu Now Playing di layar. |
+| **TikTok** | Hanya listener, untuk request lagu (lihat di bawah). Bot tidak bisa membalas di chat TikTok, karena TikTok tidak menyediakan cara resmi untuk itu. |
 
 Langkah lengkapnya ada di tab **Chatbot**.
 
 **Sudah pakai chatbot lain?** `http://127.0.0.1:8765/api/now.txt` berisi teks lagu yang sedang diputar, dengan format yang sama seperti `nowplaying.txt`. Formatnya bisa diganti lewat URL, misalnya `?format={title} oleh {artist}`.
 
 Pakai di chatbot yang berjalan di PC yang sama. Contoh di **Streamer.bot**: buat Command `!song`, tambahkan sub-action **Core → Network → Fetch URL** dengan URL di atas, lalu kirim hasilnya lewat **Twitch → Send Message**. Nightbot dan bot cloud lain tidak bisa memakainya, karena URL ini hanya bisa diakses dari PC-mu.
+
+### Request lagu dari penonton
+
+Penonton mengetik `!request judul lagu` di chat, misalnya `!request Tulus - Pamit`. Request masuk ke antrian di tab **Request**, lalu kamu memutarnya sendiri di Spotify. Request otomatis hilang dari antrian saat lagunya diputar, atau bisa ditandai selesai secara manual.
+
+- **Twitch dan YouTube**: request dibaca lewat chatbot, dan penonton mendapat balasan di chat, misalnya `@budi request masuk: Tulus - Pamit (antrian ke-3)`.
+- **TikTok**: request dibaca lewat listener, tanpa balasan di chat. Butuh API key gratis dari [Euler Stream](https://www.eulerstream.com), layanan pihak ketiga yang menyambungkan aplikasi ke chat TikTok LIVE. Isi username TikTok dan API key-nya di tab **Chatbot**.
+- **Overlay OBS** `http://127.0.0.1:8765/requests` (440 × 380) menampilkan antrian di stream, supaya penonton, termasuk dari TikTok, tahu request-nya masuk.
+- Perintah, batas request per penonton, dan panjang antrian bisa diatur.
 
 ### Riwayat lagu
 
@@ -265,12 +275,14 @@ spotify_now_playing/
   chatbot.py      perintah chat (!song, !lastsong), cooldown, template balasan
   chat_twitch.py  chat Twitch (IRC) dan login Device Code
   chat_youtube.py chat live YouTube (Data API) dan login Google
+  chat_tiktok.py  listener chat TikTok LIVE (Euler Stream, WebSocket + protobuf)
+  song_requests.py antrian request lagu
   server.py       web server lokal dan API JSON
   updates.py      cek versi baru (opt-in)
   startup.py      jalankan saat Windows menyala
   config.py       lokasi file dan penyimpanan config
   i18n.py         teks tray dan dialog (Indonesia / Inggris)
-  web/            overlay.html, lyrics.html, settings.html, i18n.js (terjemahan), font Inter
+  web/            overlay.html, lyrics.html, requests.html, settings.html, i18n.js (terjemahan), font Inter
 tests/            unit test
 installer.iss     script Inno Setup
 build.ps1         test, build PyInstaller, dan installer
@@ -285,6 +297,7 @@ Aplikasi ini tidak mengirim data apa pun ke luar kecuali untuk fitur yang kamu p
 - **Lirik**: judul, artis, album, dan durasi lagu dikirim ke [LRCLIB](https://lrclib.net) untuk mencari liriknya.
 - **Mode Akun Spotify**: hanya kalau kamu mengisi Client ID dan login. Aplikasi lalu terhubung ke server Spotify untuk membaca lagu yang sedang diputar.
 - **Chatbot**: hanya kalau kamu menyalakannya dan login ke Twitch atau YouTube. Bot membaca chat channel-mu sendiri dan membalas perintah.
+- **Listener TikTok**: hanya kalau kamu menyalakannya. Username TikTok dan API key-mu dikirim ke Euler Stream untuk membaca chat live-mu.
 - **Notifikasi versi baru**: mati secara default. Kalau dinyalakan di tab **Aplikasi**, aplikasi mengecek halaman rilis GitHub sehari sekali.
 
 Riwayat lagu hanya disimpan di PC ini. Tidak ada telemetri atau analitik. Font sudah disertakan di aplikasi, jadi overlay tidak memuat apa pun dari Google Fonts. Web server lokal hanya bisa diakses dari PC ini (`127.0.0.1`). Detail lengkapnya ada di [Code signing policy](docs/CODE_SIGNING_POLICY.md#privacy-policy).

@@ -43,7 +43,7 @@ class NowPlayingApp:
         self.updates = UpdateChecker(config)
         self.history = History(DATA_DIR / "history")
         from .chatbot import ChatBot  # import di sini: chatbot memakai app.snapshot / app.history
-        self.chat = ChatBot(self)
+        self.chat = ChatBot(self, DATA_DIR)
         self.console = False  # True: tampilkan status di console (--console)
         self.lock = threading.Lock()
         self.state = {
@@ -138,6 +138,9 @@ class NowPlayingApp:
             with self.lock:
                 self.state["cover_version"] += 1
             self._last_id = info["id"]
+            done = self.chat.requests.match_playing(info["title"], info["artist"])
+            if done:
+                log.info("request terpenuhi: %s (oleh %s)", done["text"], done["user"])
             self.lyrics.track_changed(info["id"], info["title"], info["artist"],
                                       info["album"], info["duration"])
         with self.lock:

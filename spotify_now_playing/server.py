@@ -16,6 +16,7 @@ PAGES = {
     "/": "overlay.html", "/overlay": "overlay.html", "/overlay.html": "overlay.html",
     "/settings": "settings.html", "/settings.html": "settings.html",
     "/lyrics": "lyrics.html", "/lyrics.html": "lyrics.html",
+    "/requests": "requests.html", "/requests.html": "requests.html",
 }
 STATIC = re.compile(r"^/static/((?:fonts/)?[\w.-]+\.(js|css|woff2|txt))$")
 STATIC_TYPES = {"js": "text/javascript; charset=utf-8", "css": "text/css; charset=utf-8",
@@ -132,6 +133,12 @@ def make_handler(app, port):
                     self._send(404, b"", "text/plain")
             elif path == "/api/config":
                 self._json(public_config())
+            elif path == "/api/requests":
+                s = app.chat.settings()
+                self._send(200, json.dumps({
+                    "items": app.chat.requests.list(), "enabled": bool(s.get("request_enabled")),
+                    "cmd": s.get("request_cmd", ""), "lang": i18n.lang(app.cfg),
+                }).encode(), "application/json", {"Access-Control-Allow-Origin": "*"})
             elif path == "/api/chat":
                 self._json(app.chat.status())
             elif path == "/youtube/login":
@@ -187,6 +194,25 @@ def make_handler(app, port):
 
             if self.path.startswith("/api/lyrics/"):
                 self._lyrics_action(self.path[len("/api/lyrics/"):], body)
+                return
+            if self.path.startswith("/api/requests/"):
+                queue = app.chat.requests
+                action = self.path[len("/api/requests/"):]
+                try:
+                    item_id = int(body.get("id") or 0)
+                except (TypeError, ValueError):
+                    item_id = 0
+                if action == "remove":
+                    queue.remove(item_id)
+                elif action == "move":
+                    delta = body.get("delta")
+                    queue.move(item_id, -1 if isinstance(delta, (int, float)) and delta < 0 else 1)
+                elif action == "clear":
+                    queue.clear()
+                else:
+                    self._json({"error": "not found"}, 404)
+                    return
+                self._json({"items": queue.list()})
                 return
             if self.path.startswith("/api/chat/"):
                 self._chat_action(self.path[len("/api/chat/"):], body)
@@ -255,8 +281,9 @@ def make_handler(app, port):
                     if err:
                         raise ValueError(err)
                 elif action == "test":
-                    kind = chat.command_kind(str(body.get("text") or ""))
-                    self._json({"reply": chat.answer(kind, str(body.get("user") or "kamu")) if kind else None})
+                    text = str(body.get("text") or "")
+                    kind = chat.command_kind(text)
+                    self._json({"reply": chat.answer(kind, str(body.get("user") or "kamu"), text) if kind else None})
                     return
                 elif action == "twitch/login":
                     chat.twitch.begin_login()
@@ -291,6 +318,19 @@ def make_handler(app, port):
             for key in ("song_reply", "last_reply", "none_reply"):
                 if key in body:
                     cur[key] = str(body[key] or "").strip()[:200]
+            if "request_enabled" in body:
+                cur["request_enabled"] = bool(body["request_enabled"])
+            if "request_cmd" in body:
+                cmd = str(body["request_cmd"] or "").strip()
+                if cmd and not CHAT_COMMAND.match(cmd):
+                    return "Perintah harus satu kata tanpa spasi, maksimal 30 karakter"
+                cur["request_cmd"] = cmd
+            for key, top in (("request_max_user", 20), ("request_max_total", 200)):
+                if key in body:
+                    try:
+                        cur[key] = max(0, min(top, int(body[key])))
+                    except (TypeError, ValueError):
+                        return "Batas request harus angka"
             if isinstance(body.get("custom"), list):
                 custom, seen = [], {cur.get("song_cmd", "!song").lower(), cur.get("last_cmd", "!lastsong").lower()}
                 for c in body["custom"][:31]:
@@ -347,9 +387,23 @@ def make_handler(app, port):
                 if "client_secret" in b:
                     cfg.update(youtube_client_secret=str(b["client_secret"] or "").strip()[:200] or None)
                 cur["youtube"] = yt
+            if isinstance(body.get("tiktok"), dict):
+                tt = {**(cur.get("tiktok") or {})}
+                b = body["tiktok"]
+                if "enabled" in b:
+                    tt["enabled"] = bool(b["enabled"])
+                if "username" in b:
+                    name = str(b["username"] or "").strip().lstrip("@").lower()
+                    if name and not re.match(r"^[a-z0-9_.]{2,24}$", name):
+                        return "Username TikTok tidak valid"
+                    tt["username"] = name
+                if "api_key" in b:
+                    cfg.update(tiktok_api_key=str(b["api_key"] or "").strip()[:300] or None)
+                cur["tiktok"] = tt
             cfg.update(chat=cur)
             app.chat.twitch.restart()
             app.chat.youtube.restart()
+            app.chat.tiktok.restart()
             return None
 
         def _save_config(self, body):

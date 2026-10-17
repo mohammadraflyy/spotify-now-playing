@@ -46,6 +46,7 @@ Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 1. Download installer terbaru dari halaman **[Releases](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)**: file `SpotifyNowPlaying-Setup-x.y.z.exe` di bagian *Assets*. Lalu jalankan.
    - Kalau muncul peringatan Windows SmartScreen, klik **More info → Run anyway**.
    - Installer tidak butuh admin. Centang **Jalankan otomatis saat Windows menyala** kalau mau aplikasinya selalu siap.
+   - Atau lewat winget (menunggu persetujuan Microsoft): `winget install mohammadrafly.SpotifyNowPlaying`
 2. Buka **Spotify Now Playing** dari Start Menu atau desktop. Aplikasinya berjalan di **system tray** (ikon hijau di pojok kanan bawah taskbar, mungkin tersembunyi di balik tanda panah `^`).
    - **Klik** ikonnya untuk membuka halaman pengaturan.
    - **Klik kanan** untuk menu: buka folder file teks, jalankan saat Windows menyala, dan keluar.

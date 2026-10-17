@@ -21,6 +21,7 @@ Shows the song you're playing on Spotify, with synced lyrics, as overlays in OBS
 
 1. Download `SpotifyNowPlaying-Setup-x.y.z.exe` from **[Releases](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** and run it. No admin rights needed.
    - If Windows SmartScreen shows a warning, click **More info → Run anyway**.
+   - Or with winget (pending Microsoft's review): `winget install mohammadrafly.SpotifyNowPlaying`
 2. Open **Spotify Now Playing** from the Start Menu. It runs in the **system tray** (bottom right of the taskbar). Click the icon to open the settings, right-click for the menu.
 3. The settings page opens on first run. Switch the language with **ID / EN** in the top right.
 4. Play a song in Spotify Desktop, then follow the **3 steps** on the Home tab. Each step has a **Copy URL** button to paste into OBS.

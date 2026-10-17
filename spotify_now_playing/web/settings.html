@@ -3,317 +3,483 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Spotify OBS — Pengaturan</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+<title>Spotify Now Playing — Pengaturan</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f0f10; --panel: #18181b; --line: #2a2a2e; --fg: #f4f4f5; --muted: #a1a1aa;
+    --bg: #0e0e10; --panel: #17171a; --panel2: #1e1e22; --line: #2a2a2f; --fg: #f4f4f5; --muted: #a1a1aa; --dim: #71717a;
     --accent: #1db954; --accent-fg: #04210f; --warn: #f59e0b; --err: #ef4444;
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
   body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 Inter, "Segoe UI", sans-serif; }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 32px 16px 64px; }
-  header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-  header .logo { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; color: var(--accent-fg); font-weight: 800; }
-  header h1 { font-size: 20px; margin: 0; }
-  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  a { color: var(--accent); }
+  code { font: 12px ui-monospace, Consolas, monospace; background: #0b0b0c; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--line); }
 
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
-  .panel.full { grid-column: 1 / -1; }
-  .panel h2 { font-size: 15px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
-  .panel .sub { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
-  .step { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--line); font-size: 12px; }
+  /* ---------- header & tab ---------- */
+  header { position: sticky; top: 0; z-index: 5; background: rgba(14,14,16,.92); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .bar { max-width: 1080px; margin: 0 auto; padding: 14px 16px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .logo { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; color: var(--accent-fg); font-weight: 800; }
+  .brand h1 { font-size: 16px; margin: 0; flex: 1; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 99px; background: var(--panel2); border: 1px solid var(--line); font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); flex: 0 0 auto; }
+  .dot.ok { background: var(--accent); box-shadow: 0 0 0 3px rgba(29,185,84,.18); }
+  .dot.warn { background: var(--warn); } .dot.err { background: var(--err); }
+  nav { display: flex; gap: 4px; margin-top: 12px; overflow-x: auto; scrollbar-width: none; }
+  nav button { background: none; border: 0; border-radius: 0; color: var(--muted); font: 600 13px Inter, sans-serif; padding: 10px 14px; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+  nav button:hover { color: var(--fg); border-color: transparent; }
+  nav button.active { color: var(--fg); border-bottom-color: var(--accent); }
 
-  label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 12px 0 6px; text-transform: uppercase; letter-spacing: .04em; }
-  input[type=text], input[type=password] {
-    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line);
-    background: #0c0c0d; color: var(--fg); font: 13px ui-monospace, Consolas, monospace;
-  }
-  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
-  .row { display: flex; gap: 8px; align-items: center; }
-  .row > input { flex: 1; }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 64px; }
+  .page { display: none; } .page.active { display: block; }
+  .page-title { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
+  .page-sub { color: var(--muted); margin: 0 0 20px; }
 
-  button, .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line);
-    background: transparent; color: var(--fg); font: 600 13px Inter, sans-serif; cursor: pointer; text-decoration: none; white-space: nowrap;
-  }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+  .panel h3 { margin: 0 0 12px; font-size: 14px; }
+  .muted { color: var(--muted); } .small { font-size: 12px; }
+
+  /* ---------- tombol & input ---------- */
+  button, .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 16px; border-radius: 99px;
+    border: 1px solid var(--line); background: var(--panel2); color: var(--fg); font: 600 13px Inter, sans-serif; cursor: pointer; text-decoration: none; white-space: nowrap; }
   button:hover, .btn:hover { border-color: var(--muted); }
   .primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
-  .primary:hover { filter: brightness(1.1); border-color: var(--accent); }
-  .danger { color: var(--err); }
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .primary:hover { filter: brightness(1.08); border-color: var(--accent); }
+  .ghost { background: transparent; }
+  .danger { color: var(--err); background: transparent; }
+  .sm { padding: 6px 12px; font-size: 12px; }
+  input[type=text], input[type=password], select {
+    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: #0b0b0c; color: var(--fg); font: 13px Inter, sans-serif; }
+  input.mono { font-family: ui-monospace, Consolas, monospace; }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  input[type=range] { accent-color: var(--accent); flex: 1; min-width: 80px; }
+  input[type=color] { width: 40px; height: 32px; border: 1px solid var(--line); border-radius: 8px; background: none; padding: 2px; cursor: pointer; }
+  input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row > input[type=text], .row > input[type=password] { flex: 1; }
 
-  .status { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 10px; background: #0c0c0d; border: 1px solid var(--line); }
-  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: 0 0 auto; }
-  .dot.ok { background: var(--accent); box-shadow: 0 0 0 4px rgba(29,185,84,.15); }
-  .dot.warn { background: var(--warn); }
-  .dot.err { background: var(--err); }
-  .status b { display: block; }
-  .status span { color: var(--muted); font-size: 13px; word-break: break-word; }
+  .field { margin-bottom: 18px; }
+  .field > .label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+  .slider { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .slider > span:first-child { width: 64px; color: var(--muted); font-size: 13px; flex: 0 0 auto; }
+  .numwrap { display: inline-flex; align-items: center; gap: 4px; color: var(--dim); font-size: 12px; }
+  input.num { width: 70px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: #0b0b0c; color: var(--fg); font: 12px ui-monospace, Consolas, monospace; text-align: right; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { padding: 7px 14px; font-size: 12px; }
+  .chips button.on { border-color: var(--accent); color: var(--accent); background: rgba(29,185,84,.08); }
+  .check { display: flex; align-items: center; gap: 10px; padding: 6px 0; cursor: pointer; }
 
-  .np { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
-  .np img { width: 52px; height: 52px; border-radius: 6px; background: #222; object-fit: cover; }
-  .np .t { font-weight: 600; } .np .a { color: var(--muted); font-size: 13px; }
-
-  .seg { display: flex; flex-wrap: wrap; gap: 6px; }
-  .seg label { margin: 0; text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 500; color: var(--fg);
-    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; flex: 1 1 140px; }
+  /* pilihan bersegmen */
+  .seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; }
+  .seg label { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; font-size: 13px; font-weight: 600; background: #0b0b0c; }
+  .seg label small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
   .seg input { display: none; }
   .seg label:has(input:checked) { border-color: var(--accent); background: rgba(29,185,84,.08); }
-  .seg small { display: block; color: var(--muted); font-size: 12px; }
-  .seg label.disabled { opacity: .45; cursor: not-allowed; }
 
-  .opts { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin: 4px 0 12px; }
-  .opts label { margin: 0; display: flex; align-items: center; gap: 8px; text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--fg); font-weight: 500; }
-  select { padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: #0c0c0d; color: var(--fg); font: 13px Inter, sans-serif; }
-  input[type=range] { accent-color: var(--accent); width: 120px; }
-  input[type=color] { width: 34px; height: 26px; border: 1px solid var(--line); border-radius: 6px; background: none; padding: 0; }
+  /* ---------- beranda ---------- */
+  .hero { display: flex; gap: 20px; align-items: center; }
+  .hero img { width: 112px; height: 112px; border-radius: 10px; object-fit: cover; background: var(--panel2); flex: 0 0 auto; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+  .hero .kicker { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  .hero .t { font-size: 24px; font-weight: 800; line-height: 1.2; margin: 4px 0; }
+  .hero .a { color: var(--muted); }
+  .empty { display: flex; gap: 16px; align-items: center; }
+  .empty .big { font-size: 40px; }
 
-  .preview { border-radius: 12px; border: 1px solid var(--line); overflow: hidden; height: 150px;
-    background: repeating-conic-gradient(#1f1f23 0 25%, #151518 0 50%) 0 0 / 20px 20px; }
-  .preview iframe { width: 100%; height: 100%; border: 0; }
+  .steps { display: grid; gap: 12px; }
+  .step { display: flex; gap: 16px; align-items: flex-start; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+  .step .num { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: var(--panel2); border: 1px solid var(--line); color: var(--muted); }
+  .step.done .num { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .step .body { flex: 1; min-width: 0; }
+  .step h4 { margin: 3px 0 4px; font-size: 15px; }
+  .step p { margin: 0 0 12px; color: var(--muted); }
+  .step p b { color: var(--fg); }
+  .step .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .opt { font-size: 11px; font-weight: 600; color: var(--dim); border: 1px solid var(--line); border-radius: 99px; padding: 1px 8px; margin-left: 6px; vertical-align: 2px; }
 
-  .numwrap { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 12px; }
-  input.num { width: 64px; padding: 5px 6px; border-radius: 6px; border: 1px solid var(--line); background: #0c0c0d;
-    color: var(--fg); font: 12px ui-monospace, Consolas, monospace; text-align: right; }
-  input.num:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
-  .presets { display: flex; gap: 6px; flex-wrap: wrap; }
-  .presets button { padding: 6px 12px; font-size: 12px; }
-  .drag { display: flex; align-items: center; gap: 12px; padding: 14px; border: 2px dashed var(--accent); border-radius: 12px; margin-top: 12px; cursor: grab; text-decoration: none; color: var(--fg); }
-  .drag:active { cursor: grabbing; }
-  .drag b { display: block; }
-  .drag span { color: var(--muted); font-size: 13px; }
+  details { margin-top: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 20px; }
+  summary { cursor: pointer; color: var(--muted); font-weight: 600; font-size: 13px; }
+  summary:hover { color: var(--fg); }
+  ol.how { margin: 10px 0 0; padding-left: 20px; color: var(--muted); }
+  ol.how li { margin: 6px 0; } ol.how b { color: var(--fg); }
 
-  ol { margin: 8px 0 0; padding-left: 20px; color: var(--muted); }
-  ol li { margin: 4px 0; } ol b, ol code { color: var(--fg); }
-  code { font: 12px ui-monospace, Consolas, monospace; background: #0c0c0d; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--line); }
-  a { color: var(--accent); }
+  .banner { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; margin-bottom: 16px; font-size: 13px; }
+  .banner.warn { background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.35); }
 
-  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--fg); color: var(--bg);
-    padding: 10px 18px; border-radius: 999px; font-weight: 600; transition: transform .25s; z-index: 10; }
+  /* ---------- editor (kontrol + preview) ---------- */
+  .editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 16px; align-items: start; }
+  .sticky { position: sticky; top: 118px; }
+  @media (max-width: 860px) { .editor { grid-template-columns: minmax(0, 1fr); } .sticky { position: static; } }
+  .preview { border-radius: 12px; border: 1px solid var(--line); overflow: hidden; position: relative;
+    background: repeating-conic-gradient(#1c1c20 0 25%, #141417 0 50%) 0 0 / 20px 20px; }
+  .preview iframe { border: 0; display: block; transform-origin: 0 0; background: transparent; }
+  .preview .placeholder { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px;
+    color: var(--muted); font-size: 13px; z-index: 1; background: rgba(14,14,16,.6); }
+  .preview .tag { position: absolute; top: 8px; right: 10px; font-size: 11px; color: var(--dim); z-index: 1; }
+
+  .obs { margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .obs h3 { margin: 0 0 12px; font-size: 14px; }
+  .size { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+  .size b { color: var(--fg); font-family: ui-monospace, Consolas, monospace; }
+  .drag { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; padding: 10px 12px; border: 1.5px dashed var(--accent); border-radius: 10px;
+    color: var(--fg); text-decoration: none; cursor: grab; font-size: 13px; }
+  .drag span { color: var(--muted); }
+
+  /* ---------- sumber musik ---------- */
+  .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .choice { position: relative; display: block; border: 1px solid var(--line); border-radius: 14px; padding: 18px; background: var(--panel); cursor: pointer; }
+  .choice input { position: absolute; opacity: 0; }
+  .choice:has(input:checked) { border-color: var(--accent); background: rgba(29,185,84,.06); }
+  .choice .ic { font-size: 22px; }
+  .choice b { display: block; margin: 6px 0 4px; font-size: 15px; }
+  .choice p { margin: 0; color: var(--muted); font-size: 13px; }
+  .badge { position: absolute; top: 14px; right: 14px; font-size: 11px; font-weight: 700; color: var(--accent-fg); background: var(--accent); border-radius: 99px; padding: 2px 8px; }
+  .choice.disabled { opacity: .45; cursor: not-allowed; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(90px); background: var(--fg); color: var(--bg);
+    padding: 10px 18px; border-radius: 99px; font-weight: 600; transition: transform .25s; z-index: 20; }
   .toast.show { transform: translateX(-50%) translateY(0); }
   .toast.err { background: var(--err); color: #fff; }
+  footer { text-align: center; color: var(--dim); font-size: 12px; padding: 24px 0; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="logo">♪</div>
-    <div>
-      <h1>Spotify Now Playing untuk OBS</h1>
-      <p>Pengaturan akun, sumber data, dan overlay</p>
+<header>
+  <div class="bar">
+    <div class="brand">
+      <div class="logo">♪</div>
+      <h1>Spotify Now Playing</h1>
+      <span class="pill"><span class="dot" id="pill-dot"></span><span id="pill-text">Memuat…</span></span>
     </div>
-  </header>
-
-  <div class="grid">
-    <!-- Status -->
-    <section class="panel full">
-      <h2>Status</h2>
-      <div class="status">
-        <div class="dot" id="st-dot"></div>
-        <div><b id="st-title">Memuat…</b><span id="st-msg"></span></div>
-      </div>
-      <div class="np" id="np" hidden>
-        <img id="np-cover" alt="">
-        <div><div class="t" id="np-title"></div><div class="a" id="np-artist"></div></div>
-      </div>
-    </section>
-
-    <!-- Spotify App -->
-    <section class="panel">
-      <h2><span class="step">1</span> Spotify App</h2>
-      <p class="sub">Buat app di <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">Spotify Developer Dashboard</a> (akun pemilik harus Premium).</p>
-
-      <label for="cid">Client ID</label>
-      <input type="text" id="cid" placeholder="32 karakter" autocomplete="off" spellcheck="false">
-
-      <label for="secret">Client Secret <span style="text-transform:none;font-weight:400">(opsional)</span></label>
-      <div class="row">
-        <input type="password" id="secret" placeholder="kosongkan = login PKCE tanpa secret" autocomplete="off" spellcheck="false">
-        <button type="button" id="toggle-secret" title="Tampilkan">👁</button>
-      </div>
-      <div id="secret-saved" style="color:var(--muted);font-size:12px;margin-top:6px"></div>
-
-      <label>Redirect URI (masukkan ke dashboard)</label>
-      <div class="row">
-        <input type="text" id="redirect" readonly>
-        <button type="button" data-copy="redirect">Copy</button>
-      </div>
-
-      <div class="actions">
-        <button class="primary" id="save">Simpan</button>
-        <button id="clear-secret" class="danger" hidden>Hapus secret</button>
-      </div>
-
-      <ol>
-        <li>Dashboard → <b>Create app</b> → centang <b>Web API</b></li>
-        <li>Isi <b>Redirect URI</b> persis seperti di atas → Save</li>
-        <li><b>Settings → User Management</b> → tambahkan email akun Spotify kamu</li>
-        <li>Copy <b>Client ID</b> (dan Secret bila mau) ke sini → Simpan</li>
-      </ol>
-    </section>
-
-    <!-- Akun -->
-    <section class="panel">
-      <h2><span class="step">2</span> Akun &amp; Sumber Data</h2>
-      <p class="sub">Login sekali, token tersimpan otomatis.</p>
-
-      <div class="status">
-        <div class="dot" id="acc-dot"></div>
-        <div><b id="acc-title">Belum login</b><span id="acc-msg"></span></div>
-      </div>
-      <div class="actions">
-        <a class="btn primary" id="login" href="/login">Login dengan Spotify</a>
-        <button class="danger" id="logout" hidden>Logout</button>
-      </div>
-
-      <label style="margin-top:20px">Sumber data</label>
-      <div class="seg" id="source">
-        <label><input type="radio" name="source" value="auto">Otomatis<small>Akun, cadangan Spotify Desktop</small></label>
-        <label><input type="radio" name="source" value="account">Akun Spotify<small>Semua device (HP, PC, speaker)</small></label>
-        <label id="src-local"><input type="radio" name="source" value="local">Lokal<small>Spotify Desktop di PC ini</small></label>
-      </div>
-    </section>
-
-    <!-- OBS -->
-    <section class="panel full">
-      <h2><span class="step">3</span> Tambahkan ke OBS</h2>
-      <p class="sub">Atur tampilan kartu, lalu seret kotak hijau ke OBS atau copy URL-nya. Perubahan langsung ikut ke OBS tanpa ganti URL.</p>
-
-      <label>Ukuran</label>
-      <div class="opts">
-        <span class="presets">
-          <button type="button" data-preset="340,84">Kecil</button>
-          <button type="button" data-preset="460,112">Sedang</button>
-          <button type="button" data-preset="600,150">Besar</button>
-          <button type="button" data-preset="760,96">Lebar</button>
-        </span>
-      </div>
-      <div class="opts">
-        <label>Lebar <input type="range" id="o-width" min="200" max="1200" step="1"> <span class="numwrap"><input type="number" class="num" id="o-width-v" data-range="o-width">px</span></label>
-        <label>Tinggi <input type="range" id="o-height" min="48" max="400" step="1"> <span class="numwrap"><input type="number" class="num" id="o-height-v" data-range="o-height">px</span></label>
-        <label>Sudut <input type="range" id="o-radius" min="0" max="60" step="1"> <span class="numwrap"><input type="number" class="num" id="o-radius-v" data-range="o-radius">px</span></label>
-      </div>
-
-      <label>Latar</label>
-      <div class="opts">
-        <label><select id="o-bg">
-          <option value="dark">Gelap</option>
-          <option value="cover">Warna lagu (dari cover)</option>
-          <option value="color">Warna tetap</option>
-          <option value="none">Transparan</option>
-        </select></label>
-        <label id="o-color-wrap" hidden><input type="color" id="o-color" value="#282828"> Warna latar</label>
-        <label id="o-opacity-wrap">Opasitas <input type="range" id="o-opacity" min="0" max="100" step="1"> <span class="numwrap"><input type="number" class="num" id="o-opacity-v" data-range="o-opacity">%</span></label>
-      </div>
-
-      <label>Lainnya</label>
-      <div class="opts">
-        <label><input type="color" id="o-accent" value="#1db954"> Warna aksen</label>
-        <label><input type="checkbox" id="o-hide"> Sembunyikan saat pause</label>
-        <label><input type="checkbox" id="o-noprog"> Tanpa progress bar</label>
-        <label><input type="checkbox" id="o-nocover"> Tanpa cover</label>
-      </div>
-
-      <div class="preview" id="preview-box"><iframe id="preview" title="Preview overlay"></iframe></div>
-
-      <a class="drag" id="drag" draggable="true">
-        <span style="font-size:24px">⠿</span>
-        <div><b>Seret kotak ini ke jendela Preview OBS</b><span>Otomatis jadi Browser Source <code id="drag-size">480×132</code> bernama "Spotify Now Playing"</span></div>
-      </a>
-
-      <label>URL Browser Source</label>
-      <div class="row">
-        <input type="text" id="url" readonly>
-        <button type="button" data-copy="url" class="primary">Copy URL</button>
-      </div>
-
-      <ol>
-        <li>Cara manual: OBS → Sources <b>+</b> → <b>Browser</b> → paste URL</li>
-        <li>Width <code id="obs-w">480</code>, Height <code id="obs-h">132</code> → OK <span style="color:var(--muted)">(ikuti angka ini setiap kali ukuran kartu diubah)</span></li>
-      </ol>
-    </section>
-
-    <!-- Lirik -->
-    <section class="panel full">
-      <h2><span class="step">4</span> Lirik ke OBS</h2>
-      <p class="sub">Lirik tersinkron dari <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>, tampil seperti di Spotify dengan latar mengikuti warna cover lagu. Perubahan di sini langsung ikut ke OBS tanpa ganti URL.</p>
-
-      <div class="status" style="margin-bottom:12px">
-        <div class="dot" id="ly-dot"></div>
-        <div><b id="ly-title">Lirik</b><span id="ly-msg"></span></div>
-      </div>
-
-      <div class="opts">
-        <label>Gaya
-          <select id="l-style"><option value="list">Daftar bergulir</option><option value="single">Satu baris</option></select></label>
-        <label>Rata
-          <select id="l-align"><option value="left">Kiri</option><option value="center">Tengah</option><option value="right">Kanan</option></select></label>
-        <label>Ukuran <input type="range" id="l-size" min="12" max="120" step="1"> <span class="numwrap"><input type="number" class="num" id="l-size-v" data-range="l-size">px</span></label>
-        <label>Latar
-          <select id="l-bg"><option value="cover">Warna lagu (seperti Spotify)</option><option value="color">Warna tetap</option><option value="dark">Gelap</option><option value="none">Transparan</option></select></label>
-        <label id="l-color-wrap" hidden><input type="color" id="l-color" value="#535353"> Warna latar</label>
-      </div>
-      <div class="opts">
-        <label>Offset waktu <input type="range" id="l-offset" min="-10" max="10" step="0.05"> <span class="numwrap"><input type="number" class="num" id="l-offset-v" data-range="l-offset">s</span></label>
-        <span style="color:var(--muted);font-size:12px">Geser ke + kalau lirik telat, ke − kalau kecepatan.</span>
-      </div>
-
-      <div class="preview" style="height:260px"><iframe id="ly-preview" src="/lyrics" title="Preview lirik"></iframe></div>
-
-      <a class="drag" id="ly-drag" draggable="true">
-        <span style="font-size:24px">⠿</span>
-        <div><b>Seret kotak ini ke jendela Preview OBS</b><span>Jadi Browser Source 800×300 bernama "Spotify Lyrics"</span></div>
-      </a>
-
-      <label>URL Browser Source lirik</label>
-      <div class="row">
-        <input type="text" id="ly-url" readonly>
-        <button type="button" data-copy="ly-url" class="primary">Copy URL</button>
-      </div>
-      <div style="color:var(--muted);font-size:12px;margin-top:6px">Mau teks biasa? Pakai <code>lyrics.txt</code> di folder output (baris yang sedang dinyanyikan).</div>
-    </section>
-
-    <!-- File teks -->
-    <section class="panel full">
-      <h2><span class="step">5</span> File Teks &amp; Cover <span style="color:var(--muted);font-weight:400">(opsional)</span></h2>
-      <p class="sub">Untuk OBS <b>Text (GDI+)</b> → <i>Read from file</i>, dan <b>Image</b> source untuk <code>cover.jpg</code>.</p>
-
-      <label for="t-format">Format nowplaying.txt</label>
-      <div class="row">
-        <input type="text" id="t-format" placeholder="{artist} - {title}" spellcheck="false">
-        <button type="button" id="t-save" class="primary">Simpan</button>
-      </div>
-      <div style="color:var(--muted);font-size:12px;margin-top:6px">Placeholder: <code>{title}</code> <code>{artist}</code> <code>{album}</code></div>
-      <div class="opts" style="margin-top:12px">
-        <label><input type="checkbox" id="t-hide"> Kosongkan teks saat pause</label>
-      </div>
-
-      <label>Folder output</label>
-      <div class="row">
-        <input type="text" id="outdir" readonly>
-        <button type="button" data-copy="outdir">Copy</button>
-        <button type="button" id="open-out">Buka folder</button>
-      </div>
-      <div style="color:var(--muted);font-size:12px;margin-top:6px">Berisi nowplaying.txt, title.txt, artist.txt, album.txt, progress.txt, lyrics.txt, cover.jpg</div>
-    </section>
+    <nav id="tabs">
+      <button data-tab="home">🏠 Beranda</button>
+      <button data-tab="card">🎵 Kartu Now Playing</button>
+      <button data-tab="lyrics">🎤 Lirik</button>
+      <button data-tab="source">🔌 Sumber Musik</button>
+      <button data-tab="files">📄 File Teks</button>
+    </nav>
   </div>
-  <p style="text-align:center;color:var(--muted);font-size:12px;margin-top:24px">Spotify Now Playing v<span id="ver"></span></p>
-</div>
+</header>
+
+<main>
+  <!-- ======================= BERANDA ======================= -->
+  <section class="page" id="page-home">
+    <div class="banner warn" id="home-error" hidden><span>⚠️</span><span id="home-error-text"></span></div>
+
+    <div class="panel">
+      <div class="hero" id="np" hidden>
+        <img id="np-cover" alt="">
+        <div>
+          <div class="kicker" id="np-kicker">Sedang diputar</div>
+          <div class="t" id="np-title"></div>
+          <div class="a" id="np-artist"></div>
+        </div>
+      </div>
+      <div class="empty" id="np-empty">
+        <div class="big">🎧</div>
+        <div>
+          <b>Belum ada lagu yang diputar</b>
+          <div class="muted" id="np-empty-hint">Buka Spotify Desktop dan putar lagu. Lagunya akan muncul di sini.</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="page-title" style="font-size:18px;margin-top:28px">Mulai dalam 3 langkah</h2>
+    <p class="page-sub">Cukup dilakukan sekali. Setelah itu tinggal buka aplikasi ini setiap kali streaming.</p>
+
+    <div class="steps">
+      <div class="step" id="step1">
+        <div class="num">1</div>
+        <div class="body">
+          <h4>Putar lagu di Spotify</h4>
+          <p id="step1-text" style="margin:0">Buka Spotify Desktop di PC ini dan putar lagu apa saja.</p>
+        </div>
+      </div>
+
+      <div class="step" id="step2">
+        <div class="num">2</div>
+        <div class="body">
+          <h4>Tambahkan kartu Now Playing ke OBS</h4>
+          <p>Salin URL di bawah. Lalu di OBS buka <b>Sources → + → Browser</b>, tempel URL-nya, dan isi ukurannya <b id="home-card-size">480 × 132</b>.</p>
+          <div class="actions">
+            <button class="primary" data-copy-text="card-url">📋 Salin URL kartu</button>
+            <button class="ghost" data-goto="card">🎨 Atur tampilan</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" id="step3">
+        <div class="num">3</div>
+        <div class="body">
+          <h4>Tambahkan lirik <span class="opt">opsional</span></h4>
+          <p>Caranya sama seperti langkah 2, dengan ukuran <b>800 × 340</b>. <span id="home-lyrics-status"></span></p>
+          <div class="actions">
+            <button data-copy-text="lyrics-url">📋 Salin URL lirik</button>
+            <button class="ghost" data-goto="lyrics">🎨 Atur tampilan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <details>
+      <summary>Belum pernah menambahkan Browser Source di OBS? Lihat caranya di sini</summary>
+      <ol class="how">
+        <li>Di OBS, buka panel <b>Sources</b> (kiri bawah), lalu klik tombol <b>+</b></li>
+        <li>Pilih <b>Browser</b>, beri nama (misalnya "Spotify"), lalu klik <b>OK</b></li>
+        <li>Hapus isi kolom <b>URL</b>, lalu tempel URL yang sudah kamu salin (<b>Ctrl+V</b>)</li>
+        <li>Isi <b>Width</b> dan <b>Height</b> sesuai ukuran di atas, lalu klik <b>OK</b></li>
+        <li>Geser dan atur posisinya di layar preview OBS</li>
+        <li>Kalau tampilannya belum berubah: klik kanan source → <b>Properties</b> → <b>Refresh cache of current page</b></li>
+      </ol>
+    </details>
+  </section>
+
+  <!-- ======================= KARTU ======================= -->
+  <section class="page" id="page-card">
+    <h2 class="page-title">Kartu Now Playing</h2>
+    <p class="page-sub">Atur tampilannya di sini. Perubahan langsung terlihat di OBS tanpa perlu ganti URL.</p>
+
+    <div class="editor">
+      <div>
+        <div class="panel">
+          <div class="field">
+            <span class="label">Ukuran</span>
+            <div class="chips" id="presets" style="margin-bottom:14px">
+              <button data-preset="340,84">Kecil</button>
+              <button data-preset="460,112">Sedang</button>
+              <button data-preset="600,150">Besar</button>
+              <button data-preset="760,96">Lebar</button>
+            </div>
+            <div class="slider"><span>Lebar</span><input type="range" id="o-width" min="200" max="1200" step="1"><span class="numwrap"><input type="number" class="num" id="o-width-v" data-range="o-width">px</span></div>
+            <div class="slider"><span>Tinggi</span><input type="range" id="o-height" min="48" max="400" step="1"><span class="numwrap"><input type="number" class="num" id="o-height-v" data-range="o-height">px</span></div>
+            <div class="slider"><span>Sudut</span><input type="range" id="o-radius" min="0" max="60" step="1"><span class="numwrap"><input type="number" class="num" id="o-radius-v" data-range="o-radius">px</span></div>
+          </div>
+
+          <div class="field">
+            <span class="label">Latar</span>
+            <div class="seg">
+              <label><input type="radio" name="o-bg" value="dark">Gelap</label>
+              <label><input type="radio" name="o-bg" value="cover">Warna lagu<small>dari cover</small></label>
+              <label><input type="radio" name="o-bg" value="color">Warna tetap</label>
+              <label><input type="radio" name="o-bg" value="none">Transparan</label>
+            </div>
+            <div class="slider" id="o-color-wrap" style="margin-top:12px"><span>Warna</span><input type="color" id="o-color" value="#282828"></div>
+            <div class="slider" id="o-opacity-wrap" style="margin-top:8px"><span>Opasitas</span><input type="range" id="o-opacity" min="0" max="100" step="1"><span class="numwrap"><input type="number" class="num" id="o-opacity-v" data-range="o-opacity">%</span></div>
+          </div>
+
+          <div class="field" style="margin-bottom:0">
+            <span class="label">Lainnya</span>
+            <div class="slider"><span>Aksen</span><input type="color" id="o-accent" value="#1db954"><span class="muted small">warna tulisan "Now Playing" &amp; progress bar</span></div>
+            <label class="check"><input type="checkbox" id="o-hide"> Sembunyikan kartu saat lagu di-pause</label>
+            <label class="check"><input type="checkbox" id="o-noprog"> Sembunyikan progress bar</label>
+            <label class="check"><input type="checkbox" id="o-nocover"> Sembunyikan cover album</label>
+          </div>
+        </div>
+        <button class="ghost sm" id="o-reset">↺ Kembalikan ke default</button>
+      </div>
+
+      <div class="sticky">
+        <div class="preview" id="card-preview"><span class="tag">preview</span><iframe id="card-frame" title="Preview kartu"></iframe></div>
+        <div class="obs">
+          <h3>➕ Tambahkan ke OBS</h3>
+          <div class="row">
+            <input type="text" class="mono" id="card-url" readonly>
+            <button class="primary" data-copy="card-url">Salin</button>
+          </div>
+          <div class="size">Ukuran Browser Source: <span>Width <b id="card-w">480</b></span><span>Height <b id="card-h">132</b></span></div>
+          <a class="drag" id="card-drag" draggable="true">⠿ <b>Atau seret kotak ini ke jendela preview OBS</b> <span>(langsung jadi source dengan ukuran yang pas)</span></a>
+          <p class="muted small" style="margin:10px 0 0">Kalau ukuran kartu diubah, samakan juga Width/Height di OBS (klik kanan source → Properties).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= LIRIK ======================= -->
+  <section class="page" id="page-lyrics">
+    <h2 class="page-title">Lirik</h2>
+    <p class="page-sub">Lirik tersinkron dari <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>, tampil seperti di Spotify. Perubahan langsung terlihat di OBS.</p>
+
+    <div class="editor">
+      <div>
+        <div class="banner" style="background:var(--panel);border:1px solid var(--line)"><span class="dot" id="ly-dot" style="margin-top:6px"></span><span><b id="ly-title">Lirik</b><br><span class="muted" id="ly-msg"></span></span></div>
+        <div class="panel">
+          <div class="field">
+            <span class="label">Tampilan</span>
+            <div class="seg">
+              <label><input type="radio" name="l-style" value="list">Beberapa baris<small>bergulir</small></label>
+              <label><input type="radio" name="l-style" value="single">Satu baris<small>hanya baris aktif</small></label>
+            </div>
+          </div>
+          <div class="field">
+            <span class="label">Latar</span>
+            <div class="seg">
+              <label><input type="radio" name="l-bg" value="cover">Warna lagu<small>seperti Spotify</small></label>
+              <label><input type="radio" name="l-bg" value="color">Warna tetap</label>
+              <label><input type="radio" name="l-bg" value="dark">Gelap</label>
+              <label><input type="radio" name="l-bg" value="none">Transparan</label>
+            </div>
+            <div class="slider" id="l-color-wrap" style="margin-top:12px"><span>Warna</span><input type="color" id="l-color" value="#535353"></div>
+          </div>
+          <div class="field">
+            <span class="label">Teks</span>
+            <div class="slider"><span>Ukuran</span><input type="range" id="l-size" min="12" max="120" step="1"><span class="numwrap"><input type="number" class="num" id="l-size-v" data-range="l-size">px</span></div>
+            <div class="slider"><span>Rata</span>
+              <div class="chips" id="l-align">
+                <button data-align="left">Kiri</button><button data-align="center">Tengah</button><button data-align="right">Kanan</button>
+              </div>
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <span class="label">Sinkronisasi</span>
+            <div class="slider"><span>Offset</span><input type="range" id="l-offset" min="-10" max="10" step="0.05"><span class="numwrap"><input type="number" class="num" id="l-offset-v" data-range="l-offset">detik</span></div>
+            <p class="muted small" style="margin:0">Lirik telat? Geser ke <b>+</b>. Lirik terlalu cepat? Geser ke <b>−</b>.</p>
+          </div>
+        </div>
+        <button class="ghost sm" id="l-reset">↺ Kembalikan ke default</button>
+      </div>
+
+      <div class="sticky">
+        <div class="preview" id="ly-preview-box"><span class="tag">preview</span><div class="placeholder" id="ly-placeholder" hidden></div><iframe id="ly-frame" title="Preview lirik"></iframe></div>
+        <div class="obs">
+          <h3>➕ Tambahkan ke OBS</h3>
+          <div class="row">
+            <input type="text" class="mono" id="lyrics-url" readonly>
+            <button class="primary" data-copy="lyrics-url">Salin</button>
+          </div>
+          <div class="size">Ukuran Browser Source: <span>Width <b>800</b></span><span>Height <b>340</b></span><span>(boleh diubah)</span></div>
+          <a class="drag" id="ly-drag" draggable="true">⠿ <b>Atau seret kotak ini ke jendela preview OBS</b></a>
+          <p class="muted small" style="margin:10px 0 0">Mau teks biasa? Gunakan file <code>lyrics.txt</code>, ada di tab File Teks.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= SUMBER MUSIK ======================= -->
+  <section class="page" id="page-source">
+    <h2 class="page-title">Sumber Musik</h2>
+    <p class="page-sub">Dari mana aplikasi membaca lagu yang sedang diputar. Kalau Spotify kamu putar di PC ini, pilih <b>Spotify Desktop</b> dan tidak perlu setting apa-apa lagi.</p>
+
+    <div class="choices">
+      <label class="choice" id="src-local">
+        <input type="radio" name="source" value="local">
+        <span class="badge">Disarankan</span>
+        <span class="ic">💻</span><b>Spotify Desktop</b>
+        <p>Membaca Spotify di PC ini. Tanpa login, tanpa setup.</p>
+      </label>
+      <label class="choice">
+        <input type="radio" name="source" value="auto">
+        <span class="ic">✨</span><b>Otomatis</b>
+        <p>Pakai akun Spotify kalau bisa. Kalau tidak, pindah ke Spotify Desktop.</p>
+      </label>
+      <label class="choice">
+        <input type="radio" name="source" value="account">
+        <span class="ic">📱</span><b>Akun Spotify</b>
+        <p>Baca dari semua device (HP, speaker, dll). Perlu login dan akun Premium.</p>
+      </label>
+    </div>
+
+    <div class="panel" id="local-ok">
+      <b>✅ Siap dipakai</b>
+      <p class="muted" style="margin:6px 0 0">Mode ini tidak butuh pengaturan apa pun. Pastikan saja Spotify Desktop terbuka dan sedang memutar lagu.</p>
+    </div>
+
+    <div id="account-box" hidden>
+      <div class="panel">
+        <h3>Status akun</h3>
+        <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div class="row"><span class="dot" id="acc-dot"></span><div><b id="acc-title">Belum login</b><div class="muted small" id="acc-msg"></div></div></div>
+          <div class="row">
+            <a class="btn primary" id="login" href="/login">Login dengan Spotify</a>
+            <button class="danger" id="logout" hidden>Logout</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Spotify App <span class="muted small" style="font-weight:400">(cukup sekali)</span></h3>
+        <ol class="how" style="margin:0 0 16px">
+          <li>Buka <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">Spotify Developer Dashboard</a> → <b>Create app</b>. Login dengan akun <b>Premium</b>.</li>
+          <li>Centang <b>Web API</b>. Di <b>Redirect URIs</b>, tempel URL di bawah → <b>Add</b> → <b>Save</b>.</li>
+          <li>Buka <b>Settings → User Management</b>, lalu tambahkan email akun Spotify kamu.</li>
+          <li>Salin <b>Client ID</b> ke kolom di bawah → <b>Simpan</b> → <b>Login dengan Spotify</b>.</li>
+        </ol>
+        <div class="field">
+          <span class="label">Redirect URI</span>
+          <div class="row"><input type="text" class="mono" id="redirect" readonly><button data-copy="redirect">Salin</button></div>
+        </div>
+        <div class="field">
+          <span class="label">Client ID</span>
+          <input type="text" class="mono" id="cid" placeholder="32 karakter dari dashboard" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field">
+          <span class="label">Client Secret <span style="font-weight:400">(opsional, boleh dikosongkan)</span></span>
+          <div class="row">
+            <input type="password" class="mono" id="secret" placeholder="kosongkan saja" autocomplete="off" spellcheck="false">
+            <button id="toggle-secret" title="Tampilkan">👁</button>
+          </div>
+          <div class="muted small" id="secret-saved" style="margin-top:6px"></div>
+        </div>
+        <div class="row">
+          <button class="primary" id="save">Simpan</button>
+          <button class="danger" id="clear-secret" hidden>Hapus secret</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= FILE TEKS ======================= -->
+  <section class="page" id="page-files">
+    <h2 class="page-title">File Teks &amp; Cover</h2>
+    <p class="page-sub">Opsional. Untuk OBS <b>Text (GDI+)</b> → centang <i>Read from file</i>, atau <b>Image</b> untuk cover.</p>
+
+    <div class="panel">
+      <div class="field">
+        <span class="label">Folder</span>
+        <div class="row">
+          <input type="text" class="mono" id="outdir" readonly>
+          <button data-copy="outdir">Salin</button>
+          <button class="primary" id="open-out">📂 Buka folder</button>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <tr><td style="padding:6px 12px 6px 0"><code>nowplaying.txt</code></td><td class="muted">Artis - Judul (formatnya bisa diubah di bawah)</td></tr>
+        <tr><td style="padding:6px 12px 6px 0"><code>title.txt</code> <code>artist.txt</code> <code>album.txt</code></td><td class="muted">judul / artis / album</td></tr>
+        <tr><td style="padding:6px 12px 6px 0"><code>progress.txt</code></td><td class="muted">contoh: 1:23 / 3:45</td></tr>
+        <tr><td style="padding:6px 12px 6px 0"><code>lyrics.txt</code></td><td class="muted">baris lirik yang sedang dinyanyikan</td></tr>
+        <tr><td style="padding:6px 12px 6px 0"><code>cover.jpg</code></td><td class="muted">cover album (pakai source Image)</td></tr>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="field">
+        <span class="label">Format nowplaying.txt</span>
+        <div class="row">
+          <input type="text" id="t-format" placeholder="{artist} - {title}" spellcheck="false">
+          <button class="primary" id="t-save">Simpan</button>
+        </div>
+        <div class="muted small" style="margin-top:6px">Bisa pakai <code>{title}</code> <code>{artist}</code> <code>{album}</code>. Contoh: <code>♪ {title} — {artist}</code></div>
+      </div>
+      <label class="check"><input type="checkbox" id="t-hide"> Kosongkan teks saat lagu di-pause</label>
+    </div>
+  </section>
+
+  <footer>Spotify Now Playing v<span id="ver"></span> · <a href="https://github.com/mohammadraflyy/spotify-now-playing" target="_blank" rel="noopener">GitHub</a></footer>
+</main>
 <div class="toast" id="toast"></div>
 
 <script>
 const $ = id => document.getElementById(id);
-let cfg = null;
+const radio = name => document.querySelector(`input[name="${name}"]:checked`)?.value;
+const setRadio = (name, v) => { const r = document.querySelector(`input[name="${name}"][value="${v}"]`); if (r) r.checked = true; };
+let cfg = null, loaded = false;
+
+const CARD_DEFAULT = { width: 460, height: 112, radius: 16, bg: "dark", color: "282828", opacity: 82, accent: "1db954", hidePaused: false, noProgress: false, noCover: false };
+const LYRICS_DEFAULT = { style: "list", align: "left", size: 34, bg: "cover", color: "535353", offset: 0 };
 
 function toast(msg, err) {
   const t = $("toast");
   t.textContent = msg; t.className = "toast show" + (err ? " err" : "");
-  clearTimeout(t._h); t._h = setTimeout(() => t.className = "toast", 3200);
+  clearTimeout(t._h); t._h = setTimeout(() => t.className = "toast", 2800);
 }
 
 async function api(path, body) {
@@ -323,256 +489,300 @@ async function api(path, body) {
   return j;
 }
 
-function renderConfig(c) {
-  cfg = c;
-  if (!$("cid").dataset.dirty) $("cid").value = c.client_id;
-  $("secret-saved").textContent = c.has_secret ? "Secret tersimpan: " + c.secret_hint : "";
-  $("clear-secret").hidden = !c.has_secret;
-  $("redirect").value = c.redirect_uri;
-  $("outdir").value = c.output_dir;
-  $("ver").textContent = c.version;
-
-  $("acc-dot").className = "dot " + (c.logged_in ? "ok" : "");
-  $("acc-title").textContent = c.logged_in ? "Terhubung" + (c.user ? " sebagai " + c.user : "") : "Belum login";
-  $("acc-msg").textContent = c.logged_in ? (c.auth_type === "secret" ? " · pakai Client Secret" : " · PKCE") :
-    (c.client_id ? " · klik Login" : " · isi Client ID dulu");
-  $("login").textContent = c.logged_in ? "Login ulang / ganti akun" : "Login dengan Spotify";
-  $("login").classList.toggle("primary", !c.logged_in);
-  $("logout").hidden = !c.logged_in;
-
-  const r = document.querySelector(`input[name=source][value=${c.source}]`);
-  if (r) r.checked = true;
-  if (!c.local_available) {
-    $("src-local").classList.add("disabled");
-    $("src-local").querySelector("input").disabled = true;
-  }
-
-  if (!renderConfig.overlayLoaded) {
-    renderConfig.overlayLoaded = true;
-    const o = c.overlay || {};
-    $("o-width").value = o.width || 460;
-    $("o-height").value = o.height || 112;
-    $("o-radius").value = o.radius ?? 16;
-    $("o-bg").value = o.bg || "dark";
-    $("o-color").value = "#" + (o.color || "282828");
-    $("o-opacity").value = o.opacity ?? 82;
-    if (o.accent) $("o-accent").value = "#" + o.accent;
-    $("o-hide").checked = !!o.hidePaused;
-    $("o-noprog").checked = !!o.noProgress;
-    $("o-nocover").checked = !!o.noCover;
-    $("preview").src = `/overlay`;
-    updateOverlayUrl(false);
-    $("t-format").value = (c.text || {}).format || "";
-    $("t-hide").checked = !!(c.text || {}).hide_paused;
-    const l = c.lyrics || {};
-    $("l-style").value = l.style || "list";
-    $("l-align").value = l.align || "left";
-    $("l-size").value = l.size || 34;
-    $("l-bg").value = l.bg === true ? "dark" : l.bg === false ? "cover" : (l.bg || "cover");
-    $("l-color").value = "#" + (l.color || "535353");
-    $("l-offset").value = l.offset || 0;
-    updateLyrics(false);
-  }
-  renderStatus(c.status);
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch { const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); }
+  toast("✓ Tersalin, tinggal tempel di OBS");
 }
 
-function renderStatus(s) {
-  const labels = { account: "Akun Spotify", local: "Spotify Desktop (lokal)", idle: "Tidak aktif" };
-  $("st-dot").className = "dot " + (s.error ? (s.source === "idle" ? "err" : "warn") : (s.source === "idle" ? "" : "ok"));
-  $("st-title").textContent = "Sumber: " + labels[s.source];
-  $("st-msg").textContent = s.error || (s.source === "idle" ? "Login atau buka Spotify Desktop untuk mulai." : "Berjalan normal.");
-}
+// ------------------------------------------------------------------ tab --
 
-// kolom angka di samping slider: bisa diketik manual (Enter / pindah fokus untuk menerapkan)
-function setNum(id, v) {
-  const el = $(id);
-  if (document.activeElement !== el) el.value = v;
+function showTab(name) {
+  if (!$("page-" + name)) name = "home";
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === "page-" + name));
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+  requestAnimationFrame(fitPreviews);
 }
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+document.querySelectorAll("[data-goto]").forEach(b => b.onclick = () => { showTab(b.dataset.goto); scrollTo(0, 0); });
+window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
+
+// ---------------------------------------------------- slider + angka --
+
+function setNum(id, v) { const el = $(id); if (document.activeElement !== el) el.value = v; }
 document.querySelectorAll("input.num").forEach(n => {
   const r = $(n.dataset.range);
   n.min = r.min; n.max = r.max; n.step = r.step;
   const apply = () => {
     const v = parseFloat(n.value);
     if (isNaN(v)) { n.value = r.value; return; }
-    const clamped = Math.min(+r.max, Math.max(+r.min, v));
-    n.value = clamped;
-    r.value = clamped;
+    n.value = r.value = Math.min(+r.max, Math.max(+r.min, v));
     r.dispatchEvent(new Event("input"));
   };
   n.addEventListener("change", apply);
   n.addEventListener("keydown", e => { if (e.key === "Enter") { apply(); n.blur(); } });
 });
 
-let saveTimer;
-function overlayValues() {
+// ---------------------------------------------------------- preview --
+
+/** Kecilkan iframe preview supaya muat di kotaknya (overlay tetap dirender di ukuran asli). */
+function fitPreview(box, frame, w, h) {
+  if (!box.clientWidth) return;   // tab sedang tersembunyi
+  const scale = Math.min(1, box.clientWidth / w);
+  frame.style.width = w + "px";
+  frame.style.height = h + "px";
+  frame.style.transform = `scale(${scale})`;
+  box.style.height = Math.round(h * scale) + "px";
+}
+function fitPreviews() {
+  if (!cfg) return;
+  const o = cardValues();
+  fitPreview($("card-preview"), $("card-frame"), o.width + 20, o.height + 20);
+  fitPreview($("ly-preview-box"), $("ly-frame"), 800, 340);
+}
+window.addEventListener("resize", fitPreviews);
+
+function makeDrag(el, url, name, w, h) {
+  el.href = url + "?" + new URLSearchParams({ "layer-name": name, "layer-width": w, "layer-height": h });
+}
+document.querySelectorAll(".drag").forEach(d => {
+  d.addEventListener("click", e => { e.preventDefault(); toast("Seret (drag) kotak ini ke jendela OBS, jangan diklik"); });
+  d.addEventListener("dragstart", e => { e.dataTransfer.setData("text/uri-list", d.href); e.dataTransfer.setData("text/plain", d.href); });
+});
+
+// ------------------------------------------------------------ kartu --
+
+function cardValues() {
   return {
     width: +$("o-width").value, height: +$("o-height").value, radius: +$("o-radius").value,
-    bg: $("o-bg").value, color: $("o-color").value.replace("#", ""), opacity: +$("o-opacity").value,
-    accent: $("o-accent").value.replace("#", ""),
+    bg: radio("o-bg") || "dark", color: $("o-color").value.slice(1), opacity: +$("o-opacity").value,
+    accent: $("o-accent").value.slice(1),
     hidePaused: $("o-hide").checked, noProgress: $("o-noprog").checked, noCover: $("o-nocover").checked,
   };
 }
-
-function updateOverlayUrl(save = true) {
-  const o = overlayValues();
-  setNum("o-width-v", o.width);
-  setNum("o-height-v", o.height);
-  setNum("o-radius-v", o.radius);
-  setNum("o-opacity-v", o.opacity);
+function loadCard(o) {
+  o = { ...CARD_DEFAULT, ...o };
+  $("o-width").value = o.width; $("o-height").value = o.height; $("o-radius").value = o.radius;
+  setRadio("o-bg", o.bg); $("o-color").value = "#" + o.color; $("o-opacity").value = o.opacity;
+  $("o-accent").value = "#" + o.accent;
+  $("o-hide").checked = !!o.hidePaused; $("o-noprog").checked = !!o.noProgress; $("o-nocover").checked = !!o.noCover;
+}
+let cardTimer;
+function updateCard(save = true) {
+  const o = cardValues();
+  setNum("o-width-v", o.width); setNum("o-height-v", o.height); setNum("o-radius-v", o.radius); setNum("o-opacity-v", o.opacity);
   $("o-color-wrap").hidden = o.bg !== "color";
   $("o-opacity-wrap").hidden = o.bg === "none";
-
-  // ukuran Browser Source = kartu + margin 10px di tiap sisi (ruang bayangan)
-  const w = o.width + 20, h = o.height + 20;
-  $("drag-size").textContent = `${w}×${h}`;
-  $("obs-w").textContent = w;
-  $("obs-h").textContent = h;
-  $("preview-box").style.height = Math.min(h + 20, 420) + "px";
-
-  const base = `http://127.0.0.1:${cfg.port}/overlay`;
-  $("url").value = base;
-  const obs = new URLSearchParams({ "layer-name": "Spotify Now Playing", "layer-width": w, "layer-height": h });
-  $("drag").href = base + "?" + obs;
+  document.querySelectorAll("#presets button").forEach(b => b.classList.toggle("on", b.dataset.preset === `${o.width},${o.height}`));
+  const w = o.width + 20, h = o.height + 20;   // + margin 10px tiap sisi untuk bayangan
+  $("card-w").textContent = w; $("card-h").textContent = h;
+  $("home-card-size").textContent = `${w} × ${h}`;
+  makeDrag($("card-drag"), $("card-url").value, "Spotify Now Playing", w, h);
+  fitPreviews();
   if (save) {
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => api("/api/config", { overlay: o }).then(() => {
-      $("preview").contentWindow?.loadConfig?.();  // preview langsung update
-    }).catch(e => toast(e.message, true)), 250);
+    clearTimeout(cardTimer);
+    cardTimer = setTimeout(() => api("/api/config", { overlay: o })
+      .then(() => $("card-frame").contentWindow?.loadConfig?.())
+      .catch(e => toast(e.message, true)), 200);
   }
 }
-
-document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => {
+["o-width", "o-height", "o-radius", "o-color", "o-opacity", "o-accent", "o-hide", "o-noprog", "o-nocover"]
+  .forEach(id => $(id).addEventListener("input", () => updateCard()));
+document.querySelectorAll('input[name="o-bg"]').forEach(r => r.addEventListener("change", () => updateCard()));
+document.querySelectorAll("[data-preset]").forEach(b => b.onclick = () => {
   const [w, h] = b.dataset.preset.split(",");
-  $("o-width").value = w; $("o-height").value = h;
-  updateOverlayUrl();
-}));
-
-$("drag").addEventListener("click", e => { e.preventDefault(); toast("Seret (drag) kotak ini ke jendela OBS, jangan diklik"); });
-$("drag").addEventListener("dragstart", e => {
-  e.dataTransfer.setData("text/uri-list", $("drag").href);
-  e.dataTransfer.setData("text/plain", $("drag").href);
+  $("o-width").value = w; $("o-height").value = h; updateCard();
 });
+$("o-reset").onclick = () => { loadCard(CARD_DEFAULT); updateCard(); toast("Kartu dikembalikan ke default"); };
 
-["o-width", "o-height", "o-radius", "o-bg", "o-color", "o-opacity", "o-accent", "o-hide", "o-noprog", "o-nocover"]
-  .forEach(id => $(id).addEventListener("input", () => updateOverlayUrl()));
+// ------------------------------------------------------------ lirik --
 
-document.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", async () => {
-  const v = $(b.dataset.copy).value;
-  try { await navigator.clipboard.writeText(v); } catch { $(b.dataset.copy).select(); document.execCommand("copy"); }
-  toast("Disalin ke clipboard");
-}));
-
-$("cid").addEventListener("input", () => $("cid").dataset.dirty = "1");
-$("toggle-secret").onclick = () => { const s = $("secret"); s.type = s.type === "password" ? "text" : "password"; };
-
-$("save").onclick = async () => {
-  const body = { client_id: $("cid").value.trim() };
-  const secret = $("secret").value.trim();
-  if (secret) body.client_secret = secret;
-  try {
-    const before = cfg.client_id;
-    renderConfig(await api("/api/config", body));
-    delete $("cid").dataset.dirty;
-    $("secret").value = "";
-    toast(before && before !== body.client_id ? "Tersimpan. Client ID berubah, silakan login ulang" : "Tersimpan");
-  } catch (e) { toast(e.message, true); }
-};
-
-$("clear-secret").onclick = async () => {
-  if (!confirm("Hapus Client Secret? Login berikutnya memakai PKCE.")) return;
-  renderConfig(await api("/api/config", { client_secret: "" }));
-  toast("Secret dihapus");
-};
-
+function lyricsValues() {
+  return {
+    style: radio("l-style") || "list",
+    align: document.querySelector("#l-align button.on")?.dataset.align || "left",
+    size: +$("l-size").value, bg: radio("l-bg") || "cover", color: $("l-color").value.slice(1),
+    offset: +(+$("l-offset").value).toFixed(2),
+  };
+}
+function loadLyrics(l) {
+  l = { ...LYRICS_DEFAULT, ...l };
+  if (l.bg === true) l.bg = "dark";
+  if (l.bg === false) l.bg = "cover";   // format lama
+  setRadio("l-style", l.style); setRadio("l-bg", l.bg);
+  document.querySelectorAll("#l-align button").forEach(b => b.classList.toggle("on", b.dataset.align === l.align));
+  $("l-size").value = l.size; $("l-color").value = "#" + l.color; $("l-offset").value = l.offset;
+}
 let lyTimer;
 function updateLyrics(save = true) {
-  setNum("l-size-v", $("l-size").value);
-  $("l-color-wrap").hidden = $("l-bg").value !== "color";
-  const off = parseFloat($("l-offset").value);
-  setNum("l-offset-v", +off.toFixed(2));
-  const base = `http://127.0.0.1:${cfg.port}/lyrics`;
-  $("ly-url").value = base;
-  $("ly-drag").href = base + "?layer-name=Spotify%20Lyrics&layer-width=800&layer-height=300";
+  const l = lyricsValues();
+  setNum("l-size-v", l.size); setNum("l-offset-v", l.offset);
+  $("l-color-wrap").hidden = l.bg !== "color";
+  makeDrag($("ly-drag"), $("lyrics-url").value, "Spotify Lyrics", 800, 340);
   if (save) {
     clearTimeout(lyTimer);
-    lyTimer = setTimeout(() => api("/api/config", { lyrics: {
-      style: $("l-style").value, align: $("l-align").value, size: parseInt($("l-size").value),
-      bg: $("l-bg").value, color: $("l-color").value.replace("#", ""), offset: off,
-    } }).then(() => $("ly-preview").contentWindow?.loadConfig?.()).catch(e => toast(e.message, true)), 300);
+    lyTimer = setTimeout(() => api("/api/config", { lyrics: l })
+      .then(() => $("ly-frame").contentWindow?.loadConfig?.())
+      .catch(e => toast(e.message, true)), 200);
   }
 }
-["l-style", "l-align", "l-size", "l-bg", "l-color", "l-offset"].forEach(id => $(id).addEventListener("input", () => updateLyrics()));
-$("ly-drag").addEventListener("click", e => { e.preventDefault(); toast("Seret (drag) kotak ini ke jendela OBS, jangan diklik"); });
-$("ly-drag").addEventListener("dragstart", e => {
-  e.dataTransfer.setData("text/uri-list", $("ly-drag").href);
-  e.dataTransfer.setData("text/plain", $("ly-drag").href);
+["l-size", "l-color", "l-offset"].forEach(id => $(id).addEventListener("input", () => updateLyrics()));
+document.querySelectorAll('input[name="l-style"], input[name="l-bg"]').forEach(r => r.addEventListener("change", () => updateLyrics()));
+document.querySelectorAll("#l-align button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#l-align button").forEach(x => x.classList.toggle("on", x === b));
+  updateLyrics();
 });
+$("l-reset").onclick = () => { loadLyrics(LYRICS_DEFAULT); updateLyrics(); toast("Lirik dikembalikan ke default"); };
 
 function renderLyricsStatus(l) {
   const map = {
-    synced: ["ok", "Lirik tersinkron ditemukan", l.lines.length + " baris"],
-    plain: ["warn", "Hanya lirik tanpa timing", "LRCLIB belum punya versi tersinkron untuk lagu ini"],
+    synced: ["ok", "Lirik ditemukan ✓", `${l.lines.length} baris tersinkron untuk lagu ini`],
+    plain: ["warn", "Lirik tanpa timing", "LRCLIB belum punya versi tersinkron untuk lagu ini, jadi lirik tidak ditampilkan"],
     instrumental: ["", "Instrumental", "Lagu ini tanpa lirik"],
-    none: ["warn", "Lirik tidak ditemukan", "Lagu ini belum ada di LRCLIB"],
+    none: ["warn", "Lirik tidak ditemukan", "Lagu ini belum ada di LRCLIB. Coba putar lagu lain."],
     loading: ["", "Mencari lirik…", ""],
-    error: ["err", "Gagal mengambil lirik", l.error || "cek koneksi internet"],
-    idle: ["", "Lirik", "Putar lagu untuk mulai"],
+    error: ["err", "Gagal mengambil lirik", l.error || "Cek koneksi internet"],
+    idle: ["", "Belum ada lagu", "Putar lagu untuk melihat liriknya"],
   };
   const [dot, title, msg] = map[l.status] || map.idle;
-  $("ly-dot").className = "dot " + dot;
-  $("ly-title").textContent = title;
-  $("ly-msg").textContent = msg;
+  $("ly-placeholder").hidden = l.status === "synced";
+  $("ly-placeholder").textContent = l.status === "loading" ? "Mencari lirik…"
+    : "Preview lirik akan muncul di sini saat lagu yang punya lirik sedang diputar.";
+  $("ly-dot").className = "dot " + dot; $("ly-title").textContent = title; $("ly-msg").textContent = msg;
+  $("home-lyrics-status").textContent = l.status === "synced" ? "✓ Lirik lagu ini tersedia."
+    : l.status === "none" ? "Lirik lagu ini belum tersedia." : "";
 }
+
+// ---------------------------------------------------------- sumber --
+
+document.querySelectorAll('input[name="source"]').forEach(r => r.addEventListener("change", async () => {
+  try { renderConfig(await api("/api/config", { source: r.value })); toast("Sumber musik diubah"); }
+  catch (e) { toast(e.message, true); }
+}));
+$("cid").addEventListener("input", () => $("cid").dataset.dirty = "1");
+$("toggle-secret").onclick = () => { const s = $("secret"); s.type = s.type === "password" ? "text" : "password"; };
+$("save").onclick = async () => {
+  const body = { client_id: $("cid").value.trim() };
+  if ($("secret").value.trim()) body.client_secret = $("secret").value.trim();
+  try {
+    const changed = cfg.client_id && cfg.client_id !== body.client_id;
+    delete $("cid").dataset.dirty;
+    renderConfig(await api("/api/config", body));
+    $("secret").value = "";
+    toast(changed ? "Tersimpan. Client ID berubah, silakan login ulang" : "Tersimpan. Sekarang klik Login dengan Spotify");
+  } catch (e) { toast(e.message, true); }
+};
+$("clear-secret").onclick = async () => {
+  if (!confirm("Hapus Client Secret? Login berikutnya tidak memakai secret.")) return;
+  renderConfig(await api("/api/config", { client_secret: "" }));
+  toast("Secret dihapus");
+};
+$("logout").onclick = async () => { renderConfig(await api("/api/logout", {})); toast("Logout berhasil"); };
+$("login").addEventListener("click", e => {
+  if (!cfg.client_id) { e.preventDefault(); toast("Isi dan simpan Client ID dulu", true); $("cid").focus(); }
+});
+
+// ------------------------------------------------------------- file --
 
 async function saveText() {
   try {
     renderConfig(await api("/api/config", { text: { format: $("t-format").value.trim(), hide_paused: $("t-hide").checked } }));
-    toast("Pengaturan teks disimpan");
+    toast("Tersimpan");
   } catch (e) { toast(e.message, true); }
 }
 $("t-save").onclick = saveText;
 $("t-hide").addEventListener("change", saveText);
 $("t-format").addEventListener("keydown", e => { if (e.key === "Enter") saveText(); });
-$("open-out").onclick = () => api("/api/open-output", {});
+$("open-out").onclick = () => api("/api/open-output", {}).then(() => toast("Folder dibuka"));
 
-$("logout").onclick = async () => {
-  renderConfig(await api("/api/logout", {}));
-  toast("Logout berhasil");
-};
+document.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy($(b.dataset.copy).value));
+document.querySelectorAll("[data-copy-text]").forEach(b => b.onclick = () => copy($(b.dataset.copyText).value));
 
-$("login").addEventListener("click", e => {
-  if (!cfg.client_id) { e.preventDefault(); toast("Isi dan simpan Client ID dulu", true); $("cid").focus(); }
-});
+// ----------------------------------------------------------- render --
 
-document.querySelectorAll("input[name=source]").forEach(r => r.addEventListener("change", async () => {
-  renderConfig(await api("/api/config", { source: r.value }));
-  toast("Sumber data diubah");
-}));
+function renderConfig(c) {
+  cfg = c;
+  const base = `http://127.0.0.1:${c.port}`;
+  $("card-url").value = base + "/overlay";
+  $("lyrics-url").value = base + "/lyrics";
+  $("redirect").value = c.redirect_uri;
+  $("outdir").value = c.output_dir;
+  $("ver").textContent = c.version;
+
+  if (!loaded) {
+    loaded = true;
+    loadCard(c.overlay || {});
+    loadLyrics(c.lyrics || {});
+    $("card-frame").src = "/overlay";
+    $("ly-frame").src = "/lyrics";
+    $("t-format").value = (c.text || {}).format || "";
+    $("t-hide").checked = !!(c.text || {}).hide_paused;
+    updateCard(false);
+    updateLyrics(false);
+  }
+
+  setRadio("source", c.source);
+  if (!c.local_available) { $("src-local").classList.add("disabled"); $("src-local").querySelector("input").disabled = true; }
+  $("account-box").hidden = c.source === "local";
+  $("local-ok").hidden = c.source !== "local";
+  if (!$("cid").dataset.dirty) $("cid").value = c.client_id;
+  $("secret-saved").textContent = c.has_secret ? "Secret tersimpan: " + c.secret_hint : "";
+  $("clear-secret").hidden = !c.has_secret;
+  $("acc-dot").className = "dot " + (c.logged_in ? "ok" : "");
+  $("acc-title").textContent = c.logged_in ? "Terhubung" + (c.user ? " sebagai " + c.user : "") : "Belum login";
+  $("acc-msg").textContent = c.logged_in ? "" : c.client_id ? "Klik Login dengan Spotify" : "Isi Client ID dulu (lihat langkah di bawah)";
+  $("login").textContent = c.logged_in ? "Ganti akun" : "Login dengan Spotify";
+  $("login").classList.toggle("primary", !c.logged_in);
+  $("logout").hidden = !c.logged_in;
+}
+
+function renderStatus(c, now) {
+  const s = c.status;
+  const labels = { account: "Akun Spotify", local: "Spotify Desktop", idle: "Menunggu lagu" };
+  $("pill-dot").className = "dot " + (s.error ? "warn" : now.active ? "ok" : "");
+  $("pill-text").textContent = now.active ? (now.playing ? "▶ " : "⏸ ") + labels[s.source] : labels[s.source];
+
+  $("np").hidden = !now.active;
+  $("np-empty").hidden = now.active;
+  if (now.active) {
+    $("np-kicker").textContent = now.playing ? "Sedang diputar" : "Di-pause";
+    $("np-title").textContent = now.title;
+    $("np-artist").textContent = now.artist + (now.device ? " · " + now.device : "");
+    const src = "/cover?v=" + now.cover_version;
+    if ($("np-cover").getAttribute("src") !== src) $("np-cover").src = src;
+  } else {
+    $("np-empty-hint").textContent = c.source === "account" && !c.logged_in
+      ? "Kamu memilih Akun Spotify tapi belum login. Buka tab Sumber Musik, atau pilih Spotify Desktop."
+      : "Buka Spotify Desktop dan putar lagu. Lagunya akan muncul di sini.";
+  }
+  $("home-error").hidden = !s.error;
+  $("home-error-text").textContent = s.error;
+
+  $("step1").classList.toggle("done", !!now.active);
+  $("step1-text").textContent = now.active
+    ? `Terdeteksi: ${now.title} — ${now.artist}`
+    : "Buka Spotify Desktop di PC ini dan putar lagu apa saja.";
+}
 
 async function refresh() {
   try {
     const [c, now, ly] = await Promise.all([api("/api/config"), api("/api/now"), api("/api/lyrics")]);
     renderConfig(c);
+    renderStatus(c, now);
     renderLyricsStatus(ly);
-    $("np").hidden = !now.active;
-    if (now.active) {
-      $("np-title").textContent = (now.playing ? "▶ " : "⏸ ") + now.title;
-      $("np-artist").textContent = now.artist + (now.device ? " · " + now.device : "");
-      const src = "/cover?v=" + now.cover_version;
-      if ($("np-cover").getAttribute("src") !== src) $("np-cover").src = src;
-    }
   } catch {
-    $("st-dot").className = "dot err";
-    $("st-title").textContent = "Aplikasi tidak berjalan";
-    $("st-msg").textContent = "Jalankan start.bat lalu refresh halaman ini.";
+    $("pill-dot").className = "dot err";
+    $("pill-text").textContent = "Aplikasi tidak berjalan";
   }
 }
 
 const qs = new URLSearchParams(location.search);
-if (qs.get("login") === "ok") toast("Login berhasil 🎉");
-if (qs.get("login") === "error") toast("Login gagal: " + (qs.get("msg") || ""), true);
-if (qs.has("login")) history.replaceState(null, "", "/settings");
+if (qs.get("login") === "ok") { toast("Login berhasil 🎉"); location.hash = "source"; }
+if (qs.get("login") === "error") { toast("Login gagal: " + (qs.get("msg") || ""), true); location.hash = "source"; }
+if (qs.has("login")) history.replaceState(null, "", "/settings" + location.hash);
 
+showTab(location.hash.slice(1) || "home");
 refresh();
 setInterval(refresh, 2000);
 </script>

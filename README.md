@@ -20,9 +20,11 @@ Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 
 ![Overlay lirik satu baris](docs/screenshots/lyrics-single.png)
 
-**Halaman pengaturan** (`http://127.0.0.1:8765/settings`)
+**Halaman pengaturan** (`http://127.0.0.1:8765/settings`): panduan 3 langkah, dengan setiap pengaturan di tab terpisah dan preview langsung
 
-![Halaman pengaturan](docs/screenshots/settings.png)
+| Beranda | Atur kartu |
+|---|---|
+| ![Halaman pengaturan: beranda](docs/screenshots/settings.png) | ![Halaman pengaturan: kartu](docs/screenshots/settings-card.png) |
 
 - **Overlay now playing**: cover, judul, artis, dan progress bar
 - **Overlay lirik**: tampil seperti di Spotify, dengan latar mengikuti warna cover lagu. Liriknya dari [LRCLIB](https://lrclib.net)
@@ -41,6 +43,7 @@ Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 2. Buka **Spotify Now Playing** dari Start Menu atau desktop. Jendela console akan muncul dan menampilkan lagu yang sedang diputar.
 3. **Biarkan jendela itu terbuka** selama streaming. Boleh di-minimize, tapi jangan ditutup.
 4. Pada pemakaian pertama, halaman pengaturan terbuka otomatis. Setelahnya, buka lewat Start Menu → **Pengaturan (browser)**, atau ketik `http://127.0.0.1:8765/settings` di browser.
+5. Di tab **Beranda**, ikuti **3 langkah** yang ditampilkan. Langkah yang sudah selesai otomatis tercentang, dan tombol **Salin URL** tinggal ditempel di OBS.
 
 ### 2. Pilih sumber data
 

@@ -1,6 +1,6 @@
 # Spotify Now Playing untuk OBS
 
-**[Download installer (Windows)](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** · [Privasi](#privasi) · [English](README.en.md)
+**[Download installer (Windows)](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** · [Privasi](#privasi) · [Donasi](https://trakteer.id/mohammadrafly/gift) · [English](README.en.md)
 
 Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 
@@ -288,6 +288,10 @@ Aplikasi ini tidak mengirim data apa pun ke luar kecuali untuk fitur yang kamu p
 - **Notifikasi versi baru**: mati secara default. Kalau dinyalakan di tab **Aplikasi**, aplikasi mengecek halaman rilis GitHub sehari sekali.
 
 Riwayat lagu hanya disimpan di PC ini. Tidak ada telemetri atau analitik. Font sudah disertakan di aplikasi, jadi overlay tidak memuat apa pun dari Google Fonts. Web server lokal hanya bisa diakses dari PC ini (`127.0.0.1`). Detail lengkapnya ada di [kebijakan privasi](docs/PRIVACY.md).
+
+## Dukung pengembangan
+
+Aplikasi ini gratis dan open source. Kalau terbantu, kamu bisa mentraktir developernya lewat **[Trakteer](https://trakteer.id/mohammadrafly/gift)**. Tombol donasi juga ada di tab **Aplikasi** dan menu tray.
 
 ## Lisensi
 

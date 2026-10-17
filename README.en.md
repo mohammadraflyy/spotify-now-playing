@@ -1,6 +1,6 @@
 # Spotify Now Playing for OBS
 
-**[Download the Windows installer](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** · [Privacy](#privacy) · [Bahasa Indonesia](README.md)
+**[Download the Windows installer](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** · [Privacy](#privacy) · [Donate](https://trakteer.id/mohammadrafly/gift) · [Bahasa Indonesia](README.md)
 
 Shows the song you're playing on Spotify, with synced lyrics, as overlays in OBS.
 
@@ -107,6 +107,10 @@ powershell -ExecutionPolicy Bypass -File build.ps1    # tests, then build exe an
 ```
 
 To release: bump `__version__` in `spotify_now_playing/__init__.py`, add `docs/release-notes/vX.Y.Z.md`, and push the tag `vX.Y.Z`. GitHub Actions builds the installer and publishes the release.
+
+## Support
+
+The app is free and open source. If it helps you, you can support the developer on **[Trakteer](https://trakteer.id/mohammadrafly/gift)**. The donate button is also in the **App** tab and the tray menu.
 
 ## License
 

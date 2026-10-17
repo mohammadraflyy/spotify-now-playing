@@ -8,7 +8,7 @@ import webbrowser
 import pystray
 from PIL import Image
 
-from . import APP_NAME, i18n, startup
+from . import APP_NAME, DONATE_URL, i18n, startup
 from .config import OUTPUT_DIR, WEB_DIR
 
 
@@ -25,6 +25,9 @@ def run_tray(app, settings_url, greet):
     def open_update(icon, item):
         if app.updates.available:
             webbrowser.open(app.updates.available["url"])
+
+    def open_donate(icon, item):
+        webbrowser.open(DONATE_URL)
 
     def toggle_startup(icon, item):
         try:
@@ -52,6 +55,7 @@ def run_tray(app, settings_url, greet):
             pystray.MenuItem(lambda item: tr("startup"), toggle_startup,
                              checked=lambda item: startup.is_enabled(), enabled=startup.supported()),
             pystray.Menu.SEPARATOR,
+            pystray.MenuItem(lambda item: tr("donate"), open_donate),
             pystray.MenuItem(lambda item: tr("quit"), quit_app),
         ))
 

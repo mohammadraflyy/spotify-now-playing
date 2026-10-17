@@ -392,6 +392,10 @@ window.SNPI18n = (() => {
     "Mengecek versi terbaru…": "Checking for the latest version…",
     "Gagal mengecek versi terbaru. Dicoba lagi nanti.": "Couldn't check for the latest version. Will try again later.",
     "Folder data": "Data folder",
+    "Dukung pengembangan": "Support development",
+    "Aplikasi ini gratis. Kalau terbantu, kamu bisa mentraktir developernya lewat Trakteer.": "This app is free. If it helps you, you can buy the developer a treat on Trakteer.",
+    "Donasi di Trakteer": "Donate on Trakteer",
+    "Donasi": "Donate",
     "Berisi pengaturan, login, cache lirik, dan catatan error (": "Contains settings, login, the lyrics cache, and the error log (",
 
     // ------------------------------------------------- pesan dari server

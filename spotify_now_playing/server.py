@@ -144,7 +144,7 @@ def make_handler(app, port):
                 self._json(app.chat.status())
             elif path == "/youtube/login":
                 try:
-                    self._redirect(app.chat.youtube.login_url((q.get("role") or ["main"])[0]))
+                    self._redirect(app.chat.youtube.login_url())
                 except ValueError as e:
                     self._redirect("/settings?chat=error&msg=" + urllib.parse.quote(str(e)) + "#chat")
             elif path == "/youtube/callback":
@@ -152,8 +152,8 @@ def make_handler(app, port):
                 try:
                     if not get("code"):
                         raise ValueError(get("error") or "dibatalkan")
-                    role = app.chat.youtube.finish_login(get("state"), get("code"))
-                    self._redirect(f"/settings?chat=ok&role={role}#chat")
+                    app.chat.youtube.finish_login(get("state"), get("code"))
+                    self._redirect("/settings?chat=ok#chat")
                 except Exception as e:
                     self._redirect("/settings?chat=error&msg=" + urllib.parse.quote(str(e)) + "#chat")
             elif path == "/login":
@@ -274,51 +274,26 @@ def make_handler(app, port):
             self._json(result)
 
         def _chat_action(self, action, body):
-            """Pengaturan dan login bot chat."""
+            """Pengaturan listener chat (Twitch, YouTube, TikTok) dan request lagu."""
             chat = app.chat
             try:
                 if action == "config":
                     err = self._save_chat(body)
                     if err:
                         raise ValueError(err)
-                elif action == "test":
-                    text = str(body.get("text") or "")
-                    kind = chat.command_kind(text)
-                    self._json({"reply": chat.answer(kind, str(body.get("user") or "kamu"), text) if kind else None})
-                    return
-                elif action == "twitch/login":
-                    chat.twitch.begin_login()
-                elif action == "twitch/cancel":
-                    chat.twitch.cancel_login()
-                elif action == "twitch/logout":
-                    chat.twitch.logout()
                 elif action == "youtube/logout":
                     chat.youtube.logout()
-                elif action == "youtube/logout-bot":
-                    chat.youtube.logout("bot")
                 else:
                     self._json({"error": "not found"}, 404)
                     return
             except ValueError as e:
                 self._json({"error": str(e)}, 400)
                 return
-            except Exception as e:  # Twitch/Google tidak bisa dihubungi
-                self._json({"error": str(e)}, 502)
-                return
             self._json(chat.status())
 
         def _save_chat(self, body):
             cfg = app.cfg
             cur = dict(cfg.get("chat") or {})
-            for key in ("song_cmd", "last_cmd"):
-                if key in body:
-                    cmd = str(body[key] or "").strip()
-                    if cmd and not CHAT_COMMAND.match(cmd):
-                        return "Perintah harus satu kata tanpa spasi, maksimal 30 karakter"
-                    cur[key] = cmd
-            for key in ("song_reply", "last_reply", "none_reply"):
-                if key in body:
-                    cur[key] = str(body[key] or "").strip()[:200]
             if "request_enabled" in body:
                 cur["request_enabled"] = bool(body["request_enabled"])
             if "request_cmd" in body:
@@ -332,41 +307,11 @@ def make_handler(app, port):
                         cur[key] = max(0, min(top, int(body[key])))
                     except (TypeError, ValueError):
                         return "Batas request harus angka"
-            if isinstance(body.get("custom"), list):
-                custom, seen = [], {cur.get("song_cmd", "!song").lower(), cur.get("last_cmd", "!lastsong").lower()}
-                for c in body["custom"][:31]:
-                    cmd = str((c or {}).get("cmd") or "").strip()
-                    reply = str((c or {}).get("reply") or "").strip()[:200]
-                    if not cmd and not reply:
-                        continue  # baris kosong diabaikan
-                    if not CHAT_COMMAND.match(cmd):
-                        return "Perintah harus satu kata tanpa spasi, maksimal 30 karakter"
-                    if not reply:
-                        return f"Isi balasan untuk {cmd}"
-                    if cmd.lower() in seen:
-                        return f"Perintah {cmd} dipakai dua kali"
-                    seen.add(cmd.lower())
-                    custom.append({"cmd": cmd, "reply": reply})
-                if len(custom) > 30:
-                    return "Maksimal 30 perintah tambahan"
-                cur["custom"] = custom
-            if "cooldown" in body:
-                try:
-                    cur["cooldown"] = max(0, min(600, int(body["cooldown"])))
-                except (TypeError, ValueError):
-                    return "Cooldown harus angka"
             if isinstance(body.get("twitch"), dict):
                 tw = {**(cur.get("twitch") or {})}
                 b = body["twitch"]
                 if "enabled" in b:
                     tw["enabled"] = bool(b["enabled"])
-                if "client_id" in b:
-                    cid = str(b["client_id"] or "").strip()
-                    if cid and not (cid.isalnum() and len(cid) <= 64):
-                        return "Client ID Twitch tidak valid"
-                    if cid != tw.get("client_id", "") and cfg.get("twitch_auth"):
-                        cfg.update(twitch_auth=None)  # app Twitch beda -> login lama tidak berlaku
-                    tw["client_id"] = cid
                 if "channel" in b:
                     ch = str(b["channel"] or "").strip().lstrip("#").lower()
                     if ch and not re.match(r"^[a-z0-9_]{3,25}$", ch):

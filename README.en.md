@@ -13,8 +13,7 @@ Shows the song you're playing on Spotify, with synced lyrics, as overlays in OBS
 - **Now playing card**: cover, title, artist and progress bar. Four layouts (row, vertical, minimal, vinyl). Show it all the time or only for a few seconds when the song changes, and create several styles for different scenes.
 - **Lyrics overlay**: shown like in Spotify, with a background that follows the album cover's color. Lyrics come from [LRCLIB](https://lrclib.net) and are cached on your PC. Wrong lyrics can be replaced from the settings page, or with your own `.lrc` file.
 - **Not just Spotify**: optionally reads YouTube Music, Apple Music, TIDAL and other players on the same PC.
-- **Built-in chat bot**: viewers type `!song` in Twitch or YouTube chat and the bot replies with the song.
-- **Song requests from viewers** through Twitch, YouTube and TikTok chat, with a queue and an OBS overlay.
+- **Song requests from viewers** through Twitch, YouTube and TikTok chat, with a queue and an OBS overlay. The app only reads chat and never sends messages.
 - **Text files and cover** for OBS Text/Image sources.
 - **Song history** per day, exportable as `.txt` for VOD descriptions.
 - **Runs in the system tray**. Settings are a page in your browser, in English or Indonesian.
@@ -45,24 +44,23 @@ Changes on the settings page show up in OBS right away, without changing the URL
 | **Spotify account** | Music plays on your phone, speakers or another PC | Your own Spotify developer app (Client ID) and a login. The app owner needs **Premium** |
 | **Automatic** | Uses the account when possible, otherwise local | — |
 
-### `!song` chat command
+### `!song` for other chatbots
 
-Open the **Chatbot** tab on the settings page. The bot answers commands in your live chat and replies on the platform the message came from, so it works on Twitch and YouTube at the same time. Default commands: `!song` (current song) and `!lastsong` (previous song, from the history). Commands, replies and the cooldown can be changed, and the **Try** box shows the reply without going live. You can also add **your own commands**, such as `!discord` or `!schedule`, with any reply. Replies can come from a **separate bot account**: on Twitch, connect the bot account and enter your channel; on YouTube, log in the bot as a second account.
-
-| Platform | Setup |
-|---|---|
-| **Twitch** | Once: create an app in the [Twitch Developer Console](https://dev.twitch.tv/console/apps/create) (Category *Chat Bot*, Client Type *Public*) and paste its Client ID. Then click **Connect Twitch** and enter the code at `twitch.tv/activate`. |
-| **YouTube** | Once: create a Google Cloud project, enable *YouTube Data API v3*, create an OAuth client of type *Desktop app*, and paste its Client ID and Client Secret. Then click **Log in with Google**. The bot starts reading chat when you go live. Because the free API quota is limited, chat is read every 10 seconds. While the Google app is in *Testing*, you need to log in again once a week. |
-| **TikTok** | Listener only, for song requests (see below). The bot can't reply in TikTok chat, because TikTok has no official way to do that. |
-
-**Already using another chatbot?** `http://127.0.0.1:8765/api/now.txt` returns the current song as text. Change the format with `?format={title} by {artist}`. Use it with a chatbot that runs on the same PC, such as Streamer.bot (**Core → Network → Fetch URL**) or Mix It Up. Cloud bots like Nightbot can't reach it.
+`http://127.0.0.1:8765/api/now.txt` returns the current song as text. Change the format with `?format={title} by {artist}`. Use it with a chatbot that runs on the same PC, such as Streamer.bot (**Core → Network → Fetch URL**) or Mix It Up. Cloud bots like Nightbot can't reach it.
 
 ### Song requests
 
 Viewers type `!request song title` in chat, for example `!request Tulus - Pamit`. Requests go into the queue in the **Requests** tab, and you play them yourself in Spotify. A request leaves the queue automatically when that song plays, or you can mark it as played.
 
-- **Twitch and YouTube**: read by the chat bot, and viewers get a reply in chat.
-- **TikTok**: read by a listener, with no reply in chat. It needs a free API key from [Euler Stream](https://www.eulerstream.com), a third-party service that connects apps to TikTok LIVE chat. Enter your TikTok username and API key in the **Chatbot** tab.
+The app only **listens** to chat and never sends messages, so there are no chat replies; viewers see their request on the overlay. Set up platforms in the **Chat** tab:
+
+| Platform | Setup |
+|---|---|
+| **Twitch** | Enter your channel name. No login: Twitch chat is read anonymously. |
+| **YouTube** | Once: create a Google Cloud project, enable *YouTube Data API v3*, create an OAuth client of type *Desktop app*, paste its Client ID and Client Secret, and click **Log in with Google** (read-only access). Chat is read automatically when you go live, every 10 seconds because the free API quota is limited. While the Google app is in *Testing*, you need to log in again once a week. |
+| **TikTok** | Enter your TikTok username and a free API key from [Euler Stream](https://www.eulerstream.com), a third-party service that connects apps to TikTok LIVE chat. |
+
+Also:
 - **OBS overlay** `http://127.0.0.1:8765/requests` shows the queue on stream, so viewers (including TikTok) can see their request was added. Its look can be customized like the Now Playing card: width, text size, number of songs, corners, background (dark, fixed color, transparent), accent color, and whether to show the title, viewer names, platform and command hint. The OBS Browser Source size is calculated for you.
 
 ### Card URL parameters
@@ -92,7 +90,8 @@ The app only connects to other services for features you use:
 
 - **Lyrics**: the song's title, artist, album and duration are sent to [LRCLIB](https://lrclib.net).
 - **Spotify account mode**: only if you enter a Client ID and log in.
-- **Chat bot**: only if you turn it on and log in to Twitch or YouTube. The bot reads your own channel's chat and replies to commands.
+- **Twitch chat listener**: only if you turn it on. The app reads the chat of the channel you enter, anonymously, without a login.
+- **YouTube chat listener**: only if you turn it on and log in with Google (read-only access), to read your live chat.
 - **TikTok listener**: only if you turn it on. Your TikTok username and API key are sent to Euler Stream to read your live chat.
 - **New version notifications**: off by default. When enabled, the app checks GitHub releases once a day.
 

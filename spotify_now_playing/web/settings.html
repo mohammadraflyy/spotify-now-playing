@@ -170,10 +170,6 @@
   .p-head h3 { margin: 0; }
   .p-status { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 14px; font-size: 13px; }
   .p-status .dot { margin-top: 6px; }
-  .code { font: 700 22px ui-monospace, Consolas, monospace; letter-spacing: .12em; color: var(--fg); }
-  .cmd-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 8px; }
-  .custom-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 8px; margin-bottom: 8px; }
-  @media (max-width: 560px) { .cmd-row, .custom-row { grid-template-columns: minmax(0, 1fr); } }
   /* ---------- request ---------- */
   .rq { display: flex; gap: 12px; align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--line); }
   .rq .n { width: 22px; color: var(--accent); font-weight: 800; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
@@ -239,7 +235,7 @@
       <button data-tab="lyrics"><svg class="i"><use href="#i-mic"/></svg>Lirik</button>
       <button data-tab="source"><svg class="i"><use href="#i-plug"/></svg>Sumber Musik</button>
       <button data-tab="files"><svg class="i"><use href="#i-file"/></svg>File Teks</button>
-      <button data-tab="chat"><svg class="i"><use href="#i-message"/></svg>Chatbot</button>
+      <button data-tab="chat"><svg class="i"><use href="#i-message"/></svg>Chat</button>
       <button data-tab="requests"><svg class="i"><use href="#i-list-music"/></svg>Request</button>
       <button data-tab="history"><svg class="i"><use href="#i-history"/></svg>Riwayat</button>
       <button data-tab="app"><svg class="i"><use href="#i-settings"/></svg>Aplikasi</button>
@@ -609,83 +605,35 @@
       <label class="check"><input type="checkbox" id="t-hide"> Kosongkan teks saat lagu di-pause</label>
     </div>
 
+    <div class="panel">
+      <h3><svg class="i"><use href="#i-message"/></svg> Perintah !song untuk chatbot</h3>
+      <p class="muted small" style="margin:-4px 0 12px">URL ini berisi teks lagu yang sedang diputar, dengan format yang sama seperti <code>nowplaying.txt</code>. Pakai di chatbot yang berjalan di PC ini, seperti Streamer.bot atau Mix It Up.</p>
+      <div class="row">
+        <input type="text" class="mono" id="now-txt-url" readonly>
+        <button data-copy="now-txt-url">Salin</button>
+      </div>
+      <ol class="how" style="margin-top:12px">
+        <li><b>Streamer.bot</b>: buat Command <code>!song</code>, tambahkan sub-action <b>Core → Network → Fetch URL</b> dengan URL di atas, lalu kirim hasilnya lewat <b>Twitch/YouTube → Send Message</b>.</li>
+        <li>Format bisa diganti lewat URL, misalnya <code>?format=Sekarang: {title} oleh {artist}</code>.</li>
+        <li>Nightbot dan bot cloud lain <b>tidak bisa</b> memakai URL ini, karena hanya bisa diakses dari PC ini.</li>
+      </ol>
+    </div>
   </section>
 
-  <!-- ======================= CHATBOT ======================= -->
+  <!-- ======================= CHAT ======================= -->
   <section class="page" id="page-chat">
-    <h2 class="page-title">Chatbot</h2>
-    <p class="page-sub">Bot membalas perintah di chat live kamu. Misalnya penonton mengetik <code>!song</code>, lalu bot membalas judul lagu yang sedang diputar. Balasan dikirim ke platform asal pesan, jadi bisa dipakai di Twitch dan YouTube sekaligus.</p>
-
-    <div class="panel">
-      <h3>Perintah</h3>
-      <div class="field">
-        <span class="label">Lagu yang sedang diputar</span>
-        <div class="cmd-row"><input type="text" class="mono" id="c-song-cmd" spellcheck="false"><input type="text" id="c-song-reply" spellcheck="false"></div>
-      </div>
-      <div class="field">
-        <span class="label">Lagu sebelumnya</span>
-        <div class="cmd-row"><input type="text" class="mono" id="c-last-cmd" spellcheck="false"><input type="text" id="c-last-reply" spellcheck="false"></div>
-      </div>
-      <div class="field">
-        <span class="label">Balasan saat tidak ada lagu</span>
-        <input type="text" id="c-none-reply" spellcheck="false">
-      </div>
-      <div class="field">
-        <span class="label">Perintah tambahan</span>
-        <div id="c-custom"></div>
-        <button class="ghost sm" id="c-custom-add"><svg class="i"><use href="#i-plus"/></svg> Tambah perintah</button>
-        <p class="muted small" style="margin:8px 0 0">Untuk info apa pun, misalnya <code>!discord</code> dibalas dengan link Discord, atau <code>!jadwal</code> dengan jadwal streaming.</p>
-      </div>
-      <p class="muted small" style="margin:-6px 0 14px">Bisa pakai <code>{user}</code> <code>{title}</code> <code>{artist}</code> <code>{album}</code>. Kosongkan perintah untuk mematikannya, kosongkan balasan untuk memakai balasan bawaan.</p>
-      <div class="slider"><span>Cooldown</span><input type="range" id="c-cooldown" min="0" max="60" step="1"><span class="numwrap"><input type="number" class="num" id="c-cooldown-v" data-range="c-cooldown">detik</span></div>
-      <p class="muted small" style="margin:-4px 0 14px">Jeda minimal sebelum perintah yang sama dibalas lagi, supaya bot tidak spam.</p>
-      <div class="row" style="flex-wrap:wrap">
-        <button class="primary" id="c-save">Simpan</button>
-        <input type="text" id="c-test" placeholder="Coba ketik !song" style="max-width:220px" spellcheck="false">
-        <button id="c-test-go">Coba</button>
-      </div>
-      <p class="small" id="c-test-out" style="margin:10px 0 0"></p>
-    </div>
+    <h2 class="page-title">Chat</h2>
+    <p class="page-sub">Aplikasi mendengarkan chat live kamu untuk menerima <a href="#requests">request lagu</a> dari penonton. Hanya membaca: tidak ada pesan yang dikirim ke chat. Bisa dipakai di beberapa platform sekaligus.</p>
 
     <div class="platforms">
       <div class="panel" id="tw-box">
         <div class="p-head"><h3>Twitch</h3><label class="check" style="padding:0"><input type="checkbox" id="tw-enabled"> Aktif</label></div>
         <div class="p-status"><span class="dot" id="tw-dot"></span><span id="tw-status"></span></div>
-        <div class="banner info" id="tw-device" hidden style="flex-direction:column;align-items:flex-start">
-          <span>Buka <a id="tw-device-link" target="_blank" rel="noopener">twitch.tv/activate</a> lalu masukkan kode ini:</span>
-          <span class="code" id="tw-code"></span>
-          <button class="sm ghost" id="tw-cancel">Batal</button>
-        </div>
         <div class="row">
-          <button class="primary" id="tw-login">Hubungkan Twitch</button>
-          <button class="danger" id="tw-logout" hidden>Putuskan</button>
+          <input type="text" class="mono" id="tw-channel" placeholder="Nama channel Twitch" autocomplete="off" spellcheck="false">
+          <button class="primary" id="tw-save">Simpan</button>
         </div>
-        <details id="tw-bot" style="margin-top:14px">
-          <summary>Akun bot terpisah (opsional)</summary>
-          <p class="muted small">Supaya balasan muncul atas nama akun bot (misalnya <b>TulusBot</b>), bukan akun streaming-mu:</p>
-          <ol class="how">
-            <li>Buat akun Twitch baru untuk bot.</li>
-            <li>Klik <b>Hubungkan Twitch</b>, lalu buka link kodenya di jendela browser yang login dengan <b>akun bot</b> (misalnya jendela incognito).</li>
-            <li>Isi nama channel streaming-mu di bawah, lalu ketik <code>/mod namabot</code> di chat-mu supaya bot tidak kena slow mode.</li>
-          </ol>
-          <div class="row" style="margin-top:12px">
-            <input type="text" class="mono" id="tw-channel" placeholder="Channel streaming-mu" autocomplete="off" spellcheck="false">
-            <button class="primary" id="tw-channel-save">Simpan</button>
-          </div>
-          <p class="muted small" style="margin:6px 0 0">Kosongkan kalau bot login dengan akun streaming-mu sendiri.</p>
-        </details>
-        <details id="tw-setup" style="margin-top:14px">
-          <summary>Client ID Twitch (cukup sekali)</summary>
-          <ol class="how">
-            <li>Buka <a href="https://dev.twitch.tv/console/apps/create" target="_blank" rel="noopener">Twitch Developer Console</a>. Akun Twitch perlu mengaktifkan 2FA.</li>
-            <li>Isi nama bebas. Di <b>OAuth Redirect URLs</b> isi <code>http://localhost</code>, <b>Category</b> pilih <b>Chat Bot</b>, dan <b>Client Type</b> pilih <b>Public</b>.</li>
-            <li>Klik <b>Create</b>, lalu <b>Manage</b>, dan salin <b>Client ID</b> ke kolom di bawah.</li>
-          </ol>
-          <div class="row" style="margin-top:12px">
-            <input type="text" class="mono" id="tw-cid" placeholder="Client ID Twitch" autocomplete="off" spellcheck="false">
-            <button class="primary" id="tw-cid-save">Simpan</button>
-          </div>
-        </details>
+        <p class="muted small" style="margin:12px 0 0">Tanpa login. Chat Twitch dibaca secara anonim, cukup isi nama channel-mu.</p>
       </div>
 
       <div class="panel" id="yt-box">
@@ -695,16 +643,7 @@
           <a class="btn primary" id="yt-login" href="/youtube/login">Login dengan Google</a>
           <button class="danger" id="yt-logout" hidden>Logout</button>
         </div>
-        <p class="muted small" style="margin:12px 0 0">Bot membaca chat setiap 10 detik karena kuota gratis YouTube API terbatas, jadi balasannya bisa sedikit telat.</p>
-        <details id="yt-bot" style="margin-top:14px">
-          <summary>Akun bot terpisah (opsional)</summary>
-          <p class="muted small">Akun utama tetap dipakai untuk mendeteksi live dan membaca chat. Kalau akun bot login di sini, balasan dikirim atas nama channel bot. Tambahkan email akun bot ke <b>Test users</b> di Google Cloud, lalu jadikan channel bot moderator di live-mu.</p>
-          <div class="p-status"><span class="dot" id="yt-bot-dot"></span><span id="yt-bot-status"></span></div>
-          <div class="row">
-            <a class="btn" id="yt-bot-login" href="/youtube/login?role=bot">Login akun bot</a>
-            <button class="danger" id="yt-bot-logout" hidden>Logout akun bot</button>
-          </div>
-        </details>
+        <p class="muted small" style="margin:12px 0 0">Login dipakai untuk mendeteksi live-mu dan membaca chat-nya, dengan izin hanya baca. Chat dibaca setiap 10 detik karena kuota gratis YouTube API terbatas.</p>
         <details id="yt-setup" style="margin-top:14px">
           <summary>Client ID Google (cukup sekali)</summary>
           <ol class="how">
@@ -728,7 +667,6 @@
       <div class="panel" id="tt-box">
         <div class="p-head"><h3>TikTok</h3><label class="check" style="padding:0"><input type="checkbox" id="tt-enabled"> Aktif</label></div>
         <div class="p-status"><span class="dot" id="tt-dot"></span><span id="tt-status"></span></div>
-        <p class="muted small" style="margin:0 0 12px">Hanya mendengarkan: request lagu dari chat TikTok masuk ke antrian, tapi bot tidak membalas di chat TikTok, karena TikTok tidak menyediakan cara resmi untuk itu. Perintah lain seperti <code>!song</code> tidak berlaku di TikTok.</p>
         <div class="field">
           <input type="text" class="mono" id="tt-user" placeholder="Username TikTok (tanpa @)" autocomplete="off" spellcheck="false">
         </div>
@@ -746,22 +684,6 @@
           <p class="muted small" style="margin:10px 0 0">Euler Stream adalah layanan pihak ketiga yang menyambungkan aplikasi ke chat TikTok LIVE. Username TikTok dan API key-mu dikirim ke sana. Saat kamu belum live, aplikasi mengecek ulang setiap 3 menit.</p>
         </details>
       </div>
-    </div>
-
-    <div style="margin-top:16px">
-    <div class="panel">
-      <h3>Sudah pakai chatbot lain?</h3>
-      <p class="muted small" style="margin:-4px 0 12px">URL ini berisi teks lagu yang sedang diputar, dengan format yang sama seperti <code>nowplaying.txt</code>. Pakai di chatbot yang berjalan di PC ini, seperti Streamer.bot atau Mix It Up.</p>
-      <div class="row">
-        <input type="text" class="mono" id="now-txt-url" readonly>
-        <button data-copy="now-txt-url">Salin</button>
-      </div>
-      <ol class="how" style="margin-top:12px">
-        <li><b>Streamer.bot</b>: buat Command <code>!song</code>, tambahkan sub-action <b>Core → Network → Fetch URL</b> dengan URL di atas, lalu kirim hasilnya lewat <b>Twitch/YouTube → Send Message</b>.</li>
-        <li>Format bisa diganti lewat URL, misalnya <code>?format=Sekarang: {title} oleh {artist}</code>.</li>
-        <li>Nightbot dan bot cloud lain <b>tidak bisa</b> memakai URL ini, karena hanya bisa diakses dari PC ini.</li>
-      </ol>
-    </div>
     </div>
   </section>
 
@@ -785,9 +707,9 @@
           </div>
           <div class="slider"><span>Per orang</span><input type="range" id="rq-max-user" min="0" max="10" step="1"><span class="numwrap"><input type="number" class="num" id="rq-max-user-v" data-range="rq-max-user">lagu</span></div>
           <div class="slider"><span>Maksimal</span><input type="range" id="rq-max-total" min="0" max="200" step="1"><span class="numwrap"><input type="number" class="num" id="rq-max-total-v" data-range="rq-max-total">lagu</span></div>
-          <p class="muted small" style="margin:0 0 14px">Isi 0 untuk tanpa batas. Penonton Twitch dan YouTube mendapat balasan di chat. Penonton TikTok tidak mendapat balasan, tapi bisa melihat request-nya di overlay.</p>
+          <p class="muted small" style="margin:0 0 14px">Isi 0 untuk tanpa batas. Tidak ada balasan di chat, jadi tampilkan overlay di stream supaya penonton tahu request-nya masuk.</p>
           <button class="primary" id="rq-save">Simpan</button>
-          <p class="muted small" style="margin:12px 0 0">Request dibaca dari platform yang aktif di tab <a href="#chat">Chatbot</a>.</p>
+          <p class="muted small" style="margin:12px 0 0">Request dibaca dari platform yang aktif di tab <a href="#chat">Chat</a>.</p>
         </div>
         <div class="panel">
           <h3>Tampilan overlay</h3>
@@ -1320,71 +1242,32 @@ $("app-updates").addEventListener("change", async () => {
     toast("Tersimpan");
   } catch (e) { toast(e.message, true); }
 });
-// ---------------------------------------------------------- chatbot --
+// ------------------------------------------------------------- chat --
 
 let chat = null, chatLoaded = false;
-function fillChat(c) {
-  $("c-song-cmd").value = c.song_cmd; $("c-last-cmd").value = c.last_cmd;
-  $("c-song-reply").value = c.song_reply; $("c-last-reply").value = c.last_reply; $("c-none-reply").value = c.none_reply;
-  $("c-song-reply").placeholder = c.default_replies.song;
-  $("c-last-reply").placeholder = c.default_replies.last;
-  $("c-none-reply").placeholder = c.default_replies.none;
-  $("c-cooldown").value = c.cooldown; setNum("c-cooldown-v", c.cooldown);
-  $("tw-cid").value = c.twitch.client_id;
-  $("tw-channel").value = c.twitch.channel_setting;
-  $("c-custom").innerHTML = "";
-  c.custom.forEach(addCustomRow);
-  if (c.twitch.channel_setting) $("tw-bot").open = true;
-  $("yt-cid").value = c.youtube.client_id;
-  $("tt-user").value = c.tiktok.username;
-}
-function addCustomRow(c = {}) {
-  const row = document.createElement("div");
-  row.className = "custom-row";
-  row.innerHTML = '<input type="text" class="mono" spellcheck="false"><input type="text" spellcheck="false">' +
-    '<button class="ghost sm" title=""><svg class="i"><use href="#i-trash"/></svg></button>';
-  const [cmd, reply, del] = row.children;
-  cmd.value = c.cmd || ""; cmd.placeholder = "!discord";
-  reply.value = c.reply || ""; reply.placeholder = t("Balasan, misalnya: Gabung Discord: discord.gg/xxxx");
-  del.title = t("Hapus");
-  del.onclick = () => row.remove();
-  $("c-custom").appendChild(row);
-  return row;
-}
-function customValues() {
-  return [...$("c-custom").children].map(r => ({ cmd: r.children[0].value.trim(), reply: r.children[1].value.trim() }));
-}
-$("c-custom-add").onclick = () => addCustomRow().children[0].focus();
-
 function renderChat(c) {
   chat = c;
-  if (!chatLoaded) { chatLoaded = true; fillChat(c); }
-  const tw = c.twitch, yt = c.youtube;
+  if (!chatLoaded) {
+    chatLoaded = true;
+    $("tw-channel").value = c.twitch.channel;
+    $("yt-cid").value = c.youtube.client_id;
+    $("tt-user").value = c.tiktok.username;
+  }
+  const tw = c.twitch, yt = c.youtube, tt = c.tiktok;
 
   $("tw-enabled").checked = tw.enabled;
-  const twText = {
-    off: t("Mati. Centang Aktif untuk menyalakan bot di Twitch."),
-    login: tw.client_id || tw.builtin_client ? t("Belum terhubung. Klik Hubungkan Twitch.") : t("Isi Client ID Twitch dulu (lihat langkah di bawah)."),
+  $("tw-status").textContent = {
+    off: t("Mati. Centang Aktif untuk mendengarkan request dari Twitch."),
+    setup: t("Isi nama channel Twitch-mu dulu."),
     connecting: t("Menyambung ke chat Twitch…"),
-    connected: tw.channel && tw.channel !== tw.login.toLowerCase()
-      ? t("Aktif di chat #{channel} sebagai {login}", { channel: tw.channel, login: tw.login })
-      : t("Aktif di chat #{login}", { login: tw.login }),
+    connected: t("Mendengarkan chat #{channel}", { channel: tw.channel }),
     error: t(tw.error),
   }[tw.state] || "";
-  $("tw-status").textContent = tw.state !== "error" && tw.error ? t(tw.error) : twText;
-  $("tw-dot").className = "dot " + ({ connected: "ok", error: "err", connecting: "warn" }[tw.state] || (tw.error ? "warn" : ""));
-  $("tw-device").hidden = !tw.device;
-  if (tw.device) {
-    $("tw-code").textContent = tw.device.user_code;
-    $("tw-device-link").href = tw.device.verification_uri;
-  }
-  $("tw-login").hidden = !!tw.login || !!tw.device;
-  $("tw-logout").hidden = !tw.login;
-  if (!tw.client_id && !tw.builtin_client && !$("tw-setup").dataset.auto) { $("tw-setup").open = true; $("tw-setup").dataset.auto = "1"; }
+  $("tw-dot").className = "dot " + ({ connected: "ok", error: "err", connecting: "warn" }[tw.state] || "");
 
   $("yt-enabled").checked = yt.enabled;
   const ytText = {
-    off: t("Mati. Centang Aktif untuk menyalakan bot di YouTube."),
+    off: t("Mati. Centang Aktif untuk mendengarkan request dari YouTube."),
     login: yt.client_id && yt.has_secret ? t("Belum login. Klik Login dengan Google.") : t("Isi Client ID dan Client Secret Google dulu (lihat langkah di bawah)."),
     waiting: t("Login sebagai {channel}. Menunggu kamu mulai live…", { channel: yt.channel || "YouTube" }),
     connected: t("Membaca chat live: {title}", { title: yt.live_title }),
@@ -1393,29 +1276,21 @@ function renderChat(c) {
   $("yt-status").textContent = yt.state !== "error" && yt.error ? t(yt.error) : ytText;
   $("yt-dot").className = "dot " + ({ connected: "ok", waiting: "warn", error: "err" }[yt.state] || (yt.error ? "warn" : ""));
   $("yt-login").hidden = !!yt.channel || yt.state === "waiting" || yt.state === "connected";
-  $("yt-logout").hidden = $("yt-login").hidden === false;
-  $("yt-bot-status").textContent = yt.bot_login
-    ? t("Balasan dikirim sebagai {channel}", { channel: yt.bot_channel || t("akun bot") })
-    : t("Belum ada akun bot. Balasan dikirim dengan akun utama.");
-  $("yt-bot-dot").className = "dot " + (yt.bot_login ? "ok" : "");
-  $("yt-bot-login").hidden = yt.bot_login;
-  $("yt-bot-logout").hidden = !yt.bot_login;
-  if (yt.bot_login && !$("yt-bot").dataset.auto) { $("yt-bot").open = true; $("yt-bot").dataset.auto = "1"; }
-  const tt = c.tiktok;
+  $("yt-logout").hidden = !$("yt-login").hidden;
+  $("yt-secret-saved").textContent = yt.has_secret ? t("Secret tersimpan: {hint}", { hint: yt.secret_hint }) : "";
+  if (!(yt.client_id && yt.has_secret) && !$("yt-setup").dataset.auto) { $("yt-setup").open = true; $("yt-setup").dataset.auto = "1"; }
+
   $("tt-enabled").checked = tt.enabled;
-  const ttText = {
+  $("tt-status").textContent = {
     off: t("Mati. Centang Aktif untuk mendengarkan request dari TikTok."),
     setup: t("Isi username TikTok dan API key Euler Stream dulu."),
     waiting: t("Menunggu @{user} live… (dicek setiap 3 menit)", { user: tt.username }),
     connected: t("Mendengarkan chat live @{user}", { user: tt.username }),
     error: t(tt.error),
   }[tt.state] || "";
-  $("tt-status").textContent = ttText;
   $("tt-dot").className = "dot " + ({ connected: "ok", waiting: "warn", error: "err" }[tt.state] || "");
   $("tt-key-saved").textContent = tt.has_key ? t("API key tersimpan: {hint}", { hint: tt.key_hint }) : "";
   if (!tt.has_key && !$("tt-setup").dataset.auto) { $("tt-setup").open = true; $("tt-setup").dataset.auto = "1"; }
-  $("yt-secret-saved").textContent = yt.has_secret ? t("Secret tersimpan: {hint}", { hint: yt.secret_hint }) : "";
-  if (!(yt.client_id && yt.has_secret) && !$("yt-setup").dataset.auto) { $("yt-setup").open = true; $("yt-setup").dataset.auto = "1"; }
 }
 async function loadChat() {
   try { renderChat(await api("/api/chat")); } catch {}
@@ -1424,51 +1299,26 @@ async function chatAction(path, body, msg) {
   try { renderChat(await api("/api/chat/" + path, body || {})); if (msg) toast(msg); return true; }
   catch (e) { toast(e.message, true); return false; }
 }
-$("c-cooldown").addEventListener("input", () => setNum("c-cooldown-v", $("c-cooldown").value));
-$("c-save").onclick = () => chatAction("config", {
-  song_cmd: $("c-song-cmd").value, last_cmd: $("c-last-cmd").value,
-  song_reply: $("c-song-reply").value, last_reply: $("c-last-reply").value, none_reply: $("c-none-reply").value,
-  cooldown: +$("c-cooldown").value, custom: customValues(),
-}, "Tersimpan");
-async function testCommand() {
-  const text = $("c-test").value.trim() || chat?.song_cmd || "!song";
-  try {
-    const r = await api("/api/chat/test", { text, user: LANG === "en" ? "you" : "kamu" });
-    $("c-test-out").innerHTML = "";
-    const b = document.createElement("b");
-    b.textContent = r.reply ? t("Balasan bot:") + " " : "";
-    $("c-test-out").append(b, r.reply || t("Bukan perintah. Simpan dulu kalau baru mengubah perintah."));
-  } catch (e) { toast(e.message, true); }
-}
-$("c-test-go").onclick = testCommand;
-$("c-test").addEventListener("keydown", e => { if (e.key === "Enter") testCommand(); });
 $("tw-enabled").onchange = () => chatAction("config", { twitch: { enabled: $("tw-enabled").checked } });
+$("tw-save").onclick = () => chatAction("config", { twitch: { channel: $("tw-channel").value, enabled: true } }, "Tersimpan");
+$("tw-channel").addEventListener("keydown", e => { if (e.key === "Enter") $("tw-save").click(); });
 $("yt-enabled").onchange = () => chatAction("config", { youtube: { enabled: $("yt-enabled").checked } });
-$("tw-login").onclick = async () => {
-  if (!$("tw-enabled").checked) await chatAction("config", { twitch: { enabled: true } });
-  if (await chatAction("twitch/login")) window.open(chat.twitch.device.verification_uri, "_blank", "noopener");
-};
-$("tw-cancel").onclick = () => chatAction("twitch/cancel");
-$("tw-logout").onclick = () => chatAction("twitch/logout", {}, "Twitch diputuskan");
-$("tw-cid-save").onclick = () => chatAction("config", { twitch: { client_id: $("tw-cid").value } }, "Tersimpan");
 $("yt-login").addEventListener("click", async e => {
   e.preventDefault();
   if (!$("yt-enabled").checked) await chatAction("config", { youtube: { enabled: true } });
   location.href = "/youtube/login";
 });
-$("tw-channel-save").onclick = () => chatAction("config", { twitch: { channel: $("tw-channel").value } }, "Tersimpan");
-$("yt-bot-logout").onclick = () => chatAction("youtube/logout-bot", {}, "Akun bot YouTube dilepas");
-$("tt-enabled").onchange = () => chatAction("config", { tiktok: { enabled: $("tt-enabled").checked } });
-$("tt-save").onclick = async () => {
-  const body = { username: $("tt-user").value };
-  if ($("tt-key").value.trim()) body.api_key = $("tt-key").value.trim();
-  if (await chatAction("config", { tiktok: body }, "Tersimpan")) $("tt-key").value = "";
-};
 $("yt-logout").onclick = () => chatAction("youtube/logout", {}, "Logout YouTube berhasil");
 $("yt-save").onclick = async () => {
   const body = { client_id: $("yt-cid").value };
   if ($("yt-secret").value.trim()) body.client_secret = $("yt-secret").value.trim();
   if (await chatAction("config", { youtube: body }, "Tersimpan")) $("yt-secret").value = "";
+};
+$("tt-enabled").onchange = () => chatAction("config", { tiktok: { enabled: $("tt-enabled").checked } });
+$("tt-save").onclick = async () => {
+  const body = { username: $("tt-user").value };
+  if ($("tt-key").value.trim()) body.api_key = $("tt-key").value.trim();
+  if (await chatAction("config", { tiktok: body }, "Tersimpan")) $("tt-key").value = "";
 };
 
 // ---------------------------------------------------------- request --
@@ -1771,7 +1621,7 @@ async function refresh() {
 const qs = new URLSearchParams(location.search);
 if (qs.get("login") === "ok") { setTimeout(() => toast("Login berhasil"), 300); location.hash = "source"; }
 if (qs.get("login") === "error") { setTimeout(() => toast(t("Login gagal: {msg}", { msg: qs.get("msg") || "" }), true), 300); location.hash = "source"; }
-if (qs.get("chat") === "ok") setTimeout(() => toast(qs.get("role") === "bot" ? "Akun bot YouTube tersambung" : "Login YouTube berhasil"), 300);
+if (qs.get("chat") === "ok") setTimeout(() => toast("Login YouTube berhasil"), 300);
 if (qs.get("chat") === "error") setTimeout(() => toast(t("Login YouTube gagal: {msg}", { msg: t(qs.get("msg") || "") }), true), 300);
 if (qs.has("login") || qs.has("chat")) history.replaceState(null, "", "/settings" + location.hash);
 

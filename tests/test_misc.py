@@ -166,37 +166,26 @@ class ServerTest(unittest.TestCase):
         _, cfg = self.post("/api/config", {"lang": "xx"})
         self.assertEqual(cfg["lang"], "en")
 
-    def test_chat_config_and_test(self):
-        status, chat = self.post("/api/chat/config", {"song_cmd": "!lagu", "cooldown": 9,
-                                                       "twitch": {"client_id": "abc123"}})
+    def test_chat_config(self):
+        status, chat = self.post("/api/chat/config", {"request_cmd": "!sr", "request_max_user": 3,
+                                                       "twitch": {"enabled": True, "channel": "#Tulus"}})
         self.assertEqual(status, 200)
-        self.assertEqual((chat["song_cmd"], chat["cooldown"], chat["twitch"]["client_id"]), ("!lagu", 9, "abc123"))
-        type(self).now = {"active": True, "title": "Judul", "artist": "Artis", "album": "A"}
-        _, r = self.post("/api/chat/test", {"text": "!lagu", "user": "ani"})
-        self.assertIn("Artis - Judul", r["reply"])
-        _, r = self.post("/api/chat/test", {"text": "halo"})
-        self.assertIsNone(r["reply"])
-        self.post("/api/chat/config", {"song_cmd": "!song"})
+        self.assertEqual((chat["request_cmd"], chat["request_max_user"]), ("!sr", 3))
+        self.assertEqual((chat["twitch"]["channel"], chat["twitch"]["enabled"]), ("tulus", True))
+        self.assertNotIn("client_id", chat["twitch"])  # Twitch tanpa login
+        self.post("/api/chat/config", {"request_cmd": "!request", "request_max_user": 2,
+                                       "twitch": {"enabled": False, "channel": ""}})
 
     def test_chat_config_validation(self):
-        for body in ({"song_cmd": "dua kata"}, {"cooldown": "x"}, {"twitch": {"client_id": "a b"}},
-                     {"youtube": {"client_id": "<script>"}}, {"twitch": {"channel": "nama aneh!"}},
-                     {"custom": [{"cmd": "!a", "reply": ""}]},
-                     {"custom": [{"cmd": "!a", "reply": "x"}, {"cmd": "!A", "reply": "y"}]},
-                     {"custom": [{"cmd": "!song", "reply": "bentrok dengan perintah bawaan"}]}):
+        for body in ({"request_cmd": "dua kata"}, {"request_max_user": "x"},
+                     {"youtube": {"client_id": "<script>"}}, {"twitch": {"channel": "nama aneh!"}}):
             status, _ = self.post("/api/chat/config", body)
             self.assertEqual(status, 400, body)
 
-    def test_chat_custom_commands_saved(self):
-        status, chat = self.post("/api/chat/config", {"custom": [
-            {"cmd": "!discord", "reply": "discord.gg/x"}, {"cmd": "", "reply": ""}],
-            "twitch": {"channel": "#Tulus"}})
-        self.assertEqual(status, 200)
-        self.assertEqual(chat["custom"], [{"cmd": "!discord", "reply": "discord.gg/x"}])
-        self.assertEqual(chat["twitch"]["channel_setting"], "tulus")
-        _, r = self.post("/api/chat/test", {"text": "!discord"})
-        self.assertEqual(r["reply"], "discord.gg/x")
-        self.post("/api/chat/config", {"custom": [], "twitch": {"channel": ""}})
+    def test_removed_reply_endpoints(self):
+        for path in ("/api/chat/test", "/api/chat/twitch/login", "/api/chat/youtube/logout-bot"):
+            status, _ = self.post(path, {})
+            self.assertEqual(status, 404, path)
 
     def test_request_queue_endpoints(self):
         q = self.app.chat.requests

@@ -1,14 +1,10 @@
 import gzip
 import struct
 import tempfile
-import threading
 import time
 import unittest
-from types import SimpleNamespace
 
 from spotify_now_playing import chat_tiktok
-from spotify_now_playing.chatbot import ChatBot
-from spotify_now_playing.history import History
 from spotify_now_playing.song_requests import RequestQueue, normalize
 
 
@@ -231,40 +227,6 @@ class TikTokListenerTest(unittest.TestCase):
         while chat.state != "off" and time.time() < deadline:
             time.sleep(0.02)
         self.assertEqual(chat.state, "off")
-
-
-class RequestCommandTest(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
-        self.addCleanup(self.tmp.cleanup)
-        self.app = SimpleNamespace(cfg=FakeConfig(lang="id"), history=History(None),
-                                   snapshot=lambda: {"active": True, "title": "Pamit", "artist": "Tulus", "album": ""})
-        self.bot = ChatBot(self.app, self.tmp.name)
-
-    def test_request_from_each_platform(self):
-        self.assertEqual(self.bot.handle("twitch", "budi", "!request Tulus - Pamit"),
-                         "@budi request masuk: Tulus - Pamit (antrian ke-1)")
-        self.assertEqual(self.bot.handle("youtube", "ani", "!REQUEST tulus pamit"),
-                         "@ani Tulus - Pamit sudah ada di antrian (ke-1)")
-        self.bot.handle("tiktok", "cici", "!request Hindia - Evaluasi")
-        self.assertEqual([(i["platform"], i["user"]) for i in self.bot.requests.list()], [("twitch", "budi"), ("tiktok", "cici")])
-
-    def test_request_without_title(self):
-        self.assertIn("ketik !request judul lagu", self.bot.handle("twitch", "budi", "!request"))
-
-    def test_tiktok_ignores_other_commands(self):
-        self.assertIsNone(self.bot.handle("tiktok", "budi", "!song"))
-        self.assertIsNotNone(self.bot.handle("twitch", "budi", "!song"))
-
-    def test_disabled_and_custom_command(self):
-        self.app.cfg["chat"] = {"request_enabled": False}
-        self.assertIsNone(self.bot.handle("twitch", "budi", "!request Pamit"))
-        self.app.cfg["chat"] = {"request_cmd": "!sr"}
-        self.assertIn("request masuk", self.bot.handle("twitch", "budi", "!sr Pamit"))
-
-    def test_preview_does_not_add(self):
-        self.assertIn("antrian ke-1", self.bot.answer("request", "kamu", "!request Pamit"))
-        self.assertEqual(self.bot.requests.list(), [])
 
 
 if __name__ == "__main__":

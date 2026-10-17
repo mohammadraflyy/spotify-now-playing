@@ -33,8 +33,7 @@ Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 - **Overlay now playing**: cover, judul, artis, dan progress bar, dengan 4 layout (baris, vertikal, minimal, vinyl). Bisa tampil terus atau hanya beberapa detik setiap ganti lagu, dan bisa punya beberapa gaya untuk scene berbeda
 - **Overlay lirik**: tampil seperti di Spotify, dengan latar mengikuti warna cover lagu. Liriknya dari [LRCLIB](https://lrclib.net), tersimpan di PC supaya tetap ada walaupun LRCLIB sedang down
 - **Bukan cuma Spotify**: opsional, bisa juga membaca YouTube Music, Apple Music, TIDAL, dan player lain di PC yang sama
-- **Chatbot bawaan**: penonton mengetik `!song` di chat Twitch atau YouTube, bot membalas judul lagunya
-- **Request lagu dari penonton** lewat chat Twitch, YouTube, dan TikTok, dengan antrian dan overlay OBS
+- **Request lagu dari penonton** lewat chat Twitch, YouTube, dan TikTok, dengan antrian dan overlay OBS. Aplikasi hanya membaca chat, tidak pernah mengirim pesan
 - **File teks dan cover** untuk OBS Text/Image source
 - **Riwayat lagu** per hari, bisa di-download sebagai `.txt` untuk deskripsi VOD
 - **Berjalan di system tray**, tanpa jendela console. Pengaturan lewat browser, dalam bahasa Indonesia atau Inggris
@@ -176,28 +175,9 @@ Semua file ada di `Documents\Spotify Now Playing`. Tombol **Buka folder** ada di
 
 > Tips: untuk teks berjalan, klik kanan source Text → **Filters** → **+** → **Scroll**.
 
-#### d. Perintah `!song` di chat (opsional)
+#### d. Perintah `!song` untuk chatbot lain (opsional)
 
-Buka tab **Chatbot** di halaman pengaturan. Bot membalas perintah di chat live, dan balasannya dikirim ke platform asal pesan, jadi bisa dipakai di Twitch dan YouTube sekaligus.
-
-| Perintah bawaan | Balasan |
-|---|---|
-| `!song` | `@penonton Sekarang diputar: Tulus - Pamit` |
-| `!lastsong` | lagu sebelumnya, dari riwayat |
-
-Perintah, balasan, dan cooldown bisa diubah, dan ada kolom **Coba** untuk melihat balasannya tanpa harus live. Kamu juga bisa menambah **perintah sendiri**, misalnya `!discord` atau `!jadwal`, dengan balasan apa saja.
-
-Balasan bisa dikirim atas nama **akun bot terpisah** (misalnya TulusBot). Untuk Twitch, hubungkan dengan akun bot lalu isi nama channel-mu. Untuk YouTube, login akun bot sebagai akun kedua.
-
-| Platform | Setup |
-|---|---|
-| **Twitch** | Sekali saja: buat aplikasi di [Twitch Developer Console](https://dev.twitch.tv/console/apps/create) (Category *Chat Bot*, Client Type *Public*), lalu tempel Client ID-nya. Setelah itu klik **Hubungkan Twitch** dan masukkan kode yang muncul di `twitch.tv/activate`. |
-| **YouTube** | Sekali saja: buat project di Google Cloud, aktifkan *YouTube Data API v3*, buat OAuth client tipe *Desktop app*, lalu tempel Client ID dan Client Secret-nya. Setelah itu klik **Login dengan Google**. Bot mulai membaca chat otomatis saat kamu live. Karena kuota API gratis terbatas, chat dibaca setiap 10 detik. Selama aplikasi Google masih berstatus *Testing*, login perlu diulang seminggu sekali. |
-| **TikTok** | Hanya listener, untuk request lagu (lihat di bawah). Bot tidak bisa membalas di chat TikTok, karena TikTok tidak menyediakan cara resmi untuk itu. |
-
-Langkah lengkapnya ada di tab **Chatbot**.
-
-**Sudah pakai chatbot lain?** `http://127.0.0.1:8765/api/now.txt` berisi teks lagu yang sedang diputar, dengan format yang sama seperti `nowplaying.txt`. Formatnya bisa diganti lewat URL, misalnya `?format={title} oleh {artist}`.
+`http://127.0.0.1:8765/api/now.txt` berisi teks lagu yang sedang diputar, dengan format yang sama seperti `nowplaying.txt`. Formatnya bisa diganti lewat URL, misalnya `?format={title} oleh {artist}`.
 
 Pakai di chatbot yang berjalan di PC yang sama. Contoh di **Streamer.bot**: buat Command `!song`, tambahkan sub-action **Core → Network → Fetch URL** dengan URL di atas, lalu kirim hasilnya lewat **Twitch → Send Message**. Nightbot dan bot cloud lain tidak bisa memakainya, karena URL ini hanya bisa diakses dari PC-mu.
 
@@ -205,8 +185,15 @@ Pakai di chatbot yang berjalan di PC yang sama. Contoh di **Streamer.bot**: buat
 
 Penonton mengetik `!request judul lagu` di chat, misalnya `!request Tulus - Pamit`. Request masuk ke antrian di tab **Request**, lalu kamu memutarnya sendiri di Spotify. Request otomatis hilang dari antrian saat lagunya diputar, atau bisa ditandai selesai secara manual.
 
-- **Twitch dan YouTube**: request dibaca lewat chatbot, dan penonton mendapat balasan di chat, misalnya `@budi request masuk: Tulus - Pamit (antrian ke-3)`.
-- **TikTok**: request dibaca lewat listener, tanpa balasan di chat. Butuh API key gratis dari [Euler Stream](https://www.eulerstream.com), layanan pihak ketiga yang menyambungkan aplikasi ke chat TikTok LIVE. Isi username TikTok dan API key-nya di tab **Chatbot**.
+Aplikasi hanya **mendengarkan** chat, tidak pernah mengirim pesan, jadi tidak ada balasan di chat. Penonton melihat request-nya masuk lewat overlay. Atur platformnya di tab **Chat**:
+
+| Platform | Setup |
+|---|---|
+| **Twitch** | Isi nama channel-mu. Tanpa login: chat Twitch dibaca secara anonim. |
+| **YouTube** | Sekali saja: buat project di Google Cloud, aktifkan *YouTube Data API v3*, buat OAuth client tipe *Desktop app*, lalu tempel Client ID dan Client Secret-nya dan klik **Login dengan Google** (izin hanya baca). Chat mulai dibaca otomatis saat kamu live, setiap 10 detik karena kuota API gratis terbatas. Selama aplikasi Google masih berstatus *Testing*, login perlu diulang seminggu sekali. |
+| **TikTok** | Isi username TikTok dan API key gratis dari [Euler Stream](https://www.eulerstream.com), layanan pihak ketiga yang menyambungkan aplikasi ke chat TikTok LIVE. |
+
+Lainnya:
 - **Overlay OBS** `http://127.0.0.1:8765/requests` menampilkan antrian di stream, supaya penonton, termasuk dari TikTok, tahu request-nya masuk. Tampilannya bisa diatur seperti kartu Now Playing: lebar, ukuran teks, jumlah lagu, sudut, latar (gelap, warna tetap, transparan), warna aksen, serta judul, nama penonton, platform, dan petunjuk perintah yang bisa ditampilkan atau disembunyikan. Ukuran Browser Source untuk OBS dihitung otomatis.
 - Perintah, batas request per penonton, dan panjang antrian bisa diatur.
 
@@ -271,9 +258,9 @@ spotify_now_playing/
   local_media.py  Spotify / player lain lewat Windows Media Controls
   lyrics.py       lirik dari LRCLIB, cache di disk, perbaikan manual
   history.py      riwayat lagu per hari
-  chatbot.py      perintah chat (!song, !lastsong), cooldown, template balasan
-  chat_twitch.py  chat Twitch (IRC) dan login Device Code
-  chat_youtube.py chat live YouTube (Data API) dan login Google
+  chatbot.py      listener chat: !request dari semua platform ke antrian
+  chat_twitch.py  listener chat Twitch (IRC anonim)
+  chat_youtube.py listener chat live YouTube (Data API, izin hanya baca)
   chat_tiktok.py  listener chat TikTok LIVE (Euler Stream, WebSocket + protobuf)
   song_requests.py antrian request lagu
   server.py       web server lokal dan API JSON
@@ -295,7 +282,8 @@ Aplikasi ini tidak mengirim data apa pun ke luar kecuali untuk fitur yang kamu p
 
 - **Lirik**: judul, artis, album, dan durasi lagu dikirim ke [LRCLIB](https://lrclib.net) untuk mencari liriknya.
 - **Mode Akun Spotify**: hanya kalau kamu mengisi Client ID dan login. Aplikasi lalu terhubung ke server Spotify untuk membaca lagu yang sedang diputar.
-- **Chatbot**: hanya kalau kamu menyalakannya dan login ke Twitch atau YouTube. Bot membaca chat channel-mu sendiri dan membalas perintah.
+- **Listener chat Twitch**: hanya kalau kamu menyalakannya. Aplikasi membaca chat channel yang kamu isi secara anonim, tanpa login.
+- **Listener chat YouTube**: hanya kalau kamu menyalakannya dan login dengan Google (izin hanya baca), untuk membaca chat live-mu.
 - **Listener TikTok**: hanya kalau kamu menyalakannya. Username TikTok dan API key-mu dikirim ke Euler Stream untuk membaca chat live-mu.
 - **Notifikasi versi baru**: mati secara default. Kalau dinyalakan di tab **Aplikasi**, aplikasi mengecek halaman rilis GitHub sehari sekali.
 

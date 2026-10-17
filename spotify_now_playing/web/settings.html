@@ -20,7 +20,10 @@
   header { position: sticky; top: 0; z-index: 5; background: rgba(14,14,16,.92); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
   .bar { max-width: 1080px; margin: 0 auto; padding: 14px 16px 0; }
   .brand { display: flex; align-items: center; gap: 10px; }
-  .logo { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; color: var(--accent-fg); font-weight: 800; }
+  .logo { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; color: var(--accent-fg); }
+  .i { width: 16px; height: 16px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+  .i-lg { width: 22px; height: 22px; } .i-xl { width: 36px; height: 36px; stroke-width: 1.5; }
+  nav button .i { margin-right: 6px; opacity: .8; }
   .brand h1 { font-size: 16px; margin: 0; flex: 1; }
   .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 99px; background: var(--panel2); border: 1px solid var(--line); font-size: 12px; color: var(--muted); white-space: nowrap; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); flex: 0 0 auto; }
@@ -84,7 +87,7 @@
   .hero .t { font-size: 24px; font-weight: 800; line-height: 1.2; margin: 4px 0; }
   .hero .a { color: var(--muted); }
   .empty { display: flex; gap: 16px; align-items: center; }
-  .empty .big { font-size: 40px; }
+  .empty .big { color: var(--dim); display: grid; }
 
   .steps { display: grid; gap: 12px; }
   .step { display: flex; gap: 16px; align-items: flex-start; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
@@ -130,7 +133,7 @@
   .choice { position: relative; display: block; border: 1px solid var(--line); border-radius: 14px; padding: 18px; background: var(--panel); cursor: pointer; }
   .choice input { position: absolute; opacity: 0; }
   .choice:has(input:checked) { border-color: var(--accent); background: rgba(29,185,84,.06); }
-  .choice .ic { font-size: 22px; }
+  .choice .ic { color: var(--accent); display: inline-grid; }
   .choice b { display: block; margin: 6px 0 4px; font-size: 15px; }
   .choice p { margin: 0; color: var(--muted); font-size: 13px; }
   .badge { position: absolute; top: 14px; right: 14px; font-size: 11px; font-weight: 700; color: var(--accent-fg); background: var(--accent); border-radius: 99px; padding: 2px 8px; }
@@ -144,19 +147,40 @@
 </style>
 </head>
 <body>
+<!-- Ikon: Lucide (https://lucide.dev, ISC License) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></symbol>
+</svg>
 <header>
   <div class="bar">
     <div class="brand">
-      <div class="logo">♪</div>
+      <div class="logo"><svg class="i"><use href="#i-music"/></svg></div>
       <h1>Spotify Now Playing</h1>
       <span class="pill"><span class="dot" id="pill-dot"></span><span id="pill-text">Memuat…</span></span>
     </div>
     <nav id="tabs">
-      <button data-tab="home">🏠 Beranda</button>
-      <button data-tab="card">🎵 Kartu Now Playing</button>
-      <button data-tab="lyrics">🎤 Lirik</button>
-      <button data-tab="source">🔌 Sumber Musik</button>
-      <button data-tab="files">📄 File Teks</button>
+      <button data-tab="home"><svg class="i"><use href="#i-home"/></svg>Beranda</button>
+      <button data-tab="card"><svg class="i"><use href="#i-music"/></svg>Kartu Now Playing</button>
+      <button data-tab="lyrics"><svg class="i"><use href="#i-mic"/></svg>Lirik</button>
+      <button data-tab="source"><svg class="i"><use href="#i-plug"/></svg>Sumber Musik</button>
+      <button data-tab="files"><svg class="i"><use href="#i-file"/></svg>File Teks</button>
     </nav>
   </div>
 </header>
@@ -164,7 +188,7 @@
 <main>
   <!-- ======================= BERANDA ======================= -->
   <section class="page" id="page-home">
-    <div class="banner warn" id="home-error" hidden><span>⚠️</span><span id="home-error-text"></span></div>
+    <div class="banner warn" id="home-error" hidden><svg class="i" style="color:var(--warn);margin-top:2px"><use href="#i-alert"/></svg><span id="home-error-text"></span></div>
 
     <div class="panel">
       <div class="hero" id="np" hidden>
@@ -176,7 +200,7 @@
         </div>
       </div>
       <div class="empty" id="np-empty">
-        <div class="big">🎧</div>
+        <div class="big"><svg class="i i-xl"><use href="#i-headphones"/></svg></div>
         <div>
           <b>Belum ada lagu yang diputar</b>
           <div class="muted" id="np-empty-hint">Buka Spotify Desktop dan putar lagu. Lagunya akan muncul di sini.</div>
@@ -202,8 +226,8 @@
           <h4>Tambahkan kartu Now Playing ke OBS</h4>
           <p>Salin URL di bawah. Lalu di OBS buka <b>Sources → + → Browser</b>, tempel URL-nya, dan isi ukurannya <b id="home-card-size">480 × 132</b>.</p>
           <div class="actions">
-            <button class="primary" data-copy-text="card-url">📋 Salin URL kartu</button>
-            <button class="ghost" data-goto="card">🎨 Atur tampilan</button>
+            <button class="primary" data-copy-text="card-url"><svg class="i"><use href="#i-copy"/></svg> Salin URL kartu</button>
+            <button class="ghost" data-goto="card"><svg class="i"><use href="#i-sliders"/></svg> Atur tampilan</button>
           </div>
         </div>
       </div>
@@ -214,8 +238,8 @@
           <h4>Tambahkan lirik <span class="opt">opsional</span></h4>
           <p>Caranya sama seperti langkah 2, dengan ukuran <b>800 × 340</b>. <span id="home-lyrics-status"></span></p>
           <div class="actions">
-            <button data-copy-text="lyrics-url">📋 Salin URL lirik</button>
-            <button class="ghost" data-goto="lyrics">🎨 Atur tampilan</button>
+            <button data-copy-text="lyrics-url"><svg class="i"><use href="#i-copy"/></svg> Salin URL lirik</button>
+            <button class="ghost" data-goto="lyrics"><svg class="i"><use href="#i-sliders"/></svg> Atur tampilan</button>
           </div>
         </div>
       </div>
@@ -275,19 +299,19 @@
             <label class="check"><input type="checkbox" id="o-nocover"> Sembunyikan cover album</label>
           </div>
         </div>
-        <button class="ghost sm" id="o-reset">↺ Kembalikan ke default</button>
+        <button class="ghost sm" id="o-reset"><svg class="i"><use href="#i-reset"/></svg> Kembalikan ke default</button>
       </div>
 
       <div class="sticky">
         <div class="preview" id="card-preview"><span class="tag">preview</span><iframe id="card-frame" title="Preview kartu"></iframe></div>
         <div class="obs">
-          <h3>➕ Tambahkan ke OBS</h3>
+          <h3><svg class="i"><use href="#i-plus"/></svg> Tambahkan ke OBS</h3>
           <div class="row">
             <input type="text" class="mono" id="card-url" readonly>
             <button class="primary" data-copy="card-url">Salin</button>
           </div>
           <div class="size">Ukuran Browser Source: <span>Width <b id="card-w">480</b></span><span>Height <b id="card-h">132</b></span></div>
-          <a class="drag" id="card-drag" draggable="true">⠿ <b>Atau seret kotak ini ke jendela preview OBS</b> <span>(langsung jadi source dengan ukuran yang pas)</span></a>
+          <a class="drag" id="card-drag" draggable="true"><svg class="i"><use href="#i-grip"/></svg> <b>Atau seret kotak ini ke jendela preview OBS</b> <span>(langsung jadi source dengan ukuran yang pas)</span></a>
           <p class="muted small" style="margin:10px 0 0">Kalau ukuran kartu diubah, samakan juga Width/Height di OBS (klik kanan source → Properties).</p>
         </div>
       </div>
@@ -335,19 +359,19 @@
             <p class="muted small" style="margin:0">Lirik telat? Geser ke <b>+</b>. Lirik terlalu cepat? Geser ke <b>−</b>.</p>
           </div>
         </div>
-        <button class="ghost sm" id="l-reset">↺ Kembalikan ke default</button>
+        <button class="ghost sm" id="l-reset"><svg class="i"><use href="#i-reset"/></svg> Kembalikan ke default</button>
       </div>
 
       <div class="sticky">
         <div class="preview" id="ly-preview-box"><span class="tag">preview</span><div class="placeholder" id="ly-placeholder" hidden></div><iframe id="ly-frame" title="Preview lirik"></iframe></div>
         <div class="obs">
-          <h3>➕ Tambahkan ke OBS</h3>
+          <h3><svg class="i"><use href="#i-plus"/></svg> Tambahkan ke OBS</h3>
           <div class="row">
             <input type="text" class="mono" id="lyrics-url" readonly>
             <button class="primary" data-copy="lyrics-url">Salin</button>
           </div>
           <div class="size">Ukuran Browser Source: <span>Width <b>800</b></span><span>Height <b>340</b></span><span>(boleh diubah)</span></div>
-          <a class="drag" id="ly-drag" draggable="true">⠿ <b>Atau seret kotak ini ke jendela preview OBS</b></a>
+          <a class="drag" id="ly-drag" draggable="true"><svg class="i"><use href="#i-grip"/></svg> <b>Atau seret kotak ini ke jendela preview OBS</b></a>
           <p class="muted small" style="margin:10px 0 0">Mau teks biasa? Gunakan file <code>lyrics.txt</code>, ada di tab File Teks.</p>
         </div>
       </div>
@@ -363,23 +387,23 @@
       <label class="choice" id="src-local">
         <input type="radio" name="source" value="local">
         <span class="badge">Disarankan</span>
-        <span class="ic">💻</span><b>Spotify Desktop</b>
+        <span class="ic"><svg class="i i-lg"><use href="#i-monitor"/></svg></span><b>Spotify Desktop</b>
         <p>Membaca Spotify di PC ini. Tanpa login, tanpa setup.</p>
       </label>
       <label class="choice">
         <input type="radio" name="source" value="auto">
-        <span class="ic">✨</span><b>Otomatis</b>
+        <span class="ic"><svg class="i i-lg"><use href="#i-refresh"/></svg></span><b>Otomatis</b>
         <p>Pakai akun Spotify kalau bisa. Kalau tidak, pindah ke Spotify Desktop.</p>
       </label>
       <label class="choice">
         <input type="radio" name="source" value="account">
-        <span class="ic">📱</span><b>Akun Spotify</b>
+        <span class="ic"><svg class="i i-lg"><use href="#i-phone"/></svg></span><b>Akun Spotify</b>
         <p>Baca dari semua device (HP, speaker, dll). Perlu login dan akun Premium.</p>
       </label>
     </div>
 
     <div class="panel" id="local-ok">
-      <b>✅ Siap dipakai</b>
+      <b style="display:flex;align-items:center;gap:8px"><svg class="i" style="color:var(--accent)"><use href="#i-check"/></svg> Siap dipakai</b>
       <p class="muted" style="margin:6px 0 0">Mode ini tidak butuh pengaturan apa pun. Pastikan saja Spotify Desktop terbuka dan sedang memutar lagu.</p>
     </div>
 
@@ -415,7 +439,7 @@
           <span class="label">Client Secret <span style="font-weight:400">(opsional, boleh dikosongkan)</span></span>
           <div class="row">
             <input type="password" class="mono" id="secret" placeholder="kosongkan saja" autocomplete="off" spellcheck="false">
-            <button id="toggle-secret" title="Tampilkan">👁</button>
+            <button id="toggle-secret" title="Tampilkan"><svg class="i"><use href="#i-eye"/></svg></button>
           </div>
           <div class="muted small" id="secret-saved" style="margin-top:6px"></div>
         </div>
@@ -438,7 +462,7 @@
         <div class="row">
           <input type="text" class="mono" id="outdir" readonly>
           <button data-copy="outdir">Salin</button>
-          <button class="primary" id="open-out">📂 Buka folder</button>
+          <button class="primary" id="open-out"><svg class="i"><use href="#i-folder"/></svg> Buka folder</button>
         </div>
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:13px">
@@ -457,7 +481,7 @@
           <input type="text" id="t-format" placeholder="{artist} - {title}" spellcheck="false">
           <button class="primary" id="t-save">Simpan</button>
         </div>
-        <div class="muted small" style="margin-top:6px">Bisa pakai <code>{title}</code> <code>{artist}</code> <code>{album}</code>. Contoh: <code>♪ {title} — {artist}</code></div>
+        <div class="muted small" style="margin-top:6px">Bisa pakai <code>{title}</code> <code>{artist}</code> <code>{album}</code>. Contoh: <code>Now playing: {title} — {artist}</code></div>
       </div>
       <label class="check"><input type="checkbox" id="t-hide"> Kosongkan teks saat lagu di-pause</label>
     </div>
@@ -492,7 +516,7 @@ async function api(path, body) {
 async function copy(text) {
   try { await navigator.clipboard.writeText(text); }
   catch { const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); }
-  toast("✓ Tersalin, tinggal tempel di OBS");
+  toast("URL tersalin, tinggal tempel di OBS");
 }
 
 // ------------------------------------------------------------------ tab --
@@ -637,7 +661,7 @@ $("l-reset").onclick = () => { loadLyrics(LYRICS_DEFAULT); updateLyrics(); toast
 
 function renderLyricsStatus(l) {
   const map = {
-    synced: ["ok", "Lirik ditemukan ✓", `${l.lines.length} baris tersinkron untuk lagu ini`],
+    synced: ["ok", "Lirik ditemukan", `${l.lines.length} baris tersinkron untuk lagu ini`],
     plain: ["warn", "Lirik tanpa timing", "LRCLIB belum punya versi tersinkron untuk lagu ini, jadi lirik tidak ditampilkan"],
     instrumental: ["", "Instrumental", "Lagu ini tanpa lirik"],
     none: ["warn", "Lirik tidak ditemukan", "Lagu ini belum ada di LRCLIB. Coba putar lagu lain."],
@@ -650,7 +674,7 @@ function renderLyricsStatus(l) {
   $("ly-placeholder").textContent = l.status === "loading" ? "Mencari lirik…"
     : "Preview lirik akan muncul di sini saat lagu yang punya lirik sedang diputar.";
   $("ly-dot").className = "dot " + dot; $("ly-title").textContent = title; $("ly-msg").textContent = msg;
-  $("home-lyrics-status").textContent = l.status === "synced" ? "✓ Lirik lagu ini tersedia."
+  $("home-lyrics-status").textContent = l.status === "synced" ? "Lirik lagu ini tersedia."
     : l.status === "none" ? "Lirik lagu ini belum tersedia." : "";
 }
 
@@ -741,7 +765,7 @@ function renderStatus(c, now) {
   const s = c.status;
   const labels = { account: "Akun Spotify", local: "Spotify Desktop", idle: "Menunggu lagu" };
   $("pill-dot").className = "dot " + (s.error ? "warn" : now.active ? "ok" : "");
-  $("pill-text").textContent = now.active ? (now.playing ? "▶ " : "⏸ ") + labels[s.source] : labels[s.source];
+  $("pill-text").textContent = labels[s.source] + (now.active && !now.playing ? " (pause)" : "");
 
   $("np").hidden = !now.active;
   $("np-empty").hidden = now.active;
@@ -778,7 +802,7 @@ async function refresh() {
 }
 
 const qs = new URLSearchParams(location.search);
-if (qs.get("login") === "ok") { toast("Login berhasil 🎉"); location.hash = "source"; }
+if (qs.get("login") === "ok") { toast("Login berhasil"); location.hash = "source"; }
 if (qs.get("login") === "error") { toast("Login gagal: " + (qs.get("msg") || ""), true); location.hash = "source"; }
 if (qs.has("login")) history.replaceState(null, "", "/settings" + location.hash);
 

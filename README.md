@@ -1,6 +1,6 @@
 # Spotify Now Playing untuk OBS
 
-**[⬇️ Download installer (Windows)](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)**
+**[Download installer (Windows)](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)**
 
 Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 

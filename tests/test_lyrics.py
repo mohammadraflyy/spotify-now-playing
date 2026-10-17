@@ -119,6 +119,8 @@ class ProviderTest(unittest.TestCase):
     def play(self, p, key="k1"):
         p.track_changed(key, "Judul", "Artis", "Album", 200)
         self.assertTrue(wait_for(lambda: p.get()["status"] == "synced"))
+        # file cache ditulis sesudah status berubah (di luar lock); tunggu sampai benar-benar ada
+        self.assertTrue(wait_for(lambda: p.disk._path(p.get()["ckey"]).exists()))
 
     def test_fetch_and_line_at(self):
         p = self.provider()

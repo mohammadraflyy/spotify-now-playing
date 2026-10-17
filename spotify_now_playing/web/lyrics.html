@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Lyrics</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Default dari halaman pengaturan; bisa ditimpa lewat URL:
+     ?style=list|single  ?size=34  ?align=center|left|right  ?accent=1db954  ?offset=0.3  ?bg=1 */
+  :root { --accent: #1db954; --size: 34px; --fg: #fff; --dim: rgba(255,255,255,.45); }
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: Inter, "Segoe UI", sans-serif; }
+
+  .stage { position: relative; height: 100vh; overflow: hidden; transition: opacity .4s;
+    -webkit-mask-image: linear-gradient(transparent 0, #000 22%, #000 78%, transparent 100%);
+            mask-image: linear-gradient(transparent 0, #000 22%, #000 78%, transparent 100%); }
+  .single .stage { -webkit-mask-image: none; mask-image: none; }
+  .hidden .stage { opacity: 0; }
+  .bg .stage { background: rgba(0,0,0,.55); border-radius: 16px; }
+
+  .list { position: absolute; left: 0; right: 0; top: 0; padding: 0 24px;
+    transition: transform .45s cubic-bezier(.25,.8,.25,1); will-change: transform; }
+  .line { font-size: var(--size); font-weight: 800; line-height: 1.25; padding: calc(var(--size) * .22) 0;
+    color: var(--dim); text-shadow: 0 2px 10px rgba(0,0,0,.6); transform-origin: var(--origin, center);
+    transition: color .3s, transform .3s, opacity .3s; opacity: .8; }
+  .line.empty::before { content: "♪"; }
+  .line.cur { color: var(--fg); opacity: 1; transform: scale(1.04); }
+  /* karaoke: isi warna aksen dari kiri ke kanan sesuai progres baris */
+  .line.cur span { background: linear-gradient(90deg, var(--accent) var(--p, 0%), var(--fg) var(--p, 0%));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .line.past { opacity: .55; }
+
+  .single .line:not(.cur) { display: none; }
+  .single .list { top: 50% !important; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="list" id="list"></div></div>
+
+<script>
+  const q = new URLSearchParams(location.search);
+  const list = document.getElementById("list");
+  let opts = {};
+  let lyricsKey = null, lines = [], curIdx = -2;
+  let pos = 0, playing = false, stamp = performance.now(), active = false;
+
+  function applyOpts(fromConfig) {
+    const get = (k, d) => q.get(k) ?? fromConfig[k] ?? d;
+    opts = {
+      style: get("style", "list"),
+      size: parseInt(get("size", 34)),
+      align: get("align", "center"),
+      accent: String(get("accent", "1db954")).replace("#", ""),
+      offset: parseFloat(get("offset", 0)) || 0,
+      bg: String(get("bg", "")) === "1" || fromConfig.bg === true,
+    };
+    const root = document.documentElement.style;
+    root.setProperty("--size", opts.size + "px");
+    root.setProperty("--accent", "#" + opts.accent);
+    root.setProperty("--origin", opts.align === "left" ? "left center" : opts.align === "right" ? "right center" : "center");
+    list.style.textAlign = opts.align;
+    document.body.classList.toggle("single", opts.style === "single");
+    document.body.classList.toggle("bg", opts.bg);
+    curIdx = -2; // paksa render ulang posisi
+  }
+
+  async function loadConfig() {
+    try { applyOpts((await (await fetch("/api/config", { cache: "no-store" })).json()).lyrics || {}); }
+    catch { if (!opts.style) applyOpts({}); }
+  }
+
+  function build() {
+    list.innerHTML = "";
+    lines.forEach(l => {
+      const div = document.createElement("div");
+      div.className = "line" + (l.text ? "" : " empty");
+      const span = document.createElement("span");
+      span.textContent = l.text;
+      div.appendChild(span);
+      list.appendChild(div);
+    });
+    curIdx = -2;
+  }
+
+  async function pollLyrics() {
+    try {
+      const l = await (await fetch("/api/lyrics", { cache: "no-store" })).json();
+      const key = l.key + "|" + l.status;
+      if (key !== lyricsKey) {
+        lyricsKey = key;
+        lines = l.status === "synced" ? l.lines : [];
+        build();
+      }
+    } catch {}
+  }
+
+  async function pollNow() {
+    try {
+      const s = await (await fetch("/api/now", { cache: "no-store" })).json();
+      pos = s.position; playing = s.playing; active = s.active; stamp = performance.now();
+    } catch { active = false; }
+  }
+
+  function frame() {
+    const t = pos + (playing ? (performance.now() - stamp) / 1000 : 0) + opts.offset;
+    let idx = -1;
+    for (let i = 0; i < lines.length && lines[i].t <= t; i++) idx = i;
+
+    document.body.classList.toggle("hidden", !active || !lines.length || idx < 0 && t < (lines[0]?.t ?? 0) - 8);
+
+    const els = list.children;
+    if (idx !== curIdx) {
+      for (let i = 0; i < els.length; i++) {
+        els[i].classList.toggle("cur", i === idx);
+        els[i].classList.toggle("past", i < idx);
+      }
+      curIdx = idx;
+      // tengahkan baris aktif (atau baris pertama sebelum lirik mulai)
+      const target = els[Math.max(idx, 0)];
+      if (target) {
+        const stageH = window.innerHeight;
+        const y = opts.style === "single"
+          ? -(target.offsetTop + target.offsetHeight / 2)
+          : stageH / 2 - (target.offsetTop + target.offsetHeight / 2);
+        list.style.transform = `translateY(${y}px)`;
+      }
+    }
+    if (idx >= 0 && els[idx]) {
+      const start = lines[idx].t, end = lines[idx + 1]?.t ?? start + 4;
+      const p = Math.min(100, Math.max(0, (t - start) / Math.max(0.1, end - start) * 100));
+      els[idx].firstChild.style.setProperty("--p", p.toFixed(1) + "%");
+    }
+    requestAnimationFrame(frame);
+  }
+
+  applyOpts({});
+  loadConfig();
+  setInterval(loadConfig, 3000);   // ikut perubahan dari halaman pengaturan
+  setInterval(pollNow, 500);
+  setInterval(pollLyrics, 1000);
+  pollNow(); pollLyrics();
+  window.addEventListener("resize", () => curIdx = -2);
+  requestAnimationFrame(frame);
+</script>
+</body>
+</html>

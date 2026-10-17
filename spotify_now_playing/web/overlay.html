@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Now Playing</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  /* Opsi lewat URL: ?hidePaused=1  ?noProgress=1  ?accent=1db954 */
+  :root { --accent: #1db954; --bg: rgba(18, 18, 18, .82); --fg: #fff; --muted: #b3b3b3; }
+  html, body { margin: 0; background: transparent; overflow: hidden; font-family: Inter, "Segoe UI", sans-serif; }
+
+  .card {
+    display: flex; align-items: center; gap: 16px;
+    width: 460px; padding: 14px; box-sizing: border-box;
+    margin: 10px; border-radius: 16px; background: var(--bg); color: var(--fg);
+    box-shadow: 0 8px 28px rgba(0,0,0,.45);
+    transform: translateX(-120%); opacity: 0;
+    transition: transform .6s cubic-bezier(.2,.9,.3,1.2), opacity .4s;
+  }
+  .card.show { transform: translateX(0); opacity: 1; }
+
+  .cover-wrap { position: relative; flex: 0 0 auto; width: 84px; height: 84px; }
+  .cover { width: 100%; height: 100%; border-radius: 10px; object-fit: cover; background: #282828; }
+  .eq { position: absolute; right: 6px; bottom: 6px; display: flex; gap: 2px; align-items: flex-end; height: 14px; }
+  .eq span { width: 3px; background: var(--accent); border-radius: 1px; animation: eq 1s infinite ease-in-out; }
+  .eq span:nth-child(2) { animation-delay: -.4s; }
+  .eq span:nth-child(3) { animation-delay: -.7s; }
+  .paused .eq span { animation-play-state: paused; }
+  @keyframes eq { 0%,100% { height: 3px } 50% { height: 14px } }
+
+  .info { flex: 1; min-width: 0; }
+  .label { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  .marquee { overflow: hidden; white-space: nowrap; }
+  .marquee > span { display: inline-block; }
+  .marquee.scroll > span { animation: scroll var(--dur, 10s) linear infinite; padding-right: 48px; }
+  @keyframes scroll { 0%, 15% { transform: translateX(0) } 100% { transform: translateX(var(--dist)) } }
+  .title  { font-size: 20px; font-weight: 800; margin: 2px 0; }
+  .artist { font-size: 15px; color: var(--muted); }
+
+  .progress { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bar { flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,.18); overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .5s linear; }
+  .no-progress .progress { display: none; }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="cover-wrap">
+    <img class="cover" id="cover" alt="">
+    <div class="eq"><span></span><span></span><span></span></div>
+  </div>
+  <div class="info">
+    <div class="label" id="label">Now Playing</div>
+    <div class="marquee title"><span id="title"></span></div>
+    <div class="marquee artist"><span id="artist"></span></div>
+    <div class="progress">
+      <span id="pos">0:00</span><div class="bar"><div id="fill"></div></div><span id="dur">0:00</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const q = new URLSearchParams(location.search);
+  const hidePaused = q.get("hidePaused") === "1";
+  if (q.get("noProgress") === "1") document.body.classList.add("no-progress");
+  if (q.get("accent")) document.documentElement.style.setProperty("--accent", "#" + q.get("accent"));
+
+  const $ = id => document.getElementById(id);
+  const card = $("card");
+  let coverVersion = -1, lastTitle = null;
+  let pos = 0, dur = 0, playing = false, lastTick = Date.now();
+
+  const fmt = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+
+  function setMarquee(el, text) {
+    el.textContent = text;
+    const box = el.parentElement;
+    box.classList.remove("scroll");
+    requestAnimationFrame(() => {
+      const overflow = el.scrollWidth - box.clientWidth;
+      if (overflow > 0) {
+        const dist = el.scrollWidth + 48;
+        box.style.setProperty("--dist", `-${dist}px`);
+        box.style.setProperty("--dur", `${dist / 40}s`);
+        box.classList.add("scroll");
+      }
+    });
+  }
+
+  function renderProgress() {
+    $("pos").textContent = fmt(pos);
+    $("dur").textContent = fmt(dur);
+    $("fill").style.width = dur ? Math.min(100, pos / dur * 100) + "%" : "0";
+  }
+
+  async function poll() {
+    try {
+      const s = await (await fetch("/api/now", { cache: "no-store" })).json();
+      const visible = s.active && (s.playing || !hidePaused);
+      card.classList.toggle("show", visible);
+      card.classList.toggle("paused", !s.playing);
+      $("label").textContent = s.playing ? "Now Playing" : "Paused";
+
+      const key = s.title + "|" + s.artist;
+      if (key !== lastTitle) {
+        lastTitle = key;
+        setMarquee($("title"), s.title);
+        setMarquee($("artist"), s.artist);
+      }
+      if (s.cover_version !== coverVersion) {
+        coverVersion = s.cover_version;
+        $("cover").src = "/cover?v=" + coverVersion;
+      }
+      pos = s.position; dur = s.duration; playing = s.playing; lastTick = Date.now();
+      renderProgress();
+    } catch (e) {
+      card.classList.remove("show"); // app console mati
+    }
+  }
+
+  $("cover").onerror = function () { this.removeAttribute("src"); };
+  setInterval(poll, 500);
+  poll();
+</script>
+</body>
+</html>

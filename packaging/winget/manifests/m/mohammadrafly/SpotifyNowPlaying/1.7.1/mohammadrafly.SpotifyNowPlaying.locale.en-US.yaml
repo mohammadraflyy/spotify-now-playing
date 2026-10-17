@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.28.0.schema.json
 
 PackageIdentifier: mohammadrafly.SpotifyNowPlaying
-PackageVersion: 1.6.0
+PackageVersion: 1.7.1
 PackageLocale: en-US
 Publisher: mohammadrafly
 PublisherUrl: https://github.com/mohammadraflyy
@@ -24,6 +24,6 @@ Tags:
 - overlay
 - spotify
 - streaming
-ReleaseNotesUrl: https://github.com/mohammadraflyy/spotify-now-playing/releases/tag/v1.6.0
+ReleaseNotesUrl: https://github.com/mohammadraflyy/spotify-now-playing/releases/tag/v1.7.1
 ManifestType: defaultLocale
 ManifestVersion: 1.28.0

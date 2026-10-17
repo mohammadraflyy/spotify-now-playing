@@ -25,7 +25,7 @@ def already_running(port):
 
 def main():
     p = argparse.ArgumentParser(prog="SpotifyNowPlaying", description=f"{APP_NAME} untuk OBS")
-    p.add_argument("--port", type=int, help="port web (default 8765, tersimpan di pengaturan)")
+    p.add_argument("--port", type=int, help="port web untuk sesi ini (default 8765)")
     p.add_argument("--no-browser", action="store_true", help="jangan buka halaman pengaturan")
     p.add_argument("--version", action="version", version=__version__)
     args = p.parse_args()
@@ -40,9 +40,7 @@ def main():
             pass
 
     cfg = Config()
-    if args.port:
-        cfg.update(port=args.port)
-    port = cfg.get("port", 8765)
+    port = args.port or cfg.get("port", 8765)  # --port hanya untuk sesi ini
     settings_url = f"http://127.0.0.1:{port}/settings"
 
     app = NowPlayingApp(cfg)

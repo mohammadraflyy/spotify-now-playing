@@ -2,4 +2,8 @@
 build/
 dist/
 __pycache__/
+*.pyc
 *.spec
+# berisi token login / client secret — jangan di-commit
+config.json
+output/

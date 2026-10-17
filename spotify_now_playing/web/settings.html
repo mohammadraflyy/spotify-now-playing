@@ -206,7 +206,7 @@
     <!-- Lirik -->
     <section class="panel full">
       <h2><span class="step">4</span> Lirik ke OBS</h2>
-      <p class="sub">Lirik tersinkron dari <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>, tampil ala karaoke. Perubahan di sini langsung ikut ke OBS tanpa ganti URL.</p>
+      <p class="sub">Lirik tersinkron dari <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>, tampil seperti di Spotify dengan latar mengikuti warna cover lagu. Perubahan di sini langsung ikut ke OBS tanpa ganti URL.</p>
 
       <div class="status" style="margin-bottom:12px">
         <div class="dot" id="ly-dot"></div>
@@ -217,10 +217,11 @@
         <label>Gaya
           <select id="l-style"><option value="list">Daftar bergulir</option><option value="single">Satu baris</option></select></label>
         <label>Rata
-          <select id="l-align"><option value="center">Tengah</option><option value="left">Kiri</option><option value="right">Kanan</option></select></label>
+          <select id="l-align"><option value="left">Kiri</option><option value="center">Tengah</option><option value="right">Kanan</option></select></label>
         <label>Ukuran <input type="range" id="l-size" min="18" max="72" step="2"> <code id="l-size-v"></code></label>
-        <label><input type="color" id="l-accent" value="#1db954"> Warna</label>
-        <label><input type="checkbox" id="l-bg"> Latar gelap</label>
+        <label>Latar
+          <select id="l-bg"><option value="cover">Warna lagu (seperti Spotify)</option><option value="color">Warna tetap</option><option value="dark">Gelap</option><option value="none">Transparan</option></select></label>
+        <label id="l-color-wrap" hidden><input type="color" id="l-color" value="#535353"> Warna latar</label>
       </div>
       <div class="opts">
         <label>Offset waktu <input type="range" id="l-offset" min="-3" max="3" step="0.1"> <code id="l-offset-v"></code></label>
@@ -322,10 +323,10 @@ function renderConfig(c) {
     $("t-hide").checked = !!(c.text || {}).hide_paused;
     const l = c.lyrics || {};
     $("l-style").value = l.style || "list";
-    $("l-align").value = l.align || "center";
+    $("l-align").value = l.align || "left";
     $("l-size").value = l.size || 34;
-    $("l-accent").value = "#" + (l.accent || "1db954");
-    $("l-bg").checked = !!l.bg;
+    $("l-bg").value = l.bg === true ? "dark" : l.bg === false ? "cover" : (l.bg || "cover");
+    $("l-color").value = "#" + (l.color || "535353");
     $("l-offset").value = l.offset || 0;
     updateLyrics(false);
   }
@@ -408,6 +409,7 @@ $("clear-secret").onclick = async () => {
 let lyTimer;
 function updateLyrics(save = true) {
   $("l-size-v").textContent = $("l-size").value + "px";
+  $("l-color-wrap").hidden = $("l-bg").value !== "color";
   const off = parseFloat($("l-offset").value);
   $("l-offset-v").textContent = (off > 0 ? "+" : "") + off.toFixed(1) + " s";
   const base = `http://127.0.0.1:${cfg.port}/lyrics`;
@@ -417,11 +419,11 @@ function updateLyrics(save = true) {
     clearTimeout(lyTimer);
     lyTimer = setTimeout(() => api("/api/config", { lyrics: {
       style: $("l-style").value, align: $("l-align").value, size: parseInt($("l-size").value),
-      accent: $("l-accent").value.replace("#", ""), bg: $("l-bg").checked, offset: off,
+      bg: $("l-bg").value, color: $("l-color").value.replace("#", ""), offset: off,
     } }).catch(e => toast(e.message, true)), 300);
   }
 }
-["l-style", "l-align", "l-size", "l-accent", "l-bg", "l-offset"].forEach(id => $(id).addEventListener("input", () => updateLyrics()));
+["l-style", "l-align", "l-size", "l-bg", "l-color", "l-offset"].forEach(id => $(id).addEventListener("input", () => updateLyrics()));
 $("ly-drag").addEventListener("click", e => { e.preventDefault(); toast("Seret (drag) kotak ini ke jendela OBS, jangan diklik"); });
 $("ly-drag").addEventListener("dragstart", e => {
   e.dataTransfer.setData("text/uri-list", $("ly-drag").href);

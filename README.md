@@ -3,7 +3,7 @@
 Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 
 - **Overlay now playing**: cover, judul, artis, dan progress bar
-- **Overlay lirik**: tampil ala karaoke, liriknya dari [LRCLIB](https://lrclib.net)
+- **Overlay lirik**: tampil seperti di Spotify, dengan latar mengikuti warna cover lagu. Liriknya dari [LRCLIB](https://lrclib.net)
 - **File teks dan cover** untuk OBS Text/Image source
 - **Halaman pengaturan** di browser
 
@@ -13,7 +13,7 @@ Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 
 ### 1. Install dan jalankan
 
-1. Jalankan `SpotifyNowPlaying-Setup-1.0.0.exe`.
+1. Jalankan `SpotifyNowPlaying-Setup-1.1.0.exe`.
    - Kalau muncul peringatan Windows SmartScreen, klik **More info → Run anyway**.
    - Installer tidak butuh admin. Centang **Jalankan otomatis saat Windows menyala** kalau mau aplikasinya selalu siap.
 2. Buka **Spotify Now Playing** dari Start Menu atau desktop. Jendela console akan muncul dan menampilkan lagu yang sedang diputar.
@@ -76,13 +76,19 @@ Pilihan tampilan bisa diatur di halaman pengaturan, atau langsung lewat paramete
 
 Contoh: `http://127.0.0.1:8765/overlay?hidePaused=1&accent=ff0066`
 
-#### b. Overlay Lirik (karaoke)
+#### b. Overlay Lirik (seperti di Spotify)
 
 1. OBS → **Sources** → **+** → **Browser** → beri nama `Spotify Lyrics`.
 2. Isi **URL** `http://127.0.0.1:8765/lyrics`, **Width** `800`, **Height** `300` → OK.
 3. Atur tampilannya di halaman pengaturan bagian **4. Lirik ke OBS**. Perubahannya langsung terlihat di OBS tanpa ganti URL:
    - **Gaya**: *Daftar bergulir* (beberapa baris) atau *Satu baris* (pakai Height sekitar `120`)
-   - **Ukuran**, **rata teks**, **warna**, dan **latar gelap**
+   - **Latar**:
+     - *Warna lagu*: diambil otomatis dari cover album, dengan gradien yang menggelap ke bawah, seperti di Spotify
+     - *Warna tetap*: warna pilihan kamu
+     - *Gelap*
+     - *Transparan*: hanya teks
+   - **Ukuran** dan **rata teks**
+   - Baris yang sedang dinyanyikan berwarna putih, yang sudah lewat putih redup, dan yang berikutnya gelap
    - **Offset waktu**: geser ke **+** kalau lirik telat, ke **−** kalau terlalu cepat
 
 Tidak semua lagu punya lirik tersinkron. Status lirik untuk lagu yang sedang diputar ditampilkan di halaman pengaturan.

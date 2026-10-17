@@ -104,9 +104,10 @@ class SearchTest(unittest.TestCase):
 
 class ProviderTest(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
+        # thread pencarian di background bisa masih menulis cache saat test selesai
+        self.tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.addCleanup(self.tmp.cleanup)
-        self.result = {"status": "synced", "lines": [{"t": 1.0, "text": "a"}, {"t": 4.0, "text": "b"}],
+        self.result ={"status": "synced", "lines": [{"t": 1.0, "text": "a"}, {"t": 4.0, "text": "b"}],
                        "plain": "", "source": "lrclib", "lrclib_id": 5}
         patcher = mock.patch.object(lyrics, "search", side_effect=lambda *a: dict(self.result))
         self.search = patcher.start()
@@ -227,6 +228,7 @@ class ProviderTest(unittest.TestCase):
         self.play(p)
         ckey_a = p.get()["ckey"]
         p.track_changed("k2", "Lagu B", "Artis", "Album", 200)
+        self.assertTrue(wait_for(lambda: p.get()["status"] == "synced"))  # tunggu thread pencarian selesai
         with self.assertRaises(ValueError):
             p.use_lrc(SYNCED, ckey=ckey_a)
         with self.assertRaises(ValueError):

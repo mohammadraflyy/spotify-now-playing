@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spotify Now Playing for OBS</title>
+<meta name="description" content="Overlay lagu Spotify yang sedang diputar, lirik tersinkron, dan request lagu dari penonton untuk OBS. Gratis dan open source untuk Windows.">
+<meta property="og:title" content="Spotify Now Playing for OBS">
+<meta property="og:description" content="Overlay now playing, lirik tersinkron, dan request lagu dari penonton untuk OBS. Gratis untuk Windows.">
+<meta property="og:image" content="https://mohammadraflyy.github.io/spotify-now-playing/screenshots/hero.png">
+<link rel="icon" href="assets/icon.ico">
+<style>
+  @font-face { font-family: Inter; font-weight: 100 900; font-display: swap; src: url(assets/inter-latin.woff2) format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: Inter; font-weight: 100 900; font-display: swap; src: url(assets/inter-latin-ext.woff2) format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+
+  :root {
+    --bg: #0e0e10; --panel: #17171a; --panel2: #1e1e22; --line: #2a2a30;
+    --fg: #f4f4f5; --muted: #a1a1aa; --accent: #1db954; --accent-fg: #04210f;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scrollbar-gutter: stable; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 Inter, "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  img { max-width: 100%; height: auto; display: block; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+  .i { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* ---------- header ---------- */
+  header { position: sticky; top: 0; z-index: 10; background: rgba(14,14,16,.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+  header .wrap { display: flex; align-items: center; gap: 16px; height: 62px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; text-decoration: none; white-space: nowrap; }
+  .logo { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; }
+  .logo .i { width: 18px; height: 18px; }
+  header nav { display: flex; gap: 22px; margin-left: auto; font-size: 14px; font-weight: 600; color: var(--muted); }
+  header nav a { text-decoration: none; }
+  header nav a:hover { color: var(--fg); }
+  .lang { display: flex; border: 1px solid var(--line); border-radius: 99px; overflow: hidden; }
+  .lang button { background: none; border: 0; color: var(--muted); font: 700 12px Inter, sans-serif; padding: 6px 10px; cursor: pointer; }
+  .lang button.on { background: var(--panel2); color: var(--fg); }
+
+  /* ---------- tombol ---------- */
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 99px; font-weight: 700; font-size: 15px;
+    text-decoration: none; border: 1px solid var(--line); background: var(--panel); transition: transform .15s, border-color .15s; }
+  .btn:hover { border-color: var(--muted); transform: translateY(-1px); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .btn.primary:hover { border-color: var(--accent); filter: brightness(1.08); }
+
+  /* ---------- hero ---------- */
+  .hero { padding-top: 72px; padding-bottom: 40px; text-align: center; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 99px; padding: 5px 14px; margin-bottom: 22px; }
+  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  h1 { font-size: clamp(34px, 6vw, 58px); line-height: 1.08; letter-spacing: -.03em; margin: 0 auto 18px; max-width: 820px; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .lead { font-size: clamp(16px, 2.2vw, 19px); color: var(--muted); max-width: 640px; margin: 0 auto 30px; }
+  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .meta { margin-top: 14px; font-size: 13px; color: var(--muted); }
+  .shot { margin: 48px auto 0; border-radius: 16px; border: 1px solid var(--line); overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(29,185,84,.06); }
+
+  /* ---------- section ---------- */
+  section { padding: 72px 0; }
+  .sec-head { max-width: 640px; margin-bottom: 36px; }
+  h2 { font-size: clamp(26px, 4vw, 36px); letter-spacing: -.02em; line-height: 1.15; margin: 0 0 10px; }
+  .sec-head p { color: var(--muted); margin: 0; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px; }
+  .card h3 { font-size: 17px; margin: 14px 0 6px; }
+  .card p { color: var(--muted); margin: 0; font-size: 15px; }
+  .ic { width: 40px; height: 40px; border-radius: 10px; background: rgba(29,185,84,.12); color: var(--accent); display: grid; place-items: center; }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+  .split + .split { margin-top: 64px; }
+  .split img { border-radius: 14px; border: 1px solid var(--line); }
+  .split h3 { font-size: 24px; letter-spacing: -.01em; margin: 0 0 10px; }
+  .split p { color: var(--muted); margin: 0 0 14px; }
+  .ticks { list-style: none; padding: 0; margin: 0; }
+  .ticks li { display: flex; gap: 10px; padding: 5px 0; font-size: 15px; }
+  .ticks .i { color: var(--accent); margin-top: 3px; width: 18px; height: 18px; }
+
+  .steps { counter-reset: s; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .step { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px 24px 24px 72px; }
+  .step::before { counter-increment: s; content: counter(s); position: absolute; left: 22px; top: 22px; width: 32px; height: 32px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-fg); font-weight: 800; display: grid; place-items: center; }
+  .step b { display: block; margin-bottom: 4px; }
+  .step span { color: var(--muted); font-size: 15px; }
+
+  .platforms { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .chip { font-size: 13px; font-weight: 600; border: 1px solid var(--line); border-radius: 99px; padding: 5px 12px; color: var(--muted); }
+
+  .band { background: linear-gradient(135deg, rgba(29,185,84,.14), rgba(29,185,84,.03)); border: 1px solid rgba(29,185,84,.25);
+    border-radius: 20px; padding: 40px; display: flex; gap: 28px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .band h2 { margin-bottom: 6px; }
+  .band p { color: var(--muted); margin: 0; max-width: 560px; }
+
+  code { font-family: ui-monospace, Consolas, monospace; font-size: .9em; background: var(--panel2); border: 1px solid var(--line); padding: 1px 6px; border-radius: 6px; }
+
+  footer { border-top: 1px solid var(--line); padding: 32px 0 48px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; gap: 16px 28px; flex-wrap: wrap; justify-content: space-between; }
+  footer nav { display: flex; gap: 20px; flex-wrap: wrap; }
+  footer a { text-decoration: none; }
+  footer a:hover { color: var(--fg); }
+
+  @media (max-width: 820px) {
+    header nav { display: none; }
+    .lang { margin-left: auto; }
+    .split { grid-template-columns: 1fr; gap: 20px; }
+    .split.rev img { order: -1; }
+    .hero { padding-top: 48px; }
+    section { padding: 52px 0; }
+    .band { padding: 28px; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn { transition: none; } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></symbol>
+  <symbol id="i-list-music" viewBox="0 0 24 24"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-layout" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></symbol>
+  <symbol id="i-languages" viewBox="0 0 24 24"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></symbol>
+</svg>
+
+<header>
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="logo"><svg class="i"><use href="#i-music"/></svg></span>Spotify Now Playing</a>
+    <nav>
+      <a href="#fitur" data-en="Features">Fitur</a>
+      <a href="#cara" data-en="Get started">Cara pakai</a>
+      <a href="#privasi" data-en="Privacy">Privasi</a>
+      <a href="https://github.com/mohammadraflyy/spotify-now-playing">GitHub</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Bahasa / Language">
+      <button type="button" data-lang="id">ID</button><button type="button" data-lang="en">EN</button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <div class="wrap hero">
+    <span class="eyebrow"><span class="dot"></span><span data-en="Free and open source for Windows">Gratis dan open source untuk Windows</span></span>
+    <h1 data-en-html="Your Spotify song, <em>live on stream</em>">Lagu Spotify kamu, <em>tampil di stream</em></h1>
+    <p class="lead" data-en="A now playing card, synced lyrics like in Spotify, and song requests from your viewers, as overlays in OBS. No coding, no complicated setup.">Kartu lagu yang sedang diputar, lirik tersinkron seperti di Spotify, dan request lagu dari penonton, sebagai overlay di OBS. Tanpa coding, tanpa setup ribet.</p>
+    <div class="cta">
+      <a class="btn primary" id="dl" href="https://github.com/mohammadraflyy/spotify-now-playing/releases/latest"><svg class="i"><use href="#i-download"/></svg><span data-en="Download for Windows">Download untuk Windows</span></a>
+      <a class="btn" href="https://github.com/mohammadraflyy/spotify-now-playing"><svg class="i"><use href="#i-github"/></svg><span data-en="View on GitHub">Lihat di GitHub</span></a>
+    </div>
+    <div class="meta" id="meta" data-en="Windows 10/11 · Works with Spotify Free and Premium">Windows 10/11 · Bisa dipakai dengan Spotify Free maupun Premium</div>
+    <img class="shot" src="screenshots/hero.png" width="1280" height="720" alt="Scene OBS dengan overlay now playing dan lirik" data-en-alt="OBS scene with the now playing and lyrics overlays">
+  </div>
+
+  <!-- ======================= FITUR ======================= -->
+  <section id="fitur">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-en="Everything your music stream needs">Semua yang dibutuhkan stream musikmu</h2>
+        <p data-en="Runs quietly in the system tray. Every setting is in a page in your browser, and changes show up in OBS right away.">Berjalan diam-diam di system tray. Semua pengaturan ada di halaman browser, dan perubahannya langsung terlihat di OBS.</p>
+      </div>
+      <div class="grid">
+        <div class="card"><span class="ic"><svg class="i"><use href="#i-layout"/></svg></span>
+          <h3 data-en="Now playing card">Kartu Now Playing</h3>
+          <p data-en="Cover, title, artist and progress bar in four layouts. Colors follow the album cover, and you can save several styles for different scenes.">Cover, judul, artis, dan progress bar dalam empat layout. Warnanya bisa mengikuti cover album, dan bisa simpan beberapa gaya untuk scene berbeda.</p></div>
+        <div class="card"><span class="ic"><svg class="i"><use href="#i-mic"/></svg></span>
+          <h3 data-en="Synced lyrics">Lirik tersinkron</h3>
+          <p data-en="Line by line, like in Spotify. Lyrics come from LRCLIB and are cached on your PC. Wrong lyrics can be swapped from the settings page.">Baris per baris seperti di Spotify. Liriknya dari LRCLIB dan tersimpan di PC. Lirik yang salah bisa diganti dari halaman pengaturan.</p></div>
+        <div class="card"><span class="ic"><svg class="i"><use href="#i-list-music"/></svg></span>
+          <h3 data-en="Viewer song requests">Request lagu dari penonton</h3>
+          <p data-en="Viewers type !request in chat on Twitch, YouTube or TikTok. Requests go into a queue with its own overlay, and leave it when the song plays.">Penonton mengetik !request di chat Twitch, YouTube, atau TikTok. Request masuk antrian dengan overlay sendiri, dan hilang saat lagunya diputar.</p></div>
+        <div class="card"><span class="ic"><svg class="i"><use href="#i-pause"/></svg></span>
+          <h3 data-en="Handles Spotify Free ads">Aman saat iklan Spotify Free</h3>
+          <p data-en="During an ad the card shows a short-break message and Spotify is muted or turned down, then everything goes back when the music returns.">Saat iklan, kartu menampilkan pesan jeda dan suara Spotify dibisukan atau dikecilkan, lalu kembali normal saat lagu diputar lagi.</p></div>
+        <div class="card"><span class="ic"><svg class="i"><use href="#i-history"/></svg></span>
+          <h3 data-en="Song history">Riwayat lagu</h3>
+          <p data-en="Every song you play, per day, ready to copy into your VOD description.">Setiap lagu yang kamu putar, per hari, siap disalin ke deskripsi VOD.</p></div>
+        <div class="card"><span class="ic"><svg class="i"><use href="#i-monitor"/></svg></span>
+          <h3 data-en="Not just Spotify">Bukan cuma Spotify</h3>
+          <p data-en="Reads Spotify Desktop without any login. Optionally reads YouTube Music, Apple Music, TIDAL and other players on the same PC too.">Membaca Spotify Desktop tanpa login. Opsional, bisa juga membaca YouTube Music, Apple Music, TIDAL, dan player lain di PC yang sama.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <h3 data-en="Make it match your stream">Sesuaikan dengan gaya stream-mu</h3>
+          <p data-en="Change the size, corners, background and accent color with a live preview. Copy the URL, or drag the box straight into OBS.">Atur ukuran, sudut, latar, dan warna aksen dengan preview langsung. Salin URL-nya, atau seret kotaknya langsung ke OBS.</p>
+          <ul class="ticks">
+            <li><svg class="i"><use href="#i-check"/></svg><span data-en="Row, vertical, minimal and vinyl layouts">Layout baris, vertikal, minimal, dan vinyl</span></li>
+            <li><svg class="i"><use href="#i-check"/></svg><span data-en="Show it all the time, or only when the song changes">Tampil terus, atau hanya saat ganti lagu</span></li>
+            <li><svg class="i"><use href="#i-check"/></svg><span data-en="Browser Source size is calculated for you">Ukuran Browser Source dihitung otomatis</span></li>
+          </ul>
+        </div>
+        <img src="screenshots/card-variants.png" width="1000" height="490" loading="lazy" alt="Pilihan layout kartu now playing" data-en-alt="Now playing card layouts">
+      </div>
+      <div class="split rev">
+        <img src="screenshots/lyrics.png" width="800" height="340" loading="lazy" alt="Overlay lirik tersinkron" data-en-alt="Synced lyrics overlay">
+        <div>
+          <h3 data-en="Requests from every platform">Request dari semua platform</h3>
+          <p data-en="The app only listens to chat and never posts anything. Viewers see their request appear on the queue overlay.">Aplikasi hanya mendengarkan chat dan tidak pernah mengirim apa pun. Penonton melihat request-nya muncul di overlay antrian.</p>
+          <div class="platforms"><span class="chip">Twitch</span><span class="chip">YouTube</span><span class="chip">TikTok</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= CARA PAKAI ======================= -->
+  <section id="cara" style="background:var(--panel);border-block:1px solid var(--line)">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-en="Up and running in minutes">Siap dipakai dalam beberapa menit</h2>
+        <p data-en="Only once. After that, just keep the app running while you stream.">Cukup sekali. Setelah itu tinggal biarkan aplikasinya berjalan saat streaming.</p>
+      </div>
+      <div class="steps">
+        <div class="step" style="background:var(--bg)"><b data-en="Install">Install</b><span data-en="Download the installer and run it. The settings page opens on its own.">Download installer-nya lalu jalankan. Halaman pengaturan terbuka sendiri.</span></div>
+        <div class="step" style="background:var(--bg)"><b data-en="Play a song">Putar lagu</b><span data-en="Open Spotify Desktop and play something. No login needed.">Buka Spotify Desktop dan putar lagu. Tidak perlu login.</span></div>
+        <div class="step" style="background:var(--bg)"><b data-en="Add to OBS">Tambahkan ke OBS</b><span data-en="Copy the overlay URL into a Browser Source, or drag it into the OBS preview.">Salin URL overlay ke Browser Source, atau seret ke preview OBS.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= PRIVASI ======================= -->
+  <section id="privasi">
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <h2 data-en="Stays on your PC">Tetap di PC kamu</h2>
+          <p data-en="No account, no telemetry, no analytics. The overlays are served from your own PC and can only be reached from it. The app only connects to other services for features you turn on yourself.">Tanpa akun, tanpa telemetri, tanpa analitik. Overlay dilayani dari PC-mu sendiri dan hanya bisa diakses dari PC itu. Aplikasi hanya terhubung ke layanan lain untuk fitur yang kamu nyalakan sendiri.</p>
+          <a class="btn" href="https://github.com/mohammadraflyy/spotify-now-playing/blob/main/docs/PRIVACY.md"><svg class="i"><use href="#i-shield"/></svg><span data-en="Read the privacy policy">Baca kebijakan privasi</span></a>
+        </div>
+        <div class="grid" style="grid-template-columns:1fr">
+          <div class="card"><span class="ic"><svg class="i"><use href="#i-shield"/></svg></span>
+            <h3 data-en="Open source, MIT license">Open source, lisensi MIT</h3>
+            <p data-en="All the code is on GitHub. Every installer is built by GitHub Actions and comes with a SHA-256 checksum.">Semua kodenya ada di GitHub. Setiap installer di-build oleh GitHub Actions dan disertai checksum SHA-256.</p></div>
+          <div class="card"><span class="ic"><svg class="i"><use href="#i-languages"/></svg></span>
+            <h3 data-en="Indonesian and English">Bahasa Indonesia dan Inggris</h3>
+            <p data-en="The settings page and tray menu follow your Windows language, and you can switch any time.">Halaman pengaturan dan menu tray mengikuti bahasa Windows, dan bisa diganti kapan saja.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="band">
+        <div>
+          <h2 data-en="Support development">Dukung pengembangan</h2>
+          <p data-en="The app is free. If it helps your stream, you can buy the developer a treat on Trakteer.">Aplikasi ini gratis. Kalau membantu stream-mu, kamu bisa mentraktir developernya lewat Trakteer.</p>
+        </div>
+        <a class="btn primary" href="https://trakteer.id/mohammadrafly/gift"><svg class="i"><use href="#i-heart"/></svg><span data-en="Donate on Trakteer">Donasi di Trakteer</span></a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Spotify Now Playing · <span data-en="Not affiliated with Spotify.">Tidak berafiliasi dengan Spotify.</span></span>
+    <nav>
+      <a href="https://github.com/mohammadraflyy/spotify-now-playing/releases" data-en="Releases">Rilis</a>
+      <a href="https://github.com/mohammadraflyy/spotify-now-playing/issues" data-en="Report a problem">Laporkan masalah</a>
+      <a href="https://github.com/mohammadraflyy/spotify-now-playing/blob/main/docs/PRIVACY.md" data-en="Privacy">Privasi</a>
+      <a href="https://github.com/mohammadraflyy/spotify-now-playing/blob/main/LICENSE">MIT</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+  // Bahasa: teks Indonesia ada di HTML, terjemahan Inggris di atribut data-en / data-en-html / data-en-alt
+  const nodes = [...document.querySelectorAll("[data-en], [data-en-html], [data-en-alt]")];
+  nodes.forEach(el => {
+    el.dataset.idText = el.textContent;
+    el.dataset.idHtml = el.innerHTML;
+    if (el.alt) el.dataset.idAlt = el.alt;
+  });
+  let release = null;
+
+  function setLang(lang) {
+    document.documentElement.lang = lang;
+    nodes.forEach(el => {
+      if (el.dataset.enHtml !== undefined) el.innerHTML = lang === "en" ? el.dataset.enHtml : el.dataset.idHtml;
+      else if (el.dataset.en !== undefined) el.textContent = lang === "en" ? el.dataset.en : el.dataset.idText;
+      if (el.dataset.enAlt !== undefined) el.alt = lang === "en" ? el.dataset.enAlt : el.dataset.idAlt;
+    });
+    document.querySelectorAll(".lang button").forEach(b => b.classList.toggle("on", b.dataset.lang === lang));
+    showRelease(lang);
+    try { localStorage.setItem("lang", lang); } catch {}
+  }
+
+  function showRelease(lang) {
+    if (!release) return;
+    const size = release.size ? ` · ${(release.size / 1048576).toFixed(0)} MB` : "";
+    document.getElementById("meta").textContent = (lang === "en"
+      ? `Version ${release.version} for Windows 10/11${size} · Works with Spotify Free and Premium`
+      : `Versi ${release.version} untuk Windows 10/11${size} · Bisa dipakai dengan Spotify Free maupun Premium`);
+  }
+
+  let saved = null;
+  try { saved = localStorage.getItem("lang"); } catch {}
+  const lang = saved || ((navigator.language || "").toLowerCase().startsWith("id") ? "id" : "en");
+  document.querySelectorAll(".lang button").forEach(b => b.onclick = () => setLang(b.dataset.lang));
+  setLang(lang);
+
+  // tombol download langsung ke installer versi terbaru (kalau GitHub API bisa diakses)
+  fetch("https://api.github.com/repos/mohammadraflyy/spotify-now-playing/releases/latest")
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(r => {
+      const exe = (r.assets || []).find(a => a.name.endsWith(".exe"));
+      if (!exe) return;
+      document.getElementById("dl").href = exe.browser_download_url;
+      release = { version: r.tag_name.replace(/^v/, ""), size: exe.size };
+      showRelease(document.documentElement.lang);
+    })
+    .catch(() => {});
+</script>
+</body>
+</html>

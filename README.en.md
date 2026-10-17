@@ -1,6 +1,6 @@
 # Spotify Now Playing for OBS
 
-**[Download the Windows installer](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** · [Privacy](#privacy) · [Donate](https://trakteer.id/mohammadrafly/gift) · [Bahasa Indonesia](README.md)
+**[Download the Windows installer](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** · [Website](https://mohammadraflyy.github.io/spotify-now-playing/) · [Privacy](#privacy) · [Donate](https://trakteer.id/mohammadrafly/gift) · [Bahasa Indonesia](README.md)
 
 Shows the song you're playing on Spotify, with synced lyrics, as overlays in OBS.
 

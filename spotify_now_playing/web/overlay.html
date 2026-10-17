@@ -5,40 +5,56 @@
 <title>Now Playing</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-  /* Opsi lewat URL: ?hidePaused=1  ?noProgress=1  ?accent=1db954 */
-  :root { --accent: #1db954; --bg: rgba(18, 18, 18, .82); --fg: #fff; --muted: #b3b3b3; }
+  /* Default dari halaman pengaturan; bisa ditimpa lewat URL:
+     ?width=460 ?height=112 ?radius=16 ?bg=dark|cover|color|none ?color=282828 ?opacity=82
+     ?accent=1db954 ?hidePaused=1 ?noProgress=1 */
+  @property --c1 { syntax: "<color>"; inherits: true; initial-value: rgba(18,18,18,.82); }
+  @property --c2 { syntax: "<color>"; inherits: true; initial-value: rgba(18,18,18,.82); }
+  :root {
+    --w: 460px; --h: 112px; --r: 16px;
+    --accent: #1db954; --fg: #fff; --muted: rgba(255,255,255,.72);
+    transition: --c1 1.2s ease, --c2 1.2s ease;
+  }
   html, body { margin: 0; background: transparent; overflow: hidden; font-family: Inter, "Segoe UI", sans-serif; }
+  body { padding: 10px; }
 
   .card {
-    display: flex; align-items: center; gap: 16px;
-    width: 460px; padding: 14px; box-sizing: border-box;
-    margin: 10px; border-radius: 16px; background: var(--bg); color: var(--fg);
-    box-shadow: 0 8px 28px rgba(0,0,0,.45);
+    display: flex; align-items: center; box-sizing: border-box;
+    width: var(--w); height: var(--h);
+    padding: calc(var(--h) * .11); gap: calc(var(--h) * .13);
+    border-radius: var(--r); color: var(--fg);
+    background: linear-gradient(120deg, var(--c1), var(--c2));
+    box-shadow: 0 8px 28px rgba(0,0,0,.4);
     transform: translateX(-120%); opacity: 0;
     transition: transform .6s cubic-bezier(.2,.9,.3,1.2), opacity .4s;
   }
   .card.show { transform: translateX(0); opacity: 1; }
+  .bg-none .card { box-shadow: none; }
+  .bg-none .info { text-shadow: 0 2px 8px rgba(0,0,0,.7); }
 
-  .cover-wrap { position: relative; flex: 0 0 auto; width: 84px; height: 84px; }
-  .cover { width: 100%; height: 100%; border-radius: 10px; object-fit: cover; background: #282828; }
-  .eq { position: absolute; right: 6px; bottom: 6px; display: flex; gap: 2px; align-items: flex-end; height: 14px; }
+  .cover-wrap { position: relative; flex: 0 0 auto; height: 100%; aspect-ratio: 1; }
+  .cover { width: 100%; height: 100%; border-radius: min(calc(var(--r) * .65), 12px); object-fit: cover;
+    background: rgba(255,255,255,.08); display: block; }
+  .no-cover .cover-wrap { display: none; }
+  .eq { position: absolute; right: 6%; bottom: 6%; display: flex; gap: 2px; align-items: flex-end; height: 16%; }
   .eq span { width: 3px; background: var(--accent); border-radius: 1px; animation: eq 1s infinite ease-in-out; }
   .eq span:nth-child(2) { animation-delay: -.4s; }
   .eq span:nth-child(3) { animation-delay: -.7s; }
   .paused .eq span { animation-play-state: paused; }
-  @keyframes eq { 0%,100% { height: 3px } 50% { height: 14px } }
+  @keyframes eq { 0%,100% { height: 20% } 50% { height: 100% } }
 
-  .info { flex: 1; min-width: 0; }
-  .label { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  .info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+  .label { font-size: calc(var(--h) * .095); font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
   .marquee { overflow: hidden; white-space: nowrap; }
   .marquee > span { display: inline-block; }
   .marquee.scroll > span { animation: scroll var(--dur, 10s) linear infinite; padding-right: 48px; }
   @keyframes scroll { 0%, 15% { transform: translateX(0) } 100% { transform: translateX(var(--dist)) } }
-  .title  { font-size: 20px; font-weight: 800; margin: 2px 0; }
-  .artist { font-size: 15px; color: var(--muted); }
+  .title  { font-size: calc(var(--h) * .18); font-weight: 800; line-height: 1.2; margin: calc(var(--h) * .015) 0; }
+  .artist { font-size: calc(var(--h) * .135); color: var(--muted); line-height: 1.25; }
 
-  .progress { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .bar { flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,.18); overflow: hidden; }
+  .progress { display: flex; align-items: center; gap: 8px; margin-top: calc(var(--h) * .07);
+    font-size: calc(var(--h) * .095); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bar { flex: 1; height: max(3px, calc(var(--h) * .035)); border-radius: 99px; background: rgba(255,255,255,.2); overflow: hidden; }
   .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .5s linear; }
   .no-progress .progress { display: none; }
 </style>
@@ -58,27 +74,84 @@
     </div>
   </div>
 </div>
+<script src="/static/color.js"></script>
 
 <script>
   const q = new URLSearchParams(location.search);
-  const hidePaused = q.get("hidePaused") === "1";
-  if (q.get("noProgress") === "1") document.body.classList.add("no-progress");
-  if (q.get("accent")) document.documentElement.style.setProperty("--accent", "#" + q.get("accent"));
-
   const $ = id => document.getElementById(id);
+  const root = document.documentElement;
   const card = $("card");
-  let coverVersion = -1, lastTitle = null;
-  let pos = 0, dur = 0, playing = false, lastTick = Date.now();
+  let opts = {}, coverHsl = null;
+  let coverVersion = -1, lastTitle = null, lastLayout = "";
 
   const fmt = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  const num = (v, d, min, max) => { v = parseFloat(v); return isNaN(v) ? d : Math.min(max, Math.max(min, v)); };
+  const flag = v => v === true || v === "1" || v === "true";
+
+  // ------------------------------------------------------------- opsi --
+
+  function applyOpts(c) {
+    const get = (k, d) => q.get(k) ?? c[k] ?? d;
+    opts = {
+      width: num(get("width", 460), 460, 200, 1200),
+      height: num(get("height", 112), 112, 48, 400),
+      radius: num(get("radius", 16), 16, 0, 60),
+      bg: get("bg", "dark"),
+      color: String(get("color", "282828")).replace("#", ""),
+      opacity: num(get("opacity", 82), 82, 0, 100) / 100,
+      accent: String(get("accent", "1db954")).replace("#", ""),
+      hidePaused: flag(get("hidePaused", false)),
+      noProgress: flag(get("noProgress", false)),
+      noCover: flag(get("noCover", false)),
+    };
+    root.style.setProperty("--w", opts.width + "px");
+    root.style.setProperty("--h", opts.height + "px");
+    root.style.setProperty("--r", opts.radius + "px");
+    root.style.setProperty("--accent", "#" + opts.accent);
+    document.body.className = [
+      "bg-" + opts.bg,
+      opts.noProgress ? "no-progress" : "",
+      opts.noCover ? "no-cover" : "",
+    ].join(" ");
+    applyBg();
+    const layout = `${opts.width}x${opts.height}`;
+    if (layout !== lastLayout) { lastLayout = layout; lastTitle = null; } // hitung ulang marquee
+  }
+
+  function applyBg() {
+    const a = opts.opacity;
+    let c1, c2;
+    if (opts.bg === "none") {
+      c1 = c2 = "rgba(0,0,0,0)";
+    } else if (opts.bg === "cover" && coverHsl) {
+      const [h, s, l] = coverHsl;
+      c1 = SNPColor.hsl(h, s, l, a);
+      c2 = SNPColor.hsl(h, s * .85, l * .45, a);        // menggelap ke kanan, seperti Spotify
+    } else if (opts.bg === "color") {
+      const [h, s, l] = SNPColor.hexToHsl(opts.color);
+      c1 = SNPColor.hsl(h, s, l, a);
+      c2 = SNPColor.hsl(h, s, l * .7, a);
+    } else {                                             // dark (atau cover yang belum siap)
+      c1 = `rgba(24,24,24,${a})`;
+      c2 = `rgba(12,12,12,${a})`;
+    }
+    root.style.setProperty("--c1", c1);
+    root.style.setProperty("--c2", c2);
+  }
+
+  async function loadConfig() {
+    try { applyOpts((await (await fetch("/api/config", { cache: "no-store" })).json()).overlay || {}); }
+    catch {}
+  }
+
+  // ------------------------------------------------------------- lagu --
 
   function setMarquee(el, text) {
     el.textContent = text;
     const box = el.parentElement;
     box.classList.remove("scroll");
     requestAnimationFrame(() => {
-      const overflow = el.scrollWidth - box.clientWidth;
-      if (overflow > 0) {
+      if (el.scrollWidth - box.clientWidth > 0) {
         const dist = el.scrollWidth + 48;
         box.style.setProperty("--dist", `-${dist}px`);
         box.style.setProperty("--dur", `${dist / 40}s`);
@@ -87,17 +160,10 @@
     });
   }
 
-  function renderProgress() {
-    $("pos").textContent = fmt(pos);
-    $("dur").textContent = fmt(dur);
-    $("fill").style.width = dur ? Math.min(100, pos / dur * 100) + "%" : "0";
-  }
-
   async function poll() {
     try {
       const s = await (await fetch("/api/now", { cache: "no-store" })).json();
-      const visible = s.active && (s.playing || !hidePaused);
-      card.classList.toggle("show", visible);
+      card.classList.toggle("show", s.active && (s.playing || !opts.hidePaused));
       card.classList.toggle("paused", !s.playing);
       $("label").textContent = s.playing ? "Now Playing" : "Paused";
 
@@ -111,14 +177,23 @@
         coverVersion = s.cover_version;
         $("cover").src = "/cover?v=" + coverVersion;
       }
-      pos = s.position; dur = s.duration; playing = s.playing; lastTick = Date.now();
-      renderProgress();
-    } catch (e) {
-      card.classList.remove("show"); // app console mati
+      $("pos").textContent = fmt(s.position);
+      $("dur").textContent = fmt(s.duration);
+      $("fill").style.width = s.duration ? Math.min(100, s.position / s.duration * 100) + "%" : "0";
+    } catch {
+      card.classList.remove("show"); // aplikasi mati
     }
   }
 
-  $("cover").onerror = function () { this.removeAttribute("src"); };
+  $("cover").onload = function () {
+    try { coverHsl = SNPColor.dominant(this); } catch { coverHsl = null; }
+    applyBg();
+  };
+  $("cover").onerror = function () { this.removeAttribute("src"); coverHsl = null; applyBg(); };
+
+  applyOpts({});
+  loadConfig();
+  setInterval(loadConfig, 3000);   // ikut perubahan dari halaman pengaturan
   setInterval(poll, 500);
   poll();
 </script>

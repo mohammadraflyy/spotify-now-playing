@@ -77,6 +77,12 @@
     background: repeating-conic-gradient(#1f1f23 0 25%, #151518 0 50%) 0 0 / 20px 20px; }
   .preview iframe { width: 100%; height: 100%; border: 0; }
 
+  .numwrap { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 12px; }
+  input.num { width: 64px; padding: 5px 6px; border-radius: 6px; border: 1px solid var(--line); background: #0c0c0d;
+    color: var(--fg); font: 12px ui-monospace, Consolas, monospace; text-align: right; }
+  input.num:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; }
+  .presets button { padding: 6px 12px; font-size: 12px; }
   .drag { display: flex; align-items: center; gap: 12px; padding: 14px; border: 2px dashed var(--accent); border-radius: 12px; margin-top: 12px; cursor: grab; text-decoration: none; color: var(--fg); }
   .drag:active { cursor: grabbing; }
   .drag b { display: block; }
@@ -176,19 +182,48 @@
     <!-- OBS -->
     <section class="panel full">
       <h2><span class="step">3</span> Tambahkan ke OBS</h2>
-      <p class="sub">Atur tampilan, lalu seret kotak hijau ke OBS atau copy URL-nya.</p>
+      <p class="sub">Atur tampilan kartu, lalu seret kotak hijau ke OBS atau copy URL-nya. Perubahan langsung ikut ke OBS tanpa ganti URL.</p>
 
+      <label>Ukuran</label>
+      <div class="opts">
+        <span class="presets">
+          <button type="button" data-preset="340,84">Kecil</button>
+          <button type="button" data-preset="460,112">Sedang</button>
+          <button type="button" data-preset="600,150">Besar</button>
+          <button type="button" data-preset="760,96">Lebar</button>
+        </span>
+      </div>
+      <div class="opts">
+        <label>Lebar <input type="range" id="o-width" min="200" max="1200" step="1"> <span class="numwrap"><input type="number" class="num" id="o-width-v" data-range="o-width">px</span></label>
+        <label>Tinggi <input type="range" id="o-height" min="48" max="400" step="1"> <span class="numwrap"><input type="number" class="num" id="o-height-v" data-range="o-height">px</span></label>
+        <label>Sudut <input type="range" id="o-radius" min="0" max="60" step="1"> <span class="numwrap"><input type="number" class="num" id="o-radius-v" data-range="o-radius">px</span></label>
+      </div>
+
+      <label>Latar</label>
+      <div class="opts">
+        <label><select id="o-bg">
+          <option value="dark">Gelap</option>
+          <option value="cover">Warna lagu (dari cover)</option>
+          <option value="color">Warna tetap</option>
+          <option value="none">Transparan</option>
+        </select></label>
+        <label id="o-color-wrap" hidden><input type="color" id="o-color" value="#282828"> Warna latar</label>
+        <label id="o-opacity-wrap">Opasitas <input type="range" id="o-opacity" min="0" max="100" step="1"> <span class="numwrap"><input type="number" class="num" id="o-opacity-v" data-range="o-opacity">%</span></label>
+      </div>
+
+      <label>Lainnya</label>
       <div class="opts">
         <label><input type="color" id="o-accent" value="#1db954"> Warna aksen</label>
         <label><input type="checkbox" id="o-hide"> Sembunyikan saat pause</label>
         <label><input type="checkbox" id="o-noprog"> Tanpa progress bar</label>
+        <label><input type="checkbox" id="o-nocover"> Tanpa cover</label>
       </div>
 
-      <div class="preview"><iframe id="preview" title="Preview overlay"></iframe></div>
+      <div class="preview" id="preview-box"><iframe id="preview" title="Preview overlay"></iframe></div>
 
       <a class="drag" id="drag" draggable="true">
         <span style="font-size:24px">⠿</span>
-        <div><b>Seret kotak ini ke jendela Preview OBS</b><span>Otomatis jadi Browser Source 480×130 bernama "Spotify Now Playing"</span></div>
+        <div><b>Seret kotak ini ke jendela Preview OBS</b><span>Otomatis jadi Browser Source <code id="drag-size">480×132</code> bernama "Spotify Now Playing"</span></div>
       </a>
 
       <label>URL Browser Source</label>
@@ -199,7 +234,7 @@
 
       <ol>
         <li>Cara manual: OBS → Sources <b>+</b> → <b>Browser</b> → paste URL</li>
-        <li>Width <code>480</code>, Height <code>130</code> → OK</li>
+        <li>Width <code id="obs-w">480</code>, Height <code id="obs-h">132</code> → OK <span style="color:var(--muted)">(ikuti angka ini setiap kali ukuran kartu diubah)</span></li>
       </ol>
     </section>
 
@@ -218,13 +253,13 @@
           <select id="l-style"><option value="list">Daftar bergulir</option><option value="single">Satu baris</option></select></label>
         <label>Rata
           <select id="l-align"><option value="left">Kiri</option><option value="center">Tengah</option><option value="right">Kanan</option></select></label>
-        <label>Ukuran <input type="range" id="l-size" min="18" max="72" step="2"> <code id="l-size-v"></code></label>
+        <label>Ukuran <input type="range" id="l-size" min="12" max="120" step="1"> <span class="numwrap"><input type="number" class="num" id="l-size-v" data-range="l-size">px</span></label>
         <label>Latar
           <select id="l-bg"><option value="cover">Warna lagu (seperti Spotify)</option><option value="color">Warna tetap</option><option value="dark">Gelap</option><option value="none">Transparan</option></select></label>
         <label id="l-color-wrap" hidden><input type="color" id="l-color" value="#535353"> Warna latar</label>
       </div>
       <div class="opts">
-        <label>Offset waktu <input type="range" id="l-offset" min="-3" max="3" step="0.1"> <code id="l-offset-v"></code></label>
+        <label>Offset waktu <input type="range" id="l-offset" min="-10" max="10" step="0.05"> <span class="numwrap"><input type="number" class="num" id="l-offset-v" data-range="l-offset">s</span></label>
         <span style="color:var(--muted);font-size:12px">Geser ke + kalau lirik telat, ke − kalau kecepatan.</span>
       </div>
 
@@ -315,9 +350,17 @@ function renderConfig(c) {
   if (!renderConfig.overlayLoaded) {
     renderConfig.overlayLoaded = true;
     const o = c.overlay || {};
+    $("o-width").value = o.width || 460;
+    $("o-height").value = o.height || 112;
+    $("o-radius").value = o.radius ?? 16;
+    $("o-bg").value = o.bg || "dark";
+    $("o-color").value = "#" + (o.color || "282828");
+    $("o-opacity").value = o.opacity ?? 82;
     if (o.accent) $("o-accent").value = "#" + o.accent;
     $("o-hide").checked = !!o.hidePaused;
     $("o-noprog").checked = !!o.noProgress;
+    $("o-nocover").checked = !!o.noCover;
+    $("preview").src = `/overlay`;
     updateOverlayUrl(false);
     $("t-format").value = (c.text || {}).format || "";
     $("t-hide").checked = !!(c.text || {}).hide_paused;
@@ -340,35 +383,69 @@ function renderStatus(s) {
   $("st-msg").textContent = s.error || (s.source === "idle" ? "Login atau buka Spotify Desktop untuk mulai." : "Berjalan normal.");
 }
 
-function overlayParams() {
-  const p = new URLSearchParams();
-  const accent = $("o-accent").value.replace("#", "");
-  if (accent !== "1db954") p.set("accent", accent);
-  if ($("o-hide").checked) p.set("hidePaused", "1");
-  if ($("o-noprog").checked) p.set("noProgress", "1");
-  return p;
+// kolom angka di samping slider: bisa diketik manual (Enter / pindah fokus untuk menerapkan)
+function setNum(id, v) {
+  const el = $(id);
+  if (document.activeElement !== el) el.value = v;
 }
+document.querySelectorAll("input.num").forEach(n => {
+  const r = $(n.dataset.range);
+  n.min = r.min; n.max = r.max; n.step = r.step;
+  const apply = () => {
+    const v = parseFloat(n.value);
+    if (isNaN(v)) { n.value = r.value; return; }
+    const clamped = Math.min(+r.max, Math.max(+r.min, v));
+    n.value = clamped;
+    r.value = clamped;
+    r.dispatchEvent(new Event("input"));
+  };
+  n.addEventListener("change", apply);
+  n.addEventListener("keydown", e => { if (e.key === "Enter") { apply(); n.blur(); } });
+});
 
 let saveTimer;
+function overlayValues() {
+  return {
+    width: +$("o-width").value, height: +$("o-height").value, radius: +$("o-radius").value,
+    bg: $("o-bg").value, color: $("o-color").value.replace("#", ""), opacity: +$("o-opacity").value,
+    accent: $("o-accent").value.replace("#", ""),
+    hidePaused: $("o-hide").checked, noProgress: $("o-noprog").checked, noCover: $("o-nocover").checked,
+  };
+}
+
 function updateOverlayUrl(save = true) {
+  const o = overlayValues();
+  setNum("o-width-v", o.width);
+  setNum("o-height-v", o.height);
+  setNum("o-radius-v", o.radius);
+  setNum("o-opacity-v", o.opacity);
+  $("o-color-wrap").hidden = o.bg !== "color";
+  $("o-opacity-wrap").hidden = o.bg === "none";
+
+  // ukuran Browser Source = kartu + margin 10px di tiap sisi (ruang bayangan)
+  const w = o.width + 20, h = o.height + 20;
+  $("drag-size").textContent = `${w}×${h}`;
+  $("obs-w").textContent = w;
+  $("obs-h").textContent = h;
+  $("preview-box").style.height = Math.min(h + 20, 420) + "px";
+
   const base = `http://127.0.0.1:${cfg.port}/overlay`;
-  const p = overlayParams();
-  const url = base + (p.toString() ? "?" + p : "");
-  $("url").value = url;
-  $("preview").src = url;
-  // parameter khusus OBS saat link di-drag ke jendela OBS
-  const obs = new URLSearchParams(p);
-  obs.set("layer-name", "Spotify Now Playing");
-  obs.set("layer-width", "480");
-  obs.set("layer-height", "130");
+  $("url").value = base;
+  const obs = new URLSearchParams({ "layer-name": "Spotify Now Playing", "layer-width": w, "layer-height": h });
   $("drag").href = base + "?" + obs;
   if (save) {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => api("/api/config", { overlay: {
-      accent: $("o-accent").value.replace("#", ""), hidePaused: $("o-hide").checked, noProgress: $("o-noprog").checked
-    } }), 400);
+    saveTimer = setTimeout(() => api("/api/config", { overlay: o }).then(() => {
+      $("preview").contentWindow?.loadConfig?.();  // preview langsung update
+    }).catch(e => toast(e.message, true)), 250);
   }
 }
+
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => {
+  const [w, h] = b.dataset.preset.split(",");
+  $("o-width").value = w; $("o-height").value = h;
+  updateOverlayUrl();
+}));
 
 $("drag").addEventListener("click", e => { e.preventDefault(); toast("Seret (drag) kotak ini ke jendela OBS, jangan diklik"); });
 $("drag").addEventListener("dragstart", e => {
@@ -376,7 +453,8 @@ $("drag").addEventListener("dragstart", e => {
   e.dataTransfer.setData("text/plain", $("drag").href);
 });
 
-["o-accent", "o-hide", "o-noprog"].forEach(id => $(id).addEventListener("input", () => updateOverlayUrl()));
+["o-width", "o-height", "o-radius", "o-bg", "o-color", "o-opacity", "o-accent", "o-hide", "o-noprog", "o-nocover"]
+  .forEach(id => $(id).addEventListener("input", () => updateOverlayUrl()));
 
 document.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", async () => {
   const v = $(b.dataset.copy).value;
@@ -408,10 +486,10 @@ $("clear-secret").onclick = async () => {
 
 let lyTimer;
 function updateLyrics(save = true) {
-  $("l-size-v").textContent = $("l-size").value + "px";
+  setNum("l-size-v", $("l-size").value);
   $("l-color-wrap").hidden = $("l-bg").value !== "color";
   const off = parseFloat($("l-offset").value);
-  $("l-offset-v").textContent = (off > 0 ? "+" : "") + off.toFixed(1) + " s";
+  setNum("l-offset-v", +off.toFixed(2));
   const base = `http://127.0.0.1:${cfg.port}/lyrics`;
   $("ly-url").value = base;
   $("ly-drag").href = base + "?layer-name=Spotify%20Lyrics&layer-width=800&layer-height=300";
@@ -420,7 +498,7 @@ function updateLyrics(save = true) {
     lyTimer = setTimeout(() => api("/api/config", { lyrics: {
       style: $("l-style").value, align: $("l-align").value, size: parseInt($("l-size").value),
       bg: $("l-bg").value, color: $("l-color").value.replace("#", ""), offset: off,
-    } }).catch(e => toast(e.message, true)), 300);
+    } }).then(() => $("ly-preview").contentWindow?.loadConfig?.()).catch(e => toast(e.message, true)), 300);
   }
 }
 ["l-style", "l-align", "l-size", "l-bg", "l-color", "l-offset"].forEach(id => $(id).addEventListener("input", () => updateLyrics()));

@@ -70,6 +70,12 @@ def make_handler(app, port):
             q = urllib.parse.parse_qs(query)
             if path in PAGES:
                 self._send(200, (WEB_DIR / PAGES[path]).read_bytes(), "text/html; charset=utf-8")
+            elif path.startswith("/static/") and path.endswith(".js") and "/" not in path[8:]:
+                f = WEB_DIR / path[8:]
+                if f.is_file():
+                    self._send(200, f.read_bytes(), "text/javascript; charset=utf-8")
+                else:
+                    self._send(404, b"not found", "text/plain")
             elif path == "/api/now":
                 self._send(200, json.dumps(app.snapshot()).encode(), "application/json",
                            {"Access-Control-Allow-Origin": "*"})

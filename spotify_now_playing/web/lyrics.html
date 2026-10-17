@@ -22,12 +22,22 @@
   .stage { position: relative; height: 100vh; overflow: hidden; border-radius: 16px; transition: opacity .5s; }
   .hidden .stage { opacity: 0; }
   /* latar warna lagu: solid di atas, menggelap ke bawah */
-  .bg-cover .stage, .bg-color .stage { background: linear-gradient(180deg,
-      var(--c1) 0%, var(--c1) 35%,
-      color-mix(in srgb, var(--c1) 78%, var(--c2)) 58%,
-      color-mix(in srgb, var(--c1) 38%, var(--c2)) 80%,
-      var(--c2) 100%); }
-  .bg-dark .stage { background: linear-gradient(180deg, #2e2e2e 0%, #222 30%, #0a0a0a 100%); }
+  /* latar warna lagu: solid di atas, lalu menggelap & memudar halus (kurva "scrim")
+     sampai transparan, supaya menyatu dengan apa pun di bawahnya */
+  .bg-cover .stage, .bg-color .stage { border-radius: 16px 16px 0 0; background: linear-gradient(180deg,
+      var(--c1) 0%,
+      var(--c1) 26%,
+      color-mix(in oklab, var(--c1) 94%, var(--c2)) 36%,
+      color-mix(in oklab, color-mix(in oklab, var(--c1) 82%, var(--c2)) 97%, transparent) 46%,
+      color-mix(in oklab, color-mix(in oklab, var(--c1) 66%, var(--c2)) 90%, transparent) 56%,
+      color-mix(in oklab, color-mix(in oklab, var(--c1) 48%, var(--c2)) 77%, transparent) 66%,
+      color-mix(in oklab, color-mix(in oklab, var(--c1) 30%, var(--c2)) 58%, transparent) 75%,
+      color-mix(in oklab, color-mix(in oklab, var(--c1) 15%, var(--c2)) 37%, transparent) 84%,
+      color-mix(in oklab, var(--c2) 17%, transparent) 92%,
+      transparent 100%); }
+  .bg-dark .stage { border-radius: 16px 16px 0 0; background: linear-gradient(180deg,
+      #262626 0%, #222 30%, rgba(26,26,26,.95) 46%, rgba(20,20,20,.82) 60%,
+      rgba(14,14,14,.6) 74%, rgba(10,10,10,.32) 87%, transparent 100%); }
   .bg-dark, .bg-none { --next: rgba(255,255,255,.38); --past: rgba(255,255,255,.62); }
   .bg-none .line { text-shadow: 0 2px 10px rgba(0,0,0,.65); }
 
@@ -51,6 +61,7 @@
 <body>
 <div class="stage"><div class="viewport"><div class="list" id="list"></div></div></div>
 <img id="cover" hidden alt="">
+<script src="/static/color.js"></script>
 
 <script>
   const q = new URLSearchParams(location.search);
@@ -63,56 +74,12 @@
 
   // ---------------------------------------------------------- warna lagu --
 
-  function rgbToHsl(r, g, b) {
-    r /= 255; g /= 255; b /= 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
-    if (max === min) return [0, 0, l];
-    const d = max - min, s = l > .5 ? d / (2 - max - min) : d / (max + min);
-    const h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
-    return [h * 60, s, l];
-  }
-  const hsl = (h, s, l) => `hsl(${h.toFixed(0)} ${(s * 100).toFixed(0)}% ${(l * 100).toFixed(0)}%)`;
-
-  /** Warna dominan yang "berwarna" dari cover, disesuaikan supaya teks putih & gelap sama-sama terbaca. */
-  function dominantColor(img) {
-    const c = document.createElement("canvas");
-    c.width = c.height = 40;
-    const ctx = c.getContext("2d", { willReadFrequently: true });
-    ctx.drawImage(img, 0, 0, 40, 40);
-    const px = ctx.getImageData(0, 0, 40, 40).data;
-    const buckets = new Map();
-    let all = [0, 0, 0, 0];
-    for (let i = 0; i < px.length; i += 4) {
-      const [h, s, l] = rgbToHsl(px[i], px[i + 1], px[i + 2]);
-      all[0] += px[i]; all[1] += px[i + 1]; all[2] += px[i + 2]; all[3]++;
-      if (l < .12 || l > .9 || s < .18) continue;       // abaikan hitam/putih/abu
-      const key = Math.round(h / 24);                     // 15 kelompok hue
-      const b = buckets.get(key) || { w: 0, h: 0, s: 0, l: 0 };
-      const w = s * (1 - Math.abs(l - .5));               // utamakan warna kuat & mid-tone
-      b.w += w; b.h += h * w; b.s += s * w; b.l += l * w;
-      buckets.set(key, b);
-    }
-    let best = null;
-    for (const b of buckets.values()) if (!best || b.w > best.w) best = b;
-    let h, s, l;
-    if (best && best.w > 6) { h = best.h / best.w; s = best.s / best.w; l = best.l / best.w; }
-    else { [h, s, l] = rgbToHsl(all[0] / all[3], all[1] / all[3], all[2] / all[3]); s = Math.min(s, .15); }
-    s = s < .15 ? s : Math.min(.72, Math.max(.35, s));
-    l = Math.min(.44, Math.max(.32, l));
-    return [h, s, l];
-  }
-
   function setBg(h, s, l) {
-    root.style.setProperty("--c1", hsl(h, s, l));
-    root.style.setProperty("--c2", hsl(h, s * .85, l * .2));  // hampir hitam, tetap bernuansa warna lagu
+    root.style.setProperty("--c1", SNPColor.hsl(h, s, l));
+    root.style.setProperty("--c2", SNPColor.hsl(h, s * .8, l * .3));   // ujung gelap, tetap bernuansa warna lagu
   }
 
-  function hexToHsl(hex) {
-    const n = parseInt(hex, 16);
-    return rgbToHsl(n >> 16 & 255, n >> 8 & 255, n & 255);
-  }
-
-  coverImg.onload = () => { if (opts.bg === "cover") try { setBg(...dominantColor(coverImg)); } catch {} };
+  coverImg.onload = () => { if (opts.bg === "cover") try { setBg(...SNPColor.dominant(coverImg)); } catch {} };
   coverImg.onerror = () => { if (opts.bg === "cover") setBg(0, 0, .33); };
 
   // -------------------------------------------------------------- opsi --
@@ -135,7 +102,7 @@
     root.style.setProperty("--size", opts.size + "px");
     list.style.textAlign = opts.align;
     document.body.className = `bg-${opts.bg}` + (opts.style === "single" ? " single" : "");
-    if (opts.bg === "color" && (prevBg !== "color" || prevColor !== opts.color)) setBg(...hexToHsl(opts.color));
+    if (opts.bg === "color" && (prevBg !== "color" || prevColor !== opts.color)) setBg(...SNPColor.hexToHsl(opts.color));
     if (opts.bg === "cover" && prevBg !== "cover" && coverImg.complete && coverImg.naturalWidth) coverImg.onload();
     curIdx = -2;
   }

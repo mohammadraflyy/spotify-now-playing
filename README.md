@@ -12,6 +12,10 @@ Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 |---|---|
 | ![Overlay now playing](docs/screenshots/overlay.png) | ![Overlay lirik dengan latar warna cover](docs/screenshots/lyrics.png) |
 
+**Kartu bisa diatur ukuran dan latarnya**
+
+![Variasi kartu now playing](docs/screenshots/card-variants.png)
+
 **Lirik mode satu baris**
 
 ![Overlay lirik satu baris](docs/screenshots/lyrics-single.png)
@@ -81,18 +85,36 @@ Kalau muncul error:
 2. Beri nama, misalnya `Spotify Now Playing` → OK.
 3. Isi:
    - **URL**: `http://127.0.0.1:8765/overlay`
-   - **Width**: `480`, **Height**: `130`
+   - **Width** dan **Height**: ikuti angka yang tertera di halaman pengaturan. Untuk ukuran default, `480` × `132`.
 4. Klik **OK**, lalu atur posisinya di scene.
 
-Pilihan tampilan bisa diatur di halaman pengaturan, atau langsung lewat parameter URL:
+**Atur tampilan kartu** di halaman pengaturan, bagian **3. Tambahkan ke OBS**. Perubahannya langsung terlihat di OBS tanpa ganti URL:
+- **Ukuran**:
+  - Preset: *Kecil*, *Sedang*, *Besar*, *Lebar*
+  - Atau atur sendiri **lebar**, **tinggi**, dan **sudut lengkung**, lewat slider atau dengan mengetik angka px secara manual. Cover dan teks ikut menyesuaikan tinggi kartu.
+- **Latar**:
+  - *Gelap*
+  - *Warna lagu*: diambil otomatis dari cover
+  - *Warna tetap*
+  - *Transparan*
+  - Ditambah pengaturan **opasitas**
+- **Lainnya**: warna aksen, sembunyikan saat pause, tanpa progress bar, dan tanpa cover
+
+> Setelah mengubah ukuran kartu, sesuaikan juga Width/Height Browser Source di OBS (klik kanan → Properties) dengan angka yang tertera di halaman pengaturan.
+
+Semua opsi juga bisa ditimpa lewat parameter URL, misalnya untuk beberapa scene dengan gaya berbeda:
 
 | Parameter | Fungsi |
 |---|---|
-| `?hidePaused=1` | sembunyikan kartu saat lagu di-pause |
-| `?noProgress=1` | sembunyikan progress bar |
-| `?accent=ff0066` | ganti warna aksen (hex tanpa `#`) |
+| `width=460` `height=112` | ukuran kartu (px) |
+| `radius=16` | sudut lengkung (px) |
+| `bg=dark\|cover\|color\|none` | jenis latar |
+| `color=282828` | warna latar untuk `bg=color` (hex tanpa `#`) |
+| `opacity=82` | opasitas latar (0–100) |
+| `accent=1db954` | warna aksen |
+| `hidePaused=1` `noProgress=1` `noCover=1` | sembunyikan kartu saat pause, sembunyikan progress bar, sembunyikan cover |
 
-Contoh: `http://127.0.0.1:8765/overlay?hidePaused=1&accent=ff0066`
+Contoh: `http://127.0.0.1:8765/overlay?bg=cover&width=600&height=150`
 
 #### b. Overlay Lirik (seperti di Spotify)
 
@@ -101,7 +123,7 @@ Contoh: `http://127.0.0.1:8765/overlay?hidePaused=1&accent=ff0066`
 3. Atur tampilannya di halaman pengaturan bagian **4. Lirik ke OBS**. Perubahannya langsung terlihat di OBS tanpa ganti URL:
    - **Gaya**: *Daftar bergulir* (beberapa baris) atau *Satu baris* (pakai Height sekitar `120`)
    - **Latar**:
-     - *Warna lagu*: diambil otomatis dari cover album, dengan gradien yang menggelap ke bawah, seperti di Spotify
+     - *Warna lagu*: diambil otomatis dari cover album. Bagian bawahnya menggelap lalu memudar halus menjadi transparan, sehingga menyatu dengan latar scene
      - *Warna tetap*: warna pilihan kamu
      - *Gelap*
      - *Transparan*: hanya teks

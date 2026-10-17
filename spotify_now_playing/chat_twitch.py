@@ -89,6 +89,10 @@ class TwitchChat:
     def auth(self):
         return self.cfg.get("twitch_auth") or {}
 
+    def channel(self):
+        """Channel yang dimasuki bot: diatur user (akun bot terpisah) atau akun yang login."""
+        return (self.conf().get("channel") or self.auth().get("login") or "").lower()
+
     def client_id(self):
         return self.conf().get("client_id") or DEFAULT_CLIENT_ID
 
@@ -97,7 +101,8 @@ class TwitchChat:
         return {
             "enabled": bool(self.conf().get("enabled")), "client_id": self.conf().get("client_id", ""),
             "builtin_client": bool(DEFAULT_CLIENT_ID), "state": self.state, "error": self.error,
-            "login": self.auth().get("login", ""),
+            "login": self.auth().get("login", ""), "channel": self.channel(),
+            "channel_setting": self.conf().get("channel", ""),
             "device": {"user_code": d["user_code"], "verification_uri": d["verification_uri"]} if d else None,
         }
 
@@ -225,6 +230,7 @@ class TwitchChat:
     def _session(self):
         auth = self.auth()
         login = auth["login"].lower()
+        channel = self.channel()
         self.state, self.error = "connecting", ""
         raw = socket.create_connection((IRC_HOST, IRC_PORT), timeout=15)
         sock = ssl.create_default_context().wrap_socket(raw, server_hostname=IRC_HOST)
@@ -234,7 +240,7 @@ class TwitchChat:
             self._send(f"CAP REQ :twitch.tv/tags twitch.tv/commands")
             self._send(f"PASS oauth:{auth['access_token']}")
             self._send(f"NICK {login}")
-            self._send(f"JOIN #{login}")
+            self._send(f"JOIN #{channel}")
             buf = b""
             while not self.wake.is_set():
                 data = sock.recv(4096)

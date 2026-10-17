@@ -180,9 +180,23 @@ class ServerTest(unittest.TestCase):
 
     def test_chat_config_validation(self):
         for body in ({"song_cmd": "dua kata"}, {"cooldown": "x"}, {"twitch": {"client_id": "a b"}},
-                     {"youtube": {"client_id": "<script>"}}):
+                     {"youtube": {"client_id": "<script>"}}, {"twitch": {"channel": "nama aneh!"}},
+                     {"custom": [{"cmd": "!a", "reply": ""}]},
+                     {"custom": [{"cmd": "!a", "reply": "x"}, {"cmd": "!A", "reply": "y"}]},
+                     {"custom": [{"cmd": "!song", "reply": "bentrok dengan perintah bawaan"}]}):
             status, _ = self.post("/api/chat/config", body)
             self.assertEqual(status, 400, body)
+
+    def test_chat_custom_commands_saved(self):
+        status, chat = self.post("/api/chat/config", {"custom": [
+            {"cmd": "!discord", "reply": "discord.gg/x"}, {"cmd": "", "reply": ""}],
+            "twitch": {"channel": "#Tulus"}})
+        self.assertEqual(status, 200)
+        self.assertEqual(chat["custom"], [{"cmd": "!discord", "reply": "discord.gg/x"}])
+        self.assertEqual(chat["twitch"]["channel_setting"], "tulus")
+        _, r = self.post("/api/chat/test", {"text": "!discord"})
+        self.assertEqual(r["reply"], "discord.gg/x")
+        self.post("/api/chat/config", {"custom": [], "twitch": {"channel": ""}})
 
     def test_chat_secrets_not_exposed(self):
         self.post("/api/chat/config", {"youtube": {"client_id": "abc.apps.googleusercontent.com",

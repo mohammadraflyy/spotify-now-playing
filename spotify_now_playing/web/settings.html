@@ -172,7 +172,8 @@
   .p-status .dot { margin-top: 6px; }
   .code { font: 700 22px ui-monospace, Consolas, monospace; letter-spacing: .12em; color: var(--fg); }
   .cmd-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 8px; }
-  @media (max-width: 560px) { .cmd-row { grid-template-columns: minmax(0, 1fr); } }
+  .custom-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 8px; margin-bottom: 8px; }
+  @media (max-width: 560px) { .cmd-row, .custom-row { grid-template-columns: minmax(0, 1fr); } }
   .pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
   .pager button:disabled { opacity: .4; cursor: default; }
   .lang { background: var(--panel2); border: 1px solid var(--line); color: var(--muted); border-radius: 99px; padding: 4px 8px; font: 600 12px Inter, sans-serif; width: auto; }
@@ -617,6 +618,12 @@
         <span class="label">Balasan saat tidak ada lagu</span>
         <input type="text" id="c-none-reply" spellcheck="false">
       </div>
+      <div class="field">
+        <span class="label">Perintah tambahan</span>
+        <div id="c-custom"></div>
+        <button class="ghost sm" id="c-custom-add"><svg class="i"><use href="#i-plus"/></svg> Tambah perintah</button>
+        <p class="muted small" style="margin:8px 0 0">Untuk info apa pun, misalnya <code>!discord</code> dibalas dengan link Discord, atau <code>!jadwal</code> dengan jadwal streaming.</p>
+      </div>
       <p class="muted small" style="margin:-6px 0 14px">Bisa pakai <code>{user}</code> <code>{title}</code> <code>{artist}</code> <code>{album}</code>. Kosongkan perintah untuk mematikannya, kosongkan balasan untuk memakai balasan bawaan.</p>
       <div class="slider"><span>Cooldown</span><input type="range" id="c-cooldown" min="0" max="60" step="1"><span class="numwrap"><input type="number" class="num" id="c-cooldown-v" data-range="c-cooldown">detik</span></div>
       <p class="muted small" style="margin:-4px 0 14px">Jeda minimal sebelum perintah yang sama dibalas lagi, supaya bot tidak spam.</p>
@@ -641,6 +648,20 @@
           <button class="primary" id="tw-login">Hubungkan Twitch</button>
           <button class="danger" id="tw-logout" hidden>Putuskan</button>
         </div>
+        <details id="tw-bot" style="margin-top:14px">
+          <summary>Akun bot terpisah (opsional)</summary>
+          <p class="muted small">Supaya balasan muncul atas nama akun bot (misalnya <b>TulusBot</b>), bukan akun streaming-mu:</p>
+          <ol class="how">
+            <li>Buat akun Twitch baru untuk bot.</li>
+            <li>Klik <b>Hubungkan Twitch</b>, lalu buka link kodenya di jendela browser yang login dengan <b>akun bot</b> (misalnya jendela incognito).</li>
+            <li>Isi nama channel streaming-mu di bawah, lalu ketik <code>/mod namabot</code> di chat-mu supaya bot tidak kena slow mode.</li>
+          </ol>
+          <div class="row" style="margin-top:12px">
+            <input type="text" class="mono" id="tw-channel" placeholder="Channel streaming-mu" autocomplete="off" spellcheck="false">
+            <button class="primary" id="tw-channel-save">Simpan</button>
+          </div>
+          <p class="muted small" style="margin:6px 0 0">Kosongkan kalau bot login dengan akun streaming-mu sendiri.</p>
+        </details>
         <details id="tw-setup" style="margin-top:14px">
           <summary>Client ID Twitch (cukup sekali)</summary>
           <ol class="how">
@@ -663,6 +684,15 @@
           <button class="danger" id="yt-logout" hidden>Logout</button>
         </div>
         <p class="muted small" style="margin:12px 0 0">Bot membaca chat setiap 10 detik karena kuota gratis YouTube API terbatas, jadi balasannya bisa sedikit telat.</p>
+        <details id="yt-bot" style="margin-top:14px">
+          <summary>Akun bot terpisah (opsional)</summary>
+          <p class="muted small">Akun utama tetap dipakai untuk mendeteksi live dan membaca chat. Kalau akun bot login di sini, balasan dikirim atas nama channel bot. Tambahkan email akun bot ke <b>Test users</b> di Google Cloud, lalu jadikan channel bot moderator di live-mu.</p>
+          <div class="p-status"><span class="dot" id="yt-bot-dot"></span><span id="yt-bot-status"></span></div>
+          <div class="row">
+            <a class="btn" id="yt-bot-login" href="/youtube/login?role=bot">Login akun bot</a>
+            <button class="danger" id="yt-bot-logout" hidden>Logout akun bot</button>
+          </div>
+        </details>
         <details id="yt-setup" style="margin-top:14px">
           <summary>Client ID Google (cukup sekali)</summary>
           <ol class="how">
@@ -1199,8 +1229,30 @@ function fillChat(c) {
   $("c-none-reply").placeholder = c.default_replies.none;
   $("c-cooldown").value = c.cooldown; setNum("c-cooldown-v", c.cooldown);
   $("tw-cid").value = c.twitch.client_id;
+  $("tw-channel").value = c.twitch.channel_setting;
+  $("c-custom").innerHTML = "";
+  c.custom.forEach(addCustomRow);
+  if (c.twitch.channel_setting) $("tw-bot").open = true;
   $("yt-cid").value = c.youtube.client_id;
 }
+function addCustomRow(c = {}) {
+  const row = document.createElement("div");
+  row.className = "custom-row";
+  row.innerHTML = '<input type="text" class="mono" spellcheck="false"><input type="text" spellcheck="false">' +
+    '<button class="ghost sm" title=""><svg class="i"><use href="#i-trash"/></svg></button>';
+  const [cmd, reply, del] = row.children;
+  cmd.value = c.cmd || ""; cmd.placeholder = "!discord";
+  reply.value = c.reply || ""; reply.placeholder = t("Balasan, misalnya: Gabung Discord: discord.gg/xxxx");
+  del.title = t("Hapus");
+  del.onclick = () => row.remove();
+  $("c-custom").appendChild(row);
+  return row;
+}
+function customValues() {
+  return [...$("c-custom").children].map(r => ({ cmd: r.children[0].value.trim(), reply: r.children[1].value.trim() }));
+}
+$("c-custom-add").onclick = () => addCustomRow().children[0].focus();
+
 function renderChat(c) {
   chat = c;
   if (!chatLoaded) { chatLoaded = true; fillChat(c); }
@@ -1211,7 +1263,9 @@ function renderChat(c) {
     off: t("Mati. Centang Aktif untuk menyalakan bot di Twitch."),
     login: tw.client_id || tw.builtin_client ? t("Belum terhubung. Klik Hubungkan Twitch.") : t("Isi Client ID Twitch dulu (lihat langkah di bawah)."),
     connecting: t("Menyambung ke chat Twitch…"),
-    connected: t("Aktif di chat #{login}", { login: tw.login }),
+    connected: tw.channel && tw.channel !== tw.login.toLowerCase()
+      ? t("Aktif di chat #{channel} sebagai {login}", { channel: tw.channel, login: tw.login })
+      : t("Aktif di chat #{login}", { login: tw.login }),
     error: t(tw.error),
   }[tw.state] || "";
   $("tw-status").textContent = tw.state !== "error" && tw.error ? t(tw.error) : twText;
@@ -1237,6 +1291,13 @@ function renderChat(c) {
   $("yt-dot").className = "dot " + ({ connected: "ok", waiting: "warn", error: "err" }[yt.state] || (yt.error ? "warn" : ""));
   $("yt-login").hidden = !!yt.channel || yt.state === "waiting" || yt.state === "connected";
   $("yt-logout").hidden = $("yt-login").hidden === false;
+  $("yt-bot-status").textContent = yt.bot_login
+    ? t("Balasan dikirim sebagai {channel}", { channel: yt.bot_channel || t("akun bot") })
+    : t("Belum ada akun bot. Balasan dikirim dengan akun utama.");
+  $("yt-bot-dot").className = "dot " + (yt.bot_login ? "ok" : "");
+  $("yt-bot-login").hidden = yt.bot_login;
+  $("yt-bot-logout").hidden = !yt.bot_login;
+  if (yt.bot_login && !$("yt-bot").dataset.auto) { $("yt-bot").open = true; $("yt-bot").dataset.auto = "1"; }
   $("yt-secret-saved").textContent = yt.has_secret ? t("Secret tersimpan: {hint}", { hint: yt.secret_hint }) : "";
   if (!(yt.client_id && yt.has_secret) && !$("yt-setup").dataset.auto) { $("yt-setup").open = true; $("yt-setup").dataset.auto = "1"; }
 }
@@ -1251,7 +1312,7 @@ $("c-cooldown").addEventListener("input", () => setNum("c-cooldown-v", $("c-cool
 $("c-save").onclick = () => chatAction("config", {
   song_cmd: $("c-song-cmd").value, last_cmd: $("c-last-cmd").value,
   song_reply: $("c-song-reply").value, last_reply: $("c-last-reply").value, none_reply: $("c-none-reply").value,
-  cooldown: +$("c-cooldown").value,
+  cooldown: +$("c-cooldown").value, custom: customValues(),
 }, "Tersimpan");
 async function testCommand() {
   const text = $("c-test").value.trim() || chat?.song_cmd || "!song";
@@ -1279,6 +1340,8 @@ $("yt-login").addEventListener("click", async e => {
   if (!$("yt-enabled").checked) await chatAction("config", { youtube: { enabled: true } });
   location.href = "/youtube/login";
 });
+$("tw-channel-save").onclick = () => chatAction("config", { twitch: { channel: $("tw-channel").value } }, "Tersimpan");
+$("yt-bot-logout").onclick = () => chatAction("youtube/logout-bot", {}, "Akun bot YouTube dilepas");
 $("yt-logout").onclick = () => chatAction("youtube/logout", {}, "Logout YouTube berhasil");
 $("yt-save").onclick = async () => {
   const body = { client_id: $("yt-cid").value };
@@ -1485,7 +1548,7 @@ async function refresh() {
 const qs = new URLSearchParams(location.search);
 if (qs.get("login") === "ok") { setTimeout(() => toast("Login berhasil"), 300); location.hash = "source"; }
 if (qs.get("login") === "error") { setTimeout(() => toast(t("Login gagal: {msg}", { msg: qs.get("msg") || "" }), true), 300); location.hash = "source"; }
-if (qs.get("chat") === "ok") setTimeout(() => toast("Login YouTube berhasil"), 300);
+if (qs.get("chat") === "ok") setTimeout(() => toast(qs.get("role") === "bot" ? "Akun bot YouTube tersambung" : "Login YouTube berhasil"), 300);
 if (qs.get("chat") === "error") setTimeout(() => toast(t("Login YouTube gagal: {msg}", { msg: t(qs.get("msg") || "") }), true), 300);
 if (qs.has("login") || qs.has("chat")) history.replaceState(null, "", "/settings" + location.hash);
 

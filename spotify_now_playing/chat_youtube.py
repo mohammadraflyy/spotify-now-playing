@@ -1,5 +1,8 @@
 """Chat live YouTube lewat YouTube Data API v3, login Google OAuth (aplikasi desktop + PKCE).
 
+Dua login: akun utama (channel yang live) dipakai untuk mendeteksi live dan membaca chat,
+akun bot (opsional) dipakai untuk mengirim balasan supaya tidak muncul atas nama streamer.
+
 Bot mengecek apakah channel sedang live. Kalau iya, pesan chat dibaca secara berkala
 (YouTube tidak punya koneksi realtime gratis) dan jawaban dikirim lewat API yang sama.
 Kuota gratis API terbatas, jadi jeda baca minimal POLL_MIN detik.
@@ -25,6 +28,7 @@ SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl"
 POLL_MIN = 10       # detik antar baca chat (hemat kuota)
 IDLE_CHECK = 60     # detik antar cek "sudah live belum?"
 CHAT_ENDED = {"liveChatEnded", "liveChatNotFound", "liveChatDisabled", "forbidden"}
+AUTH_KEYS = {"main": "youtube_auth", "bot": "youtube_bot_auth"}
 
 
 class YouTubeError(Exception):
@@ -72,7 +76,7 @@ class YouTubeChat:
         self.error = ""
         self.live_title = ""
         self.wake = threading.Event()
-        self._pending = {}          # state OAuth -> code_verifier
+        self._pending = {}          # state OAuth -> (code_verifier, role)
         self._started = False
 
     # ------------------------------------------------------------ status --
@@ -80,8 +84,8 @@ class YouTubeChat:
     def conf(self):
         return (self.cfg.get("chat") or {}).get("youtube") or {}
 
-    def auth(self):
-        return self.cfg.get("youtube_auth") or {}
+    def auth(self, role="main"):
+        return self.cfg.get(AUTH_KEYS[role]) or {}
 
     def status(self):
         secret = self.cfg.get("youtube_client_secret", "")
@@ -90,26 +94,27 @@ class YouTubeChat:
             "has_secret": bool(secret), "secret_hint": ("•" * 8 + secret[-4:]) if secret else "",
             "state": self.state, "error": self.error, "channel": self.auth().get("channel", ""),
             "live_title": self.live_title, "redirect_uri": self.redirect_uri,
+            "bot_login": bool(self.auth("bot").get("access_token")), "bot_channel": self.auth("bot").get("channel", ""),
         }
 
     # ------------------------------------------------------------- login --
 
-    def login_url(self):
+    def login_url(self, role="main"):
         cid = self.conf().get("client_id")
         if not cid or not self.cfg.get("youtube_client_secret"):
             raise ValueError("Isi Client ID dan Client Secret Google dulu")
         verifier = secrets.token_urlsafe(48)
         state = secrets.token_urlsafe(16)
-        self._pending = {state: verifier}  # hanya login terakhir yang berlaku
+        self._pending = {state: (verifier, role if role in AUTH_KEYS else "main")}  # hanya login terakhir
         challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode()
         return AUTH_URL + "?" + urllib.parse.urlencode({
             "client_id": cid, "redirect_uri": self.redirect_uri, "response_type": "code", "scope": SCOPE,
-            "access_type": "offline", "prompt": "consent", "state": state,
+            "access_type": "offline", "prompt": "consent select_account", "state": state,
             "code_challenge": challenge, "code_challenge_method": "S256",
         })
 
     def finish_login(self, state, code):
-        verifier = self._pending.pop(state, None)
+        verifier, role = self._pending.pop(state, (None, None))
         if not verifier:
             raise ValueError("Sesi login kedaluwarsa, coba login lagi")
         tok = _request("POST", TOKEN_URL, {
@@ -119,22 +124,27 @@ class YouTubeChat:
         }, form=True)
         auth = {"access_token": tok["access_token"], "refresh_token": tok.get("refresh_token", ""),
                 "expires_at": time.time() + tok.get("expires_in", 3600)}
-        self.cfg.update(youtube_auth=auth)
+        key = AUTH_KEYS[role]
+        self.cfg.update(**{key: auth})
         try:
-            items = self._api("GET", "channels", {"part": "snippet", "mine": "true"}).get("items") or []
+            items = self._api("GET", "channels", {"part": "snippet", "mine": "true"}, role=role).get("items") or []
             channel = items[0]["snippet"]["title"] if items else ""
         except (YouTubeError, AuthFailed, OSError):
             channel = ""
-        self.cfg.update(youtube_auth={**auth, "channel": channel})
+        self.cfg.update(**{key: {**auth, "channel": channel}})
         self.error = ""
-        self.restart()
+        if role == "main":
+            self.restart()
+        return role
 
-    def logout(self):
-        self.cfg.update(youtube_auth=None)
-        self.restart()
+    def logout(self, role="main"):
+        self.cfg.update(**{AUTH_KEYS[role]: None})
+        if role == "main":
+            self.restart()
 
-    def _token(self):
-        auth = self.auth()
+    def _token(self, role="main"):
+        key = AUTH_KEYS[role]
+        auth = self.auth(role)
         if not auth.get("access_token"):
             raise AuthFailed("belum login")
         if auth.get("expires_at", 0) - 60 > time.time():
@@ -150,13 +160,13 @@ class YouTubeChat:
             if e.reason in ("invalid_grant", "invalid_client", "unauthorized_client"):
                 raise AuthFailed(str(e)) from None
             raise
-        self.cfg.update(youtube_auth={**auth, "access_token": tok["access_token"],
-                                      "expires_at": time.time() + tok.get("expires_in", 3600)})
+        self.cfg.update(**{key: {**auth, "access_token": tok["access_token"],
+                                 "expires_at": time.time() + tok.get("expires_in", 3600)}})
         return tok["access_token"]
 
-    def _api(self, method, path, params, body=None):
+    def _api(self, method, path, params, body=None, role="main"):
         url = f"{API}/{path}?" + urllib.parse.urlencode(params)
-        return _request(method, url, body, {"Authorization": f"Bearer {self._token()}"})
+        return _request(method, url, body, {"Authorization": f"Bearer {self._token(role)}"})
 
     # -------------------------------------------------------------- loop --
 
@@ -231,10 +241,19 @@ class YouTubeChat:
             self.wake.wait(max(POLL_MIN, (r.get("pollingIntervalMillis") or 0) / 1000))
 
     def _send(self, chat_id, text):
+        body = {"snippet": {"liveChatId": chat_id, "type": "textMessageEvent",
+                            "textMessageDetails": {"messageText": text}}}
+        role = "bot" if self.auth("bot").get("access_token") else "main"
         try:
-            self._api("POST", "liveChat/messages", {"part": "snippet"}, {"snippet": {
-                "liveChatId": chat_id, "type": "textMessageEvent",
-                "textMessageDetails": {"messageText": text}}})
+            try:
+                self._api("POST", "liveChat/messages", {"part": "snippet"}, body, role=role)
+            except AuthFailed:
+                if role == "main":
+                    raise
+                # login akun bot kedaluwarsa: balas dengan akun utama dulu
+                self.cfg.update(youtube_bot_auth=None)
+                self._api("POST", "liveChat/messages", {"part": "snippet"}, body)
+                self.error = "Login akun bot YouTube kedaluwarsa. Balasan sementara dikirim dengan akun utama."
         except YouTubeError as e:
             self.error = f"Gagal mengirim jawaban ke YouTube: {e}"
             log.warning(self.error)

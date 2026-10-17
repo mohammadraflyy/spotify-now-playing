@@ -136,7 +136,7 @@ def make_handler(app, port):
                 self._json(app.chat.status())
             elif path == "/youtube/login":
                 try:
-                    self._redirect(app.chat.youtube.login_url())
+                    self._redirect(app.chat.youtube.login_url((q.get("role") or ["main"])[0]))
                 except ValueError as e:
                     self._redirect("/settings?chat=error&msg=" + urllib.parse.quote(str(e)) + "#chat")
             elif path == "/youtube/callback":
@@ -144,8 +144,8 @@ def make_handler(app, port):
                 try:
                     if not get("code"):
                         raise ValueError(get("error") or "dibatalkan")
-                    app.chat.youtube.finish_login(get("state"), get("code"))
-                    self._redirect("/settings?chat=ok#chat")
+                    role = app.chat.youtube.finish_login(get("state"), get("code"))
+                    self._redirect(f"/settings?chat=ok&role={role}#chat")
                 except Exception as e:
                     self._redirect("/settings?chat=error&msg=" + urllib.parse.quote(str(e)) + "#chat")
             elif path == "/login":
@@ -266,6 +266,8 @@ def make_handler(app, port):
                     chat.twitch.logout()
                 elif action == "youtube/logout":
                     chat.youtube.logout()
+                elif action == "youtube/logout-bot":
+                    chat.youtube.logout("bot")
                 else:
                     self._json({"error": "not found"}, 404)
                     return
@@ -289,6 +291,24 @@ def make_handler(app, port):
             for key in ("song_reply", "last_reply", "none_reply"):
                 if key in body:
                     cur[key] = str(body[key] or "").strip()[:200]
+            if isinstance(body.get("custom"), list):
+                custom, seen = [], {cur.get("song_cmd", "!song").lower(), cur.get("last_cmd", "!lastsong").lower()}
+                for c in body["custom"][:31]:
+                    cmd = str((c or {}).get("cmd") or "").strip()
+                    reply = str((c or {}).get("reply") or "").strip()[:200]
+                    if not cmd and not reply:
+                        continue  # baris kosong diabaikan
+                    if not CHAT_COMMAND.match(cmd):
+                        return "Perintah harus satu kata tanpa spasi, maksimal 30 karakter"
+                    if not reply:
+                        return f"Isi balasan untuk {cmd}"
+                    if cmd.lower() in seen:
+                        return f"Perintah {cmd} dipakai dua kali"
+                    seen.add(cmd.lower())
+                    custom.append({"cmd": cmd, "reply": reply})
+                if len(custom) > 30:
+                    return "Maksimal 30 perintah tambahan"
+                cur["custom"] = custom
             if "cooldown" in body:
                 try:
                     cur["cooldown"] = max(0, min(600, int(body["cooldown"])))
@@ -306,6 +326,11 @@ def make_handler(app, port):
                     if cid != tw.get("client_id", "") and cfg.get("twitch_auth"):
                         cfg.update(twitch_auth=None)  # app Twitch beda -> login lama tidak berlaku
                     tw["client_id"] = cid
+                if "channel" in b:
+                    ch = str(b["channel"] or "").strip().lstrip("#").lower()
+                    if ch and not re.match(r"^[a-z0-9_]{3,25}$", ch):
+                        return "Nama channel Twitch tidak valid"
+                    tw["channel"] = ch
                 cur["twitch"] = tw
             if isinstance(body.get("youtube"), dict):
                 yt = {**(cur.get("youtube") or {})}

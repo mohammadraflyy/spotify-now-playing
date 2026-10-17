@@ -185,7 +185,9 @@ Buka tab **Chatbot** di halaman pengaturan. Bot membalas perintah di chat live, 
 | `!song` | `@penonton Sekarang diputar: Tulus - Pamit` |
 | `!lastsong` | lagu sebelumnya, dari riwayat |
 
-Perintah, balasan, dan cooldown bisa diubah, dan ada kolom **Coba** untuk melihat balasannya tanpa harus live.
+Perintah, balasan, dan cooldown bisa diubah, dan ada kolom **Coba** untuk melihat balasannya tanpa harus live. Kamu juga bisa menambah **perintah sendiri**, misalnya `!discord` atau `!jadwal`, dengan balasan apa saja.
+
+Balasan bisa dikirim atas nama **akun bot terpisah** (misalnya TulusBot). Untuk Twitch, hubungkan dengan akun bot lalu isi nama channel-mu. Untuk YouTube, login akun bot sebagai akun kedua.
 
 | Platform | Setup |
 |---|---|

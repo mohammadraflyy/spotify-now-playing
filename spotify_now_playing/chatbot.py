@@ -60,7 +60,15 @@ class ChatBot:
         for kind in ("song", "last"):
             if s.get(f"{kind}_cmd") and cmd == s[f"{kind}_cmd"].strip().lower():
                 return kind
+        for i, c in enumerate(self.custom()):
+            if cmd == c["cmd"].lower():
+                return f"custom:{i}"
         return None
+
+    def custom(self):
+        """Perintah buatan user: [{"cmd": "!discord", "reply": "..."}]."""
+        return [c for c in self.settings().get("custom") or []
+                if isinstance(c, dict) and c.get("cmd") and c.get("reply")]
 
     def handle(self, platform, user, text):
         """Pesan chat masuk. Return teks jawaban, atau None kalau bukan perintah / masih cooldown."""
@@ -77,6 +85,11 @@ class ChatBot:
         return self.answer(kind, user)
 
     def answer(self, kind, user):
+        if kind.startswith("custom:"):
+            reply = self.custom()[int(kind[7:])]["reply"]
+            song = self.current_song() or {}
+            return render(reply, "", user=user, title=song.get("title", ""), artist=song.get("artist", ""),
+                          album=song.get("album", ""))
         song = self.current_song() if kind == "song" else self.previous_song()
         if song is None:
             tpl, fallback = self.template("none")
@@ -111,6 +124,7 @@ class ChatBot:
             "song_cmd": s["song_cmd"], "last_cmd": s["last_cmd"], "cooldown": s["cooldown"],
             "song_reply": s.get("song_reply") or "", "last_reply": s.get("last_reply") or "",
             "none_reply": s.get("none_reply") or "",
+            "custom": self.custom(),
             "default_replies": REPLIES[lang],
             "twitch": self.twitch.status(),
             "youtube": self.youtube.status(),

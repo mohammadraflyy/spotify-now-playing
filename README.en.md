@@ -47,7 +47,7 @@ Changes on the settings page show up in OBS right away, without changing the URL
 
 ### `!song` chat command
 
-Open the **Chatbot** tab on the settings page. The bot answers commands in your live chat and replies on the platform the message came from, so it works on Twitch and YouTube at the same time. Default commands: `!song` (current song) and `!lastsong` (previous song, from the history). Commands, replies and the cooldown can be changed, and the **Try** box shows the reply without going live.
+Open the **Chatbot** tab on the settings page. The bot answers commands in your live chat and replies on the platform the message came from, so it works on Twitch and YouTube at the same time. Default commands: `!song` (current song) and `!lastsong` (previous song, from the history). Commands, replies and the cooldown can be changed, and the **Try** box shows the reply without going live. You can also add **your own commands**, such as `!discord` or `!schedule`, with any reply. Replies can come from a **separate bot account**: on Twitch, connect the bot account and enter your channel; on YouTube, log in the bot as a second account.
 
 | Platform | Setup |
 |---|---|

@@ -75,6 +75,21 @@ class CommandTest(unittest.TestCase):
                                   "album": "", "player": ""})
         self.assertEqual(self.bot.handle("twitch", "a", "!lastsong"), "@a Lagu sebelumnya: Tulus - Sebelumnya")
 
+    def test_custom_commands(self):
+        self.app.cfg["chat"] = {"custom": [
+            {"cmd": "!discord", "reply": "Gabung: discord.gg/abc"},
+            {"cmd": "!Jadwal", "reply": "@{user} live tiap malam, sekarang {title}"},
+            {"cmd": "!kosong", "reply": ""},  # tidak lengkap: diabaikan
+        ]}
+        self.assertEqual(self.bot.handle("twitch", "a", "!discord"), "Gabung: discord.gg/abc")
+        self.assertEqual(self.bot.handle("youtube", "ani", "!jadwal"), "@ani live tiap malam, sekarang Pamit")
+        self.assertIsNone(self.bot.handle("twitch", "a", "!kosong"))
+        self.assertEqual(len(self.bot.status()["custom"]), 2)
+
+    def test_custom_command_with_broken_template(self):
+        self.app.cfg["chat"] = {"custom": [{"cmd": "!x", "reply": "{nope}"}]}
+        self.assertEqual(self.bot.handle("twitch", "a", "!x"), "")
+
     def test_reply_is_one_short_line(self):
         self.state["now"] = {**SONG, "title": "x\r\n" + "y" * 500}
         reply = self.bot.handle("twitch", "a", "!song")
@@ -119,6 +134,14 @@ class IrcTest(unittest.TestCase):
         with self.assertRaises(chat_twitch.AuthFailed):
             chat._handle(":tmi.twitch.tv NOTICE * :Login authentication failed", "tulus")
 
+    def test_bot_account_joins_streamer_channel(self):
+        cfg = FakeConfig(chat={"twitch": {"channel": "Tulus"}}, twitch_auth={"login": "TulusBot"})
+        chat = chat_twitch.TwitchChat(cfg, lambda *a: None)
+        self.assertEqual(chat.channel(), "tulus")
+        self.assertEqual(chat.status()["login"], "TulusBot")
+        cfg["chat"] = {"twitch": {}}
+        self.assertEqual(chat.channel(), "tulusbot")  # tanpa pengaturan: channel akun yang login
+
     def test_device_login_needs_client_id(self):
         chat, _ = self.make_chat()
         with self.assertRaises(ValueError):
@@ -137,7 +160,7 @@ class YouTubeTest(unittest.TestCase):
         ]
         sent = []
 
-        def fake_api(method, path, params, body=None):
+        def fake_api(method, path, params, body=None, role="main"):
             if method == "POST":
                 sent.append(body["snippet"]["textMessageDetails"]["messageText"])
                 return {}
@@ -149,6 +172,43 @@ class YouTubeTest(unittest.TestCase):
             chat._poll("chat1")
         self.assertEqual(handled, [("youtube", "Ani", "halo"), ("youtube", "Ani", "!song")])
         self.assertEqual(sent, ["balas"])
+
+    def test_replies_are_sent_with_bot_account(self):
+        cfg = FakeConfig(youtube_auth={"access_token": "main"}, youtube_bot_auth={"access_token": "bot"})
+        chat = chat_youtube.YouTubeChat(cfg, lambda *a: None)
+        calls = []
+        with mock.patch.object(chat, "_api", lambda m, p, q, b=None, role="main": calls.append(role) or {}):
+            chat._send("c1", "halo")
+        self.assertEqual(calls, ["bot"])
+
+    def test_expired_bot_login_falls_back_to_main(self):
+        cfg = FakeConfig(youtube_auth={"access_token": "main"}, youtube_bot_auth={"access_token": "bot"})
+        chat = chat_youtube.YouTubeChat(cfg, lambda *a: None)
+        calls = []
+
+        def api(method, path, params, body=None, role="main"):
+            calls.append(role)
+            if role == "bot":
+                raise chat_youtube.AuthFailed("expired")
+            return {}
+        with mock.patch.object(chat, "_api", api):
+            chat._send("c1", "halo")
+        self.assertEqual(calls, ["bot", "main"])
+        self.assertNotIn("youtube_bot_auth", cfg)
+        self.assertIn("kedaluwarsa", chat.error)
+
+    def test_bot_login_role_is_remembered(self):
+        cfg = FakeConfig(chat={"youtube": {"client_id": "abc.apps.googleusercontent.com"}},
+                         youtube_client_secret="s")
+        chat = chat_youtube.YouTubeChat(cfg, lambda *a: None)
+        url = chat.login_url("bot")
+        state = url.split("state=")[1].split("&")[0]
+        tok = {"access_token": "t", "refresh_token": "r", "expires_in": 3600}
+        with mock.patch.object(chat_youtube, "_request", return_value=tok), \
+             mock.patch.object(chat, "_api", return_value={"items": [{"snippet": {"title": "TulusBot"}}]}):
+            self.assertEqual(chat.finish_login(state, "code"), "bot")
+        self.assertEqual(cfg["youtube_bot_auth"]["channel"], "TulusBot")
+        self.assertNotIn("youtube_auth", cfg)
 
     def test_login_url_needs_credentials(self):
         chat = chat_youtube.YouTubeChat(FakeConfig(), lambda *a: None)

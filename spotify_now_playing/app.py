@@ -42,6 +42,8 @@ class NowPlayingApp:
         self.lyrics = LyricsProvider(cache_dir=DATA_DIR / "lyrics")
         self.updates = UpdateChecker(config)
         self.history = History(DATA_DIR / "history")
+        from .chatbot import ChatBot  # import di sini: chatbot memakai app.snapshot / app.history
+        self.chat = ChatBot(self)
         self.console = False  # True: tampilkan status di console (--console)
         self.lock = threading.Lock()
         self.state = {

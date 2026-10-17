@@ -21,6 +21,7 @@ STATIC = re.compile(r"^/static/((?:fonts/)?[\w.-]+\.(js|css|woff2|txt))$")
 STATIC_TYPES = {"js": "text/javascript; charset=utf-8", "css": "text/css; charset=utf-8",
                 "woff2": "font/woff2", "txt": "text/plain; charset=utf-8"}
 PRESET_NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,23}$")
+CHAT_COMMAND = re.compile(r"^\S{1,30}$")
 MAX_BODY = 1_000_000
 
 
@@ -131,6 +132,22 @@ def make_handler(app, port):
                     self._send(404, b"", "text/plain")
             elif path == "/api/config":
                 self._json(public_config())
+            elif path == "/api/chat":
+                self._json(app.chat.status())
+            elif path == "/youtube/login":
+                try:
+                    self._redirect(app.chat.youtube.login_url())
+                except ValueError as e:
+                    self._redirect("/settings?chat=error&msg=" + urllib.parse.quote(str(e)) + "#chat")
+            elif path == "/youtube/callback":
+                get = lambda k: (q.get(k) or [None])[0]
+                try:
+                    if not get("code"):
+                        raise ValueError(get("error") or "dibatalkan")
+                    app.chat.youtube.finish_login(get("state"), get("code"))
+                    self._redirect("/settings?chat=ok#chat")
+                except Exception as e:
+                    self._redirect("/settings?chat=error&msg=" + urllib.parse.quote(str(e)) + "#chat")
             elif path == "/login":
                 if not app.cfg.get("client_id"):
                     self._settings_error("Isi Client ID dulu")
@@ -170,6 +187,9 @@ def make_handler(app, port):
 
             if self.path.startswith("/api/lyrics/"):
                 self._lyrics_action(self.path[len("/api/lyrics/"):], body)
+                return
+            if self.path.startswith("/api/chat/"):
+                self._chat_action(self.path[len("/api/chat/"):], body)
                 return
             if self.path == "/api/config":
                 err = self._save_config(body)
@@ -225,6 +245,87 @@ def make_handler(app, port):
                 self._json({"error": f"Gagal menghubungi LRCLIB: {e}"}, 502)
                 return
             self._json(result)
+
+        def _chat_action(self, action, body):
+            """Pengaturan dan login bot chat."""
+            chat = app.chat
+            try:
+                if action == "config":
+                    err = self._save_chat(body)
+                    if err:
+                        raise ValueError(err)
+                elif action == "test":
+                    kind = chat.command_kind(str(body.get("text") or ""))
+                    self._json({"reply": chat.answer(kind, str(body.get("user") or "kamu")) if kind else None})
+                    return
+                elif action == "twitch/login":
+                    chat.twitch.begin_login()
+                elif action == "twitch/cancel":
+                    chat.twitch.cancel_login()
+                elif action == "twitch/logout":
+                    chat.twitch.logout()
+                elif action == "youtube/logout":
+                    chat.youtube.logout()
+                else:
+                    self._json({"error": "not found"}, 404)
+                    return
+            except ValueError as e:
+                self._json({"error": str(e)}, 400)
+                return
+            except Exception as e:  # Twitch/Google tidak bisa dihubungi
+                self._json({"error": str(e)}, 502)
+                return
+            self._json(chat.status())
+
+        def _save_chat(self, body):
+            cfg = app.cfg
+            cur = dict(cfg.get("chat") or {})
+            for key in ("song_cmd", "last_cmd"):
+                if key in body:
+                    cmd = str(body[key] or "").strip()
+                    if cmd and not CHAT_COMMAND.match(cmd):
+                        return "Perintah harus satu kata tanpa spasi, maksimal 30 karakter"
+                    cur[key] = cmd
+            for key in ("song_reply", "last_reply", "none_reply"):
+                if key in body:
+                    cur[key] = str(body[key] or "").strip()[:200]
+            if "cooldown" in body:
+                try:
+                    cur["cooldown"] = max(0, min(600, int(body["cooldown"])))
+                except (TypeError, ValueError):
+                    return "Cooldown harus angka"
+            if isinstance(body.get("twitch"), dict):
+                tw = {**(cur.get("twitch") or {})}
+                b = body["twitch"]
+                if "enabled" in b:
+                    tw["enabled"] = bool(b["enabled"])
+                if "client_id" in b:
+                    cid = str(b["client_id"] or "").strip()
+                    if cid and not (cid.isalnum() and len(cid) <= 64):
+                        return "Client ID Twitch tidak valid"
+                    if cid != tw.get("client_id", "") and cfg.get("twitch_auth"):
+                        cfg.update(twitch_auth=None)  # app Twitch beda -> login lama tidak berlaku
+                    tw["client_id"] = cid
+                cur["twitch"] = tw
+            if isinstance(body.get("youtube"), dict):
+                yt = {**(cur.get("youtube") or {})}
+                b = body["youtube"]
+                if "enabled" in b:
+                    yt["enabled"] = bool(b["enabled"])
+                if "client_id" in b:
+                    cid = str(b["client_id"] or "").strip()
+                    if cid and not re.match(r"^[\w.-]{10,200}$", cid):
+                        return "Client ID Google tidak valid"
+                    if cid != yt.get("client_id", "") and cfg.get("youtube_auth"):
+                        cfg.update(youtube_auth=None)
+                    yt["client_id"] = cid
+                if "client_secret" in b:
+                    cfg.update(youtube_client_secret=str(b["client_secret"] or "").strip()[:200] or None)
+                cur["youtube"] = yt
+            cfg.update(chat=cur)
+            app.chat.twitch.restart()
+            app.chat.youtube.restart()
+            return None
 
         def _save_config(self, body):
             cfg = app.cfg
@@ -285,6 +386,7 @@ class Server(ThreadingHTTPServer):
 def start_server(app, port):
     """Raise OSError kalau port sudah dipakai."""
     app.account.redirect_uri = f"http://127.0.0.1:{port}/callback"  # Spotify menolak "localhost"
+    app.chat.youtube.redirect_uri = f"http://127.0.0.1:{port}/youtube/callback"
     server = Server(("127.0.0.1", port), make_handler(app, port))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server

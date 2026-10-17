@@ -33,7 +33,8 @@ Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 - **Overlay now playing**: cover, judul, artis, dan progress bar, dengan 4 layout (baris, vertikal, minimal, vinyl). Bisa tampil terus atau hanya beberapa detik setiap ganti lagu, dan bisa punya beberapa gaya untuk scene berbeda
 - **Overlay lirik**: tampil seperti di Spotify, dengan latar mengikuti warna cover lagu. Liriknya dari [LRCLIB](https://lrclib.net), tersimpan di PC supaya tetap ada walaupun LRCLIB sedang down
 - **Bukan cuma Spotify**: opsional, bisa juga membaca YouTube Music, Apple Music, TIDAL, dan player lain di PC yang sama
-- **File teks dan cover** untuk OBS Text/Image source, plus URL teks untuk perintah `!song` di chatbot
+- **Chatbot bawaan**: penonton mengetik `!song` di chat Twitch atau YouTube, bot membalas judul lagunya
+- **File teks dan cover** untuk OBS Text/Image source
 - **Riwayat lagu** per hari, bisa di-download sebagai `.txt` untuk deskripsi VOD
 - **Berjalan di system tray**, tanpa jendela console. Pengaturan lewat browser, dalam bahasa Indonesia atau Inggris
 
@@ -177,13 +178,30 @@ Semua file ada di `Documents\Spotify Now Playing`. Tombol **Buka folder** ada di
 
 #### d. Perintah `!song` di chat (opsional)
 
-`http://127.0.0.1:8765/api/now.txt` berisi teks lagu yang sedang diputar, dengan format yang sama seperti `nowplaying.txt`. Formatnya bisa diganti lewat URL, misalnya `?format={title} oleh {artist}`.
+Buka tab **Chatbot** di halaman pengaturan. Bot membalas perintah di chat live, dan balasannya dikirim ke platform asal pesan, jadi bisa dipakai di Twitch dan YouTube sekaligus.
+
+| Perintah bawaan | Balasan |
+|---|---|
+| `!song` | `@penonton Sekarang diputar: Tulus - Pamit` |
+| `!lastsong` | lagu sebelumnya, dari riwayat |
+
+Perintah, balasan, dan cooldown bisa diubah, dan ada kolom **Coba** untuk melihat balasannya tanpa harus live.
+
+| Platform | Setup |
+|---|---|
+| **Twitch** | Sekali saja: buat aplikasi di [Twitch Developer Console](https://dev.twitch.tv/console/apps/create) (Category *Chat Bot*, Client Type *Public*), lalu tempel Client ID-nya. Setelah itu klik **Hubungkan Twitch** dan masukkan kode yang muncul di `twitch.tv/activate`. |
+| **YouTube** | Sekali saja: buat project di Google Cloud, aktifkan *YouTube Data API v3*, buat OAuth client tipe *Desktop app*, lalu tempel Client ID dan Client Secret-nya. Setelah itu klik **Login dengan Google**. Bot mulai membaca chat otomatis saat kamu live. Karena kuota API gratis terbatas, chat dibaca setiap 10 detik. Selama aplikasi Google masih berstatus *Testing*, login perlu diulang seminggu sekali. |
+| **TikTok** | Belum bisa. TikTok tidak menyediakan cara resmi bagi aplikasi untuk membaca atau membalas chat TikTok LIVE. Penonton TikTok tetap bisa melihat lagu lewat kartu Now Playing di layar. |
+
+Langkah lengkapnya ada di tab **Chatbot**.
+
+**Sudah pakai chatbot lain?** `http://127.0.0.1:8765/api/now.txt` berisi teks lagu yang sedang diputar, dengan format yang sama seperti `nowplaying.txt`. Formatnya bisa diganti lewat URL, misalnya `?format={title} oleh {artist}`.
 
 Pakai di chatbot yang berjalan di PC yang sama. Contoh di **Streamer.bot**: buat Command `!song`, tambahkan sub-action **Core → Network → Fetch URL** dengan URL di atas, lalu kirim hasilnya lewat **Twitch → Send Message**. Nightbot dan bot cloud lain tidak bisa memakainya, karena URL ini hanya bisa diakses dari PC-mu.
 
 ### Riwayat lagu
 
-Tab **Riwayat** mencatat setiap lagu yang diputar minimal 15 detik, lengkap dengan jamnya. Pilih tanggalnya, lalu klik **Salin** atau **Download .txt** untuk ditempel di deskripsi VOD:
+Tab **Riwayat** mencatat setiap lagu yang diputar minimal 15 detik, lengkap dengan jamnya. Lagu terbaru ada di atas, 10 lagu per halaman. Pilih tanggalnya, lalu klik **Salin** atau **Download .txt** untuk ditempel di deskripsi VOD:
 
 ```
 21:03  Tulus - Hati-Hati di Jalan
@@ -242,6 +260,9 @@ spotify_now_playing/
   local_media.py  Spotify / player lain lewat Windows Media Controls
   lyrics.py       lirik dari LRCLIB, cache di disk, perbaikan manual
   history.py      riwayat lagu per hari
+  chatbot.py      perintah chat (!song, !lastsong), cooldown, template balasan
+  chat_twitch.py  chat Twitch (IRC) dan login Device Code
+  chat_youtube.py chat live YouTube (Data API) dan login Google
   server.py       web server lokal dan API JSON
   updates.py      cek versi baru (opt-in)
   startup.py      jalankan saat Windows menyala
@@ -261,6 +282,7 @@ Aplikasi ini tidak mengirim data apa pun ke luar kecuali untuk fitur yang kamu p
 
 - **Lirik**: judul, artis, album, dan durasi lagu dikirim ke [LRCLIB](https://lrclib.net) untuk mencari liriknya.
 - **Mode Akun Spotify**: hanya kalau kamu mengisi Client ID dan login. Aplikasi lalu terhubung ke server Spotify untuk membaca lagu yang sedang diputar.
+- **Chatbot**: hanya kalau kamu menyalakannya dan login ke Twitch atau YouTube. Bot membaca chat channel-mu sendiri dan membalas perintah.
 - **Notifikasi versi baru**: mati secara default. Kalau dinyalakan di tab **Aplikasi**, aplikasi mengecek halaman rilis GitHub sehari sekali.
 
 Riwayat lagu hanya disimpan di PC ini. Tidak ada telemetri atau analitik. Font sudah disertakan di aplikasi, jadi overlay tidak memuat apa pun dari Google Fonts. Web server lokal hanya bisa diakses dari PC ini (`127.0.0.1`). Detail lengkapnya ada di [Code signing policy](docs/CODE_SIGNING_POLICY.md#privacy-policy).

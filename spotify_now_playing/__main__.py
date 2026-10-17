@@ -89,6 +89,8 @@ def main():
     if not args.no_browser and first_run:
         webbrowser.open(settings_url)
 
+    app.chat.start()
+
     try:
         from .tray import run_tray
     except ImportError:

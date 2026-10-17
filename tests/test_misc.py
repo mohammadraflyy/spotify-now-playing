@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from spotify_now_playing import local_media, lyrics, server, updates
+from spotify_now_playing.chatbot import ChatBot
 from spotify_now_playing.history import History
 
 
@@ -38,6 +39,11 @@ class PlayerNameTest(unittest.TestCase):
         self.assertEqual(local_media.player_name(None), "Player")
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
 class FakeConfig(dict):
     def update(self, **values):
         for k, v in values.items():
@@ -61,6 +67,7 @@ class ServerTest(unittest.TestCase):
             lyrics=lyrics.LyricsProvider(),
             updates=SimpleNamespace(available=None, status="off", check_now=lambda: None),
             history=History(cls.tmp.name), snapshot=lambda: dict(cls.now))
+        cls.app.chat = ChatBot(cls.app)
         cls.server = server.start_server(cls.app, cls.port)
 
     @classmethod
@@ -158,6 +165,40 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(cfg["lang"], "en")
         _, cfg = self.post("/api/config", {"lang": "xx"})
         self.assertEqual(cfg["lang"], "en")
+
+    def test_chat_config_and_test(self):
+        status, chat = self.post("/api/chat/config", {"song_cmd": "!lagu", "cooldown": 9,
+                                                       "twitch": {"client_id": "abc123"}})
+        self.assertEqual(status, 200)
+        self.assertEqual((chat["song_cmd"], chat["cooldown"], chat["twitch"]["client_id"]), ("!lagu", 9, "abc123"))
+        type(self).now = {"active": True, "title": "Judul", "artist": "Artis", "album": "A"}
+        _, r = self.post("/api/chat/test", {"text": "!lagu", "user": "ani"})
+        self.assertIn("Artis - Judul", r["reply"])
+        _, r = self.post("/api/chat/test", {"text": "halo"})
+        self.assertIsNone(r["reply"])
+        self.post("/api/chat/config", {"song_cmd": "!song"})
+
+    def test_chat_config_validation(self):
+        for body in ({"song_cmd": "dua kata"}, {"cooldown": "x"}, {"twitch": {"client_id": "a b"}},
+                     {"youtube": {"client_id": "<script>"}}):
+            status, _ = self.post("/api/chat/config", body)
+            self.assertEqual(status, 400, body)
+
+    def test_chat_secrets_not_exposed(self):
+        self.post("/api/chat/config", {"youtube": {"client_id": "abc.apps.googleusercontent.com",
+                                                   "client_secret": "rahasia1234"}})
+        body = self.get("/api/chat")[2].decode()
+        self.assertNotIn("rahasia1234", body)
+        self.assertIn("1234", body)  # hanya 4 karakter terakhir sebagai petunjuk
+
+    def test_youtube_login_without_credentials_redirects_back(self):
+        self.app.cfg.pop("youtube_client_secret", None)
+        opener = urllib.request.build_opener(NoRedirect)
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            opener.open(self.url("/youtube/login"), timeout=5)
+        self.assertEqual(ctx.exception.code, 302)
+        self.assertTrue(ctx.exception.headers["Location"].startswith("/settings?chat=error"))
+        ctx.exception.close()
 
     def test_second_server_on_same_port_fails(self):
         # dipakai untuk deteksi "aplikasi sudah berjalan"

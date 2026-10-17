@@ -163,6 +163,18 @@
   .history .h-time { font: 12px ui-monospace, Consolas, monospace; color: var(--dim); flex: 0 0 auto; }
   .history .h-song { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .history .h-player { color: var(--dim); font-size: 12px; flex: 0 0 auto; }
+  /* ---------- chatbot ---------- */
+  .platforms { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+  .platforms .panel { margin: 0; }
+  .p-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  .p-head h3 { margin: 0; }
+  .p-status { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 14px; font-size: 13px; }
+  .p-status .dot { margin-top: 6px; }
+  .code { font: 700 22px ui-monospace, Consolas, monospace; letter-spacing: .12em; color: var(--fg); }
+  .cmd-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 8px; }
+  @media (max-width: 560px) { .cmd-row { grid-template-columns: minmax(0, 1fr); } }
+  .pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
+  .pager button:disabled { opacity: .4; cursor: default; }
   .lang { background: var(--panel2); border: 1px solid var(--line); color: var(--muted); border-radius: 99px; padding: 4px 8px; font: 600 12px Inter, sans-serif; width: auto; }
 
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(90px); background: var(--fg); color: var(--bg);
@@ -215,6 +227,7 @@
       <button data-tab="lyrics"><svg class="i"><use href="#i-mic"/></svg>Lirik</button>
       <button data-tab="source"><svg class="i"><use href="#i-plug"/></svg>Sumber Musik</button>
       <button data-tab="files"><svg class="i"><use href="#i-file"/></svg>File Teks</button>
+      <button data-tab="chat"><svg class="i"><use href="#i-message"/></svg>Chatbot</button>
       <button data-tab="history"><svg class="i"><use href="#i-history"/></svg>Riwayat</button>
       <button data-tab="app"><svg class="i"><use href="#i-settings"/></svg>Aplikasi</button>
     </nav>
@@ -583,8 +596,102 @@
       <label class="check"><input type="checkbox" id="t-hide"> Kosongkan teks saat lagu di-pause</label>
     </div>
 
+  </section>
+
+  <!-- ======================= CHATBOT ======================= -->
+  <section class="page" id="page-chat">
+    <h2 class="page-title">Chatbot</h2>
+    <p class="page-sub">Bot membalas perintah di chat live kamu. Misalnya penonton mengetik <code>!song</code>, lalu bot membalas judul lagu yang sedang diputar. Balasan dikirim ke platform asal pesan, jadi bisa dipakai di Twitch dan YouTube sekaligus.</p>
+
     <div class="panel">
-      <h3><svg class="i"><use href="#i-message"/></svg> Perintah !song untuk chatbot</h3>
+      <h3>Perintah</h3>
+      <div class="field">
+        <span class="label">Lagu yang sedang diputar</span>
+        <div class="cmd-row"><input type="text" class="mono" id="c-song-cmd" spellcheck="false"><input type="text" id="c-song-reply" spellcheck="false"></div>
+      </div>
+      <div class="field">
+        <span class="label">Lagu sebelumnya</span>
+        <div class="cmd-row"><input type="text" class="mono" id="c-last-cmd" spellcheck="false"><input type="text" id="c-last-reply" spellcheck="false"></div>
+      </div>
+      <div class="field">
+        <span class="label">Balasan saat tidak ada lagu</span>
+        <input type="text" id="c-none-reply" spellcheck="false">
+      </div>
+      <p class="muted small" style="margin:-6px 0 14px">Bisa pakai <code>{user}</code> <code>{title}</code> <code>{artist}</code> <code>{album}</code>. Kosongkan perintah untuk mematikannya, kosongkan balasan untuk memakai balasan bawaan.</p>
+      <div class="slider"><span>Cooldown</span><input type="range" id="c-cooldown" min="0" max="60" step="1"><span class="numwrap"><input type="number" class="num" id="c-cooldown-v" data-range="c-cooldown">detik</span></div>
+      <p class="muted small" style="margin:-4px 0 14px">Jeda minimal sebelum perintah yang sama dibalas lagi, supaya bot tidak spam.</p>
+      <div class="row" style="flex-wrap:wrap">
+        <button class="primary" id="c-save">Simpan</button>
+        <input type="text" id="c-test" placeholder="Coba ketik !song" style="max-width:220px" spellcheck="false">
+        <button id="c-test-go">Coba</button>
+      </div>
+      <p class="small" id="c-test-out" style="margin:10px 0 0"></p>
+    </div>
+
+    <div class="platforms">
+      <div class="panel" id="tw-box">
+        <div class="p-head"><h3>Twitch</h3><label class="check" style="padding:0"><input type="checkbox" id="tw-enabled"> Aktif</label></div>
+        <div class="p-status"><span class="dot" id="tw-dot"></span><span id="tw-status"></span></div>
+        <div class="banner info" id="tw-device" hidden style="flex-direction:column;align-items:flex-start">
+          <span>Buka <a id="tw-device-link" target="_blank" rel="noopener">twitch.tv/activate</a> lalu masukkan kode ini:</span>
+          <span class="code" id="tw-code"></span>
+          <button class="sm ghost" id="tw-cancel">Batal</button>
+        </div>
+        <div class="row">
+          <button class="primary" id="tw-login">Hubungkan Twitch</button>
+          <button class="danger" id="tw-logout" hidden>Putuskan</button>
+        </div>
+        <details id="tw-setup" style="margin-top:14px">
+          <summary>Client ID Twitch (cukup sekali)</summary>
+          <ol class="how">
+            <li>Buka <a href="https://dev.twitch.tv/console/apps/create" target="_blank" rel="noopener">Twitch Developer Console</a>. Akun Twitch perlu mengaktifkan 2FA.</li>
+            <li>Isi nama bebas. Di <b>OAuth Redirect URLs</b> isi <code>http://localhost</code>, <b>Category</b> pilih <b>Chat Bot</b>, dan <b>Client Type</b> pilih <b>Public</b>.</li>
+            <li>Klik <b>Create</b>, lalu <b>Manage</b>, dan salin <b>Client ID</b> ke kolom di bawah.</li>
+          </ol>
+          <div class="row" style="margin-top:12px">
+            <input type="text" class="mono" id="tw-cid" placeholder="Client ID Twitch" autocomplete="off" spellcheck="false">
+            <button class="primary" id="tw-cid-save">Simpan</button>
+          </div>
+        </details>
+      </div>
+
+      <div class="panel" id="yt-box">
+        <div class="p-head"><h3>YouTube</h3><label class="check" style="padding:0"><input type="checkbox" id="yt-enabled"> Aktif</label></div>
+        <div class="p-status"><span class="dot" id="yt-dot"></span><span id="yt-status"></span></div>
+        <div class="row">
+          <a class="btn primary" id="yt-login" href="/youtube/login">Login dengan Google</a>
+          <button class="danger" id="yt-logout" hidden>Logout</button>
+        </div>
+        <p class="muted small" style="margin:12px 0 0">Bot membaca chat setiap 10 detik karena kuota gratis YouTube API terbatas, jadi balasannya bisa sedikit telat.</p>
+        <details id="yt-setup" style="margin-top:14px">
+          <summary>Client ID Google (cukup sekali)</summary>
+          <ol class="how">
+            <li>Buka <a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener">Google Cloud Console</a> dan buat project baru.</li>
+            <li>Di <b>APIs &amp; Services → Library</b>, cari dan aktifkan <b>YouTube Data API v3</b>.</li>
+            <li>Di <b>OAuth consent screen</b>, pilih <b>External</b>, isi nama aplikasi dan email, lalu tambahkan email akun YouTube kamu di <b>Test users</b>.</li>
+            <li>Di <b>Credentials → Create credentials → OAuth client ID</b>, pilih <b>Desktop app</b>, lalu salin <b>Client ID</b> dan <b>Client Secret</b> ke bawah.</li>
+          </ol>
+          <div class="field" style="margin-top:12px">
+            <input type="text" class="mono" id="yt-cid" placeholder="Client ID Google" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field">
+            <input type="password" class="mono" id="yt-secret" placeholder="Client Secret Google" autocomplete="off" spellcheck="false">
+            <div class="muted small" id="yt-secret-saved" style="margin-top:6px"></div>
+          </div>
+          <button class="primary" id="yt-save">Simpan</button>
+          <p class="muted small" style="margin:12px 0 0">Selama aplikasi Google kamu masih berstatus <b>Testing</b>, Google membatalkan login setelah 7 hari, jadi perlu login ulang seminggu sekali.</p>
+        </details>
+      </div>
+
+      <div class="panel">
+        <div class="p-head"><h3>TikTok</h3></div>
+        <p class="muted" style="margin:0">TikTok belum menyediakan cara resmi bagi aplikasi untuk membaca atau membalas chat TikTok LIVE, jadi bot belum bisa dipakai di sana. Penonton TikTok tetap bisa melihat lagu yang sedang diputar lewat kartu Now Playing di layar.</p>
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+    <div class="panel">
+      <h3>Sudah pakai chatbot lain?</h3>
       <p class="muted small" style="margin:-4px 0 12px">URL ini berisi teks lagu yang sedang diputar, dengan format yang sama seperti <code>nowplaying.txt</code>. Pakai di chatbot yang berjalan di PC ini, seperti Streamer.bot atau Mix It Up.</p>
       <div class="row">
         <input type="text" class="mono" id="now-txt-url" readonly>
@@ -595,6 +702,7 @@
         <li>Format bisa diganti lewat URL, misalnya <code>?format=Sekarang: {title} oleh {artist}</code>.</li>
         <li>Nightbot dan bot cloud lain <b>tidak bisa</b> memakai URL ini, karena hanya bisa diakses dari PC ini.</li>
       </ol>
+    </div>
     </div>
   </section>
 
@@ -610,6 +718,11 @@
         <button class="danger" id="h-clear"><svg class="i"><use href="#i-trash"/></svg> Hapus</button>
       </div>
       <div class="history" id="h-list"></div>
+      <div class="pager" id="h-pager" hidden>
+        <button class="sm" id="h-prev">‹ Sebelumnya</button>
+        <span class="muted small" id="h-page"></span>
+        <button class="sm" id="h-next">Berikutnya ›</button>
+      </div>
     </div>
   </section>
 
@@ -682,6 +795,7 @@ function showTab(name) {
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
   if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
   if (name === "history") loadHistory(historyDate);
+  if (name === "chat") loadChat();
   requestAnimationFrame(fitPreviews);
 }
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
@@ -1074,6 +1188,104 @@ $("app-updates").addEventListener("change", async () => {
     toast("Tersimpan");
   } catch (e) { toast(e.message, true); }
 });
+// ---------------------------------------------------------- chatbot --
+
+let chat = null, chatLoaded = false;
+function fillChat(c) {
+  $("c-song-cmd").value = c.song_cmd; $("c-last-cmd").value = c.last_cmd;
+  $("c-song-reply").value = c.song_reply; $("c-last-reply").value = c.last_reply; $("c-none-reply").value = c.none_reply;
+  $("c-song-reply").placeholder = c.default_replies.song;
+  $("c-last-reply").placeholder = c.default_replies.last;
+  $("c-none-reply").placeholder = c.default_replies.none;
+  $("c-cooldown").value = c.cooldown; setNum("c-cooldown-v", c.cooldown);
+  $("tw-cid").value = c.twitch.client_id;
+  $("yt-cid").value = c.youtube.client_id;
+}
+function renderChat(c) {
+  chat = c;
+  if (!chatLoaded) { chatLoaded = true; fillChat(c); }
+  const tw = c.twitch, yt = c.youtube;
+
+  $("tw-enabled").checked = tw.enabled;
+  const twText = {
+    off: t("Mati. Centang Aktif untuk menyalakan bot di Twitch."),
+    login: tw.client_id || tw.builtin_client ? t("Belum terhubung. Klik Hubungkan Twitch.") : t("Isi Client ID Twitch dulu (lihat langkah di bawah)."),
+    connecting: t("Menyambung ke chat Twitch…"),
+    connected: t("Aktif di chat #{login}", { login: tw.login }),
+    error: t(tw.error),
+  }[tw.state] || "";
+  $("tw-status").textContent = tw.state !== "error" && tw.error ? t(tw.error) : twText;
+  $("tw-dot").className = "dot " + ({ connected: "ok", error: "err", connecting: "warn" }[tw.state] || (tw.error ? "warn" : ""));
+  $("tw-device").hidden = !tw.device;
+  if (tw.device) {
+    $("tw-code").textContent = tw.device.user_code;
+    $("tw-device-link").href = tw.device.verification_uri;
+  }
+  $("tw-login").hidden = !!tw.login || !!tw.device;
+  $("tw-logout").hidden = !tw.login;
+  if (!tw.client_id && !tw.builtin_client && !$("tw-setup").dataset.auto) { $("tw-setup").open = true; $("tw-setup").dataset.auto = "1"; }
+
+  $("yt-enabled").checked = yt.enabled;
+  const ytText = {
+    off: t("Mati. Centang Aktif untuk menyalakan bot di YouTube."),
+    login: yt.client_id && yt.has_secret ? t("Belum login. Klik Login dengan Google.") : t("Isi Client ID dan Client Secret Google dulu (lihat langkah di bawah)."),
+    waiting: t("Login sebagai {channel}. Menunggu kamu mulai live…", { channel: yt.channel || "YouTube" }),
+    connected: t("Membaca chat live: {title}", { title: yt.live_title }),
+    error: t(yt.error),
+  }[yt.state] || "";
+  $("yt-status").textContent = yt.state !== "error" && yt.error ? t(yt.error) : ytText;
+  $("yt-dot").className = "dot " + ({ connected: "ok", waiting: "warn", error: "err" }[yt.state] || (yt.error ? "warn" : ""));
+  $("yt-login").hidden = !!yt.channel || yt.state === "waiting" || yt.state === "connected";
+  $("yt-logout").hidden = $("yt-login").hidden === false;
+  $("yt-secret-saved").textContent = yt.has_secret ? t("Secret tersimpan: {hint}", { hint: yt.secret_hint }) : "";
+  if (!(yt.client_id && yt.has_secret) && !$("yt-setup").dataset.auto) { $("yt-setup").open = true; $("yt-setup").dataset.auto = "1"; }
+}
+async function loadChat() {
+  try { renderChat(await api("/api/chat")); } catch {}
+}
+async function chatAction(path, body, msg) {
+  try { renderChat(await api("/api/chat/" + path, body || {})); if (msg) toast(msg); return true; }
+  catch (e) { toast(e.message, true); return false; }
+}
+$("c-cooldown").addEventListener("input", () => setNum("c-cooldown-v", $("c-cooldown").value));
+$("c-save").onclick = () => chatAction("config", {
+  song_cmd: $("c-song-cmd").value, last_cmd: $("c-last-cmd").value,
+  song_reply: $("c-song-reply").value, last_reply: $("c-last-reply").value, none_reply: $("c-none-reply").value,
+  cooldown: +$("c-cooldown").value,
+}, "Tersimpan");
+async function testCommand() {
+  const text = $("c-test").value.trim() || chat?.song_cmd || "!song";
+  try {
+    const r = await api("/api/chat/test", { text, user: LANG === "en" ? "you" : "kamu" });
+    $("c-test-out").innerHTML = "";
+    const b = document.createElement("b");
+    b.textContent = r.reply ? t("Balasan bot:") + " " : "";
+    $("c-test-out").append(b, r.reply || t("Bukan perintah. Simpan dulu kalau baru mengubah perintah."));
+  } catch (e) { toast(e.message, true); }
+}
+$("c-test-go").onclick = testCommand;
+$("c-test").addEventListener("keydown", e => { if (e.key === "Enter") testCommand(); });
+$("tw-enabled").onchange = () => chatAction("config", { twitch: { enabled: $("tw-enabled").checked } });
+$("yt-enabled").onchange = () => chatAction("config", { youtube: { enabled: $("yt-enabled").checked } });
+$("tw-login").onclick = async () => {
+  if (!$("tw-enabled").checked) await chatAction("config", { twitch: { enabled: true } });
+  if (await chatAction("twitch/login")) window.open(chat.twitch.device.verification_uri, "_blank", "noopener");
+};
+$("tw-cancel").onclick = () => chatAction("twitch/cancel");
+$("tw-logout").onclick = () => chatAction("twitch/logout", {}, "Twitch diputuskan");
+$("tw-cid-save").onclick = () => chatAction("config", { twitch: { client_id: $("tw-cid").value } }, "Tersimpan");
+$("yt-login").addEventListener("click", async e => {
+  e.preventDefault();
+  if (!$("yt-enabled").checked) await chatAction("config", { youtube: { enabled: true } });
+  location.href = "/youtube/login";
+});
+$("yt-logout").onclick = () => chatAction("youtube/logout", {}, "Logout YouTube berhasil");
+$("yt-save").onclick = async () => {
+  const body = { client_id: $("yt-cid").value };
+  if ($("yt-secret").value.trim()) body.client_secret = $("yt-secret").value.trim();
+  if (await chatAction("config", { youtube: body }, "Tersimpan")) $("yt-secret").value = "";
+};
+
 // ---------------------------------------------------------- riwayat --
 
 let historyDate = "";
@@ -1095,28 +1307,45 @@ async function loadHistory(date) {
     sel.hidden = !h.dates.length;
     ["h-copy", "h-download", "h-clear"].forEach(id => $(id).hidden = !h.entries.length);
     $("h-download").href = "/api/history.txt?date=" + h.date;
-    const list = $("h-list");
-    list.innerHTML = "";
-    if (!h.entries.length) list.innerHTML = `<p class="muted">${t("Belum ada lagu di riwayat. Putar lagu minimal 15 detik, lalu buka tab ini lagi.")}</p>`;
-    for (const e of h.entries) {
-      const row = document.createElement("div");
-      row.className = "h-row";
-      const time = document.createElement("span");
-      time.className = "h-time";
-      time.textContent = new Date(e.time * 1000).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }).replace(".", ":");
-      const song = document.createElement("span");
-      song.className = "h-song";
-      song.innerHTML = "<b></b> <span class='muted'></span>";
-      song.children[0].textContent = e.title;
-      song.children[1].textContent = "— " + e.artist;
-      const player = document.createElement("span");
-      player.className = "h-player";
-      player.textContent = e.player || "";
-      row.append(time, song, player);
-      list.appendChild(row);
-    }
+    if (historyDate !== historyShown) { historyPage = 0; historyShown = historyDate; }
+    historyEntries = h.entries.slice().reverse();   // terbaru di atas
+    renderHistoryPage();
   } catch (e) { toast(t(e.message), true); }
 }
+
+const HISTORY_PAGE = 10;
+let historyEntries = [], historyPage = 0, historyShown = "";
+function renderHistoryPage() {
+  const list = $("h-list");
+  list.innerHTML = "";
+  const pages = Math.max(1, Math.ceil(historyEntries.length / HISTORY_PAGE));
+  historyPage = Math.min(historyPage, pages - 1);
+  $("h-pager").hidden = pages <= 1;
+  $("h-page").textContent = t("Halaman {page} dari {pages}", { page: historyPage + 1, pages }) +
+    " · " + t("{n} lagu", { n: historyEntries.length });
+  $("h-prev").disabled = historyPage === 0;
+  $("h-next").disabled = historyPage >= pages - 1;
+  if (!historyEntries.length) list.innerHTML = `<p class="muted">${t("Belum ada lagu di riwayat. Putar lagu minimal 15 detik, lalu buka tab ini lagi.")}</p>`;
+  for (const e of historyEntries.slice(historyPage * HISTORY_PAGE, (historyPage + 1) * HISTORY_PAGE)) {
+    const row = document.createElement("div");
+    row.className = "h-row";
+    const time = document.createElement("span");
+    time.className = "h-time";
+    time.textContent = new Date(e.time * 1000).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }).replace(".", ":");
+    const song = document.createElement("span");
+    song.className = "h-song";
+    song.innerHTML = "<b></b> <span class='muted'></span>";
+    song.children[0].textContent = e.title;
+    song.children[1].textContent = "— " + e.artist;
+    const player = document.createElement("span");
+    player.className = "h-player";
+    player.textContent = e.player || "";
+    row.append(time, song, player);
+    list.appendChild(row);
+  }
+}
+$("h-prev").onclick = () => { historyPage--; renderHistoryPage(); };
+$("h-next").onclick = () => { historyPage++; renderHistoryPage(); };
 $("h-date").onchange = () => loadHistory($("h-date").value);
 $("h-copy").onclick = async () => {
   const text = await (await fetch("/api/history.txt?inline=1&date=" + historyDate)).text();
@@ -1246,6 +1475,7 @@ async function refresh() {
     renderConfig(c);
     renderStatus(c, now);
     renderLyricsStatus(ly);
+    if ($("page-chat").classList.contains("active")) loadChat();
   } catch {
     $("pill-dot").className = "dot err";
     $("pill-text").textContent = t("Aplikasi tidak berjalan");
@@ -1255,7 +1485,9 @@ async function refresh() {
 const qs = new URLSearchParams(location.search);
 if (qs.get("login") === "ok") { setTimeout(() => toast("Login berhasil"), 300); location.hash = "source"; }
 if (qs.get("login") === "error") { setTimeout(() => toast(t("Login gagal: {msg}", { msg: qs.get("msg") || "" }), true), 300); location.hash = "source"; }
-if (qs.has("login")) history.replaceState(null, "", "/settings" + location.hash);
+if (qs.get("chat") === "ok") setTimeout(() => toast("Login YouTube berhasil"), 300);
+if (qs.get("chat") === "error") setTimeout(() => toast(t("Login YouTube gagal: {msg}", { msg: t(qs.get("msg") || "") }), true), 300);
+if (qs.has("login") || qs.has("chat")) history.replaceState(null, "", "/settings" + location.hash);
 
 showTab(location.hash.slice(1) || "home");
 refresh();

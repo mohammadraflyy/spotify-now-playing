@@ -4,6 +4,22 @@
 
 Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 
+![Contoh scene OBS dengan overlay now playing dan lirik](docs/screenshots/hero.png)
+
+## Screenshot
+
+| Kartu Now Playing | Lirik: latar warna lagu |
+|---|---|
+| ![Overlay now playing](docs/screenshots/overlay.png) | ![Overlay lirik dengan latar warna cover](docs/screenshots/lyrics.png) |
+
+**Lirik mode satu baris**
+
+![Overlay lirik satu baris](docs/screenshots/lyrics-single.png)
+
+**Halaman pengaturan** (`http://127.0.0.1:8765/settings`)
+
+![Halaman pengaturan](docs/screenshots/settings.png)
+
 - **Overlay now playing**: cover, judul, artis, dan progress bar
 - **Overlay lirik**: tampil seperti di Spotify, dengan latar mengikuti warna cover lagu. Liriknya dari [LRCLIB](https://lrclib.net)
 - **File teks dan cover** untuk OBS Text/Image source

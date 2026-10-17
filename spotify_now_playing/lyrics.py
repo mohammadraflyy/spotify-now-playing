@@ -213,6 +213,7 @@ class LyricsProvider:
 
     def __init__(self, cache_dir=None):
         self.lock = threading.Lock()
+        self.disk_lock = threading.Lock()  # urutan tulis ke disk, terpisah dari self.lock
         self.memory = {}
         self.disk = LyricsCache(cache_dir)
         self.rev = 0
@@ -223,6 +224,17 @@ class LyricsProvider:
         """Ganti lirik yang sedang aktif (panggil sambil memegang self.lock)."""
         self.rev += 1
         self.current = {**EMPTY, **values, "rev": self.rev}
+
+    def _persist(self, ckey, entry):
+        """Tulis ke disk hanya kalau entry ini masih yang terbaru di memori.
+
+        Tanpa ini, tulisan lama dari thread pencarian bisa selesai belakangan dan menimpa
+        pilihan yang lebih baru (mis. offset yang baru saja diatur user)."""
+        with self.disk_lock:
+            with self.lock:
+                if self.memory.get(ckey) is not entry:
+                    return
+            self.disk.save(ckey, entry)
 
     def _remember(self, ckey, entry):
         """Simpan ke memori (panggil sambil memegang self.lock); tulis ke disk sesudahnya."""
@@ -279,7 +291,7 @@ class LyricsProvider:
                     return
                 entry = self._remember(ckey, result)
                 self._set(key=key, ckey=ckey, track=track, **_public(entry))
-            self.disk.save(ckey, entry)
+            self._persist(ckey, entry)
             return
 
     # ---------------------------------------------------- perbaikan manual --
@@ -301,7 +313,7 @@ class LyricsProvider:
             entry = self._remember(cur["ckey"], {**result, "offset": cur.get("offset", 0.0)})
             self._set(key=cur["key"], ckey=cur["ckey"], track=cur["track"], **_public(entry))
             snapshot = dict(self.current)
-        self.disk.save(cur["ckey"], entry)
+        self._persist(cur["ckey"], entry)
         return snapshot
 
     def use_lrclib(self, lrclib_id, ckey=None):
@@ -329,7 +341,7 @@ class LyricsProvider:
             entry = self._remember(cur["ckey"], {**entry, "offset": offset})
             self._set(key=cur["key"], ckey=cur["ckey"], track=cur["track"], **_public(entry))
             snapshot = dict(self.current)
-        self.disk.save(cur["ckey"], entry)
+        self._persist(cur["ckey"], entry)
         return snapshot
 
     def reset(self, ckey=None):

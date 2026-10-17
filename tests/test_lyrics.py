@@ -152,6 +152,26 @@ class ProviderTest(unittest.TestCase):
         p2.track_changed("k1", "Judul", "Artis", "Album", 200)
         self.assertEqual(p2.get()["offset"], 1.5)
 
+    def test_slow_disk_write_does_not_overwrite_newer_offset(self):
+        # tulisan pertama (dari thread pencarian) lambat; offset diatur selagi tulisan itu berjalan
+        real_save = lyrics.LyricsCache.save
+        calls = []
+
+        def slow_save(cache, ckey, entry):
+            calls.append(entry.get("offset"))
+            if len(calls) == 1:
+                time.sleep(0.3)
+            real_save(cache, ckey, entry)
+
+        with mock.patch.object(lyrics.LyricsCache, "save", slow_save):
+            p = self.provider()
+            self.play(p)
+            p.set_offset(1.5)
+            time.sleep(0.5)
+        p2 = self.provider()
+        p2.track_changed("k1", "Judul", "Artis", "Album", 200)
+        self.assertEqual(p2.get()["offset"], 1.5)
+
     def test_offset_is_clamped(self):
         p = self.provider()
         self.play(p)

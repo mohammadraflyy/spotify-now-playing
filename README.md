@@ -1,6 +1,6 @@
 # Spotify Now Playing untuk OBS
 
-**[Download installer (Windows)](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)**
+**[Download installer (Windows)](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** · [Code signing policy](docs/CODE_SIGNING_POLICY.md) · [Privasi](#privasi)
 
 Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 
@@ -198,3 +198,29 @@ spotify_now_playing/
 installer.iss     script Inno Setup
 build.ps1         build PyInstaller dan installer
 ```
+
+---
+
+## Privasi
+
+Aplikasi ini tidak mengirim data apa pun ke luar kecuali untuk fitur yang kamu pakai:
+
+- **Lirik**: judul, artis, album, dan durasi lagu dikirim ke [LRCLIB](https://lrclib.net) untuk mencari liriknya.
+- **Mode Akun Spotify**: hanya kalau kamu mengisi Client ID dan login. Aplikasi lalu terhubung ke server Spotify untuk membaca lagu yang sedang diputar.
+
+Tidak ada telemetri, analitik, atau pengecekan update otomatis. Web server lokal hanya bisa diakses dari PC ini (`127.0.0.1`). Detail lengkapnya ada di [Code signing policy](docs/CODE_SIGNING_POLICY.md#privacy-policy).
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+Installer dibuild otomatis oleh GitHub Actions dari source di repo ini, dan setiap rilis disetujui manual sebelum ditandatangani. Penjelasan proses build, peran tim, dan kebijakan privasi ada di **[docs/CODE_SIGNING_POLICY.md](docs/CODE_SIGNING_POLICY.md)**.
+
+| Peran | Anggota |
+|---|---|
+| Committer dan reviewer | [mohammadraflyy](https://github.com/mohammadraflyy) |
+| Approver | [mohammadraflyy](https://github.com/mohammadraflyy) |
+
+## Lisensi
+
+[MIT](LICENSE)

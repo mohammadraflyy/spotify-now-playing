@@ -1,0 +1,40 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+
+      - name: Build exe and installer
+        shell: pwsh
+        run: ./build.ps1
+
+      - name: Upload installer
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpotifyNowPlaying-Setup
+          path: dist/SpotifyNowPlaying-Setup-*.exe
+          if-no-files-found: error

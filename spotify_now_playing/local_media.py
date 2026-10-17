@@ -38,6 +38,20 @@ def is_spotify(session):
     return "spotify" in (session.source_app_user_model_id or "").lower()
 
 
+AD_NAMES = {"advertisement", "spotify", "iklan"}
+
+
+def looks_like_ad(title, artist, album):
+    """Spotify Desktop tidak memberi tanda iklan: iklan muncul tanpa artis, atau berjudul "Advertisement"."""
+    title, artist = (title or "").strip().lower(), (artist or "").strip().lower()
+    return not artist or title in AD_NAMES or (artist in AD_NAMES and not album)
+
+
+def ad_info(playing, device):
+    return {"id": "ad", "ad": True, "title": "", "artist": "", "album": "", "cover": lambda: b"",
+            "duration": 0.0, "position": 0.0, "playing": playing, "device": device}
+
+
 class LocalSpotify:
     def __init__(self, all_players=lambda: False):
         self._loop = asyncio.new_event_loop()
@@ -65,10 +79,14 @@ class LocalSpotify:
             if p.title:
                 session, props = s, p
                 break
+            if is_spotify(s) and status[id(s)] == PlaybackStatus.PLAYING:
+                return ad_info(True, "Spotify")  # Spotify berbunyi tanpa judul: iklan
         if session is None:
             return None
 
         playing = status[id(session)] == PlaybackStatus.PLAYING
+        if is_spotify(session) and looks_like_ad(props.title, props.artist, props.album_title):
+            return ad_info(playing, "Spotify")
         tl = session.get_timeline_properties()
         duration = (tl.end_time - tl.start_time).total_seconds()
         position = tl.position.total_seconds()

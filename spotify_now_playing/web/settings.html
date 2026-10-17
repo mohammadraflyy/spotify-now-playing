@@ -528,6 +528,26 @@
       <p class="muted" style="margin:6px 0 0">Mode ini tidak butuh pengaturan apa pun. Pastikan saja Spotify Desktop terbuka dan sedang memutar lagu.</p>
     </div>
 
+    <div class="panel" id="ads-box">
+      <h3>Saat iklan Spotify</h3>
+      <p class="muted small" style="margin:-6px 0 12px">Untuk Spotify Free. Iklan tetap diputar sampai selesai, tidak di-skip. Overlay menampilkan teks di bawah, lirik disembunyikan, dan iklan tidak masuk riwayat.</p>
+      <div class="field">
+        <span class="label">Suara Spotify selama iklan</span>
+        <div class="seg">
+          <label><input type="radio" name="ads-mode" value="mute">Bisukan</label>
+          <label><input type="radio" name="ads-mode" value="quiet">Kecilkan</label>
+          <label><input type="radio" name="ads-mode" value="off">Biarkan</label>
+        </div>
+        <p class="muted small" id="ads-note" style="margin:8px 0 0"></p>
+      </div>
+      <div class="slider" id="ads-volume-wrap"><span>Volume</span><input type="range" id="ads-volume" min="0" max="50" step="1"><span class="numwrap"><input type="number" class="num" id="ads-volume-v" data-range="ads-volume">%</span></div>
+      <div class="field" style="margin-top:12px">
+        <span class="label">Teks di overlay</span>
+        <input type="text" id="ads-text" maxlength="60" style="max-width:320px">
+      </div>
+      <button class="primary" id="ads-save">Simpan</button>
+    </div>
+
     <div id="account-box" hidden>
       <div class="panel">
         <h3>Status akun</h3>
@@ -1191,6 +1211,31 @@ document.querySelectorAll('input[name="source"]').forEach(r => r.addEventListene
   try { renderConfig(await api("/api/config", { source: r.value })); toast("Sumber musik diubah"); }
   catch (e) { toast(e.message, true); }
 }));
+function renderAds(c) {
+  const a = c.ads || {};
+  const mode = ["mute", "quiet", "off"].includes(a.mode) ? a.mode : "mute";
+  document.querySelector(`input[name=ads-mode][value=${mode}]`).checked = true;
+  $("ads-volume").value = $("ads-volume-v").value = a.volume ?? 10;
+  $("ads-text").value = a.text || "";
+  $("ads-text").placeholder = c.ad_text_default;
+  updateAdsNote(a.mute_pauses);
+}
+function updateAdsNote(mutePauses) {
+  const mode = document.querySelector("input[name=ads-mode]:checked")?.value;
+  $("ads-volume-wrap").hidden = mode === "off" || (mode === "mute" && !mutePauses);
+  $("ads-note").textContent = mode === "mute"
+    ? (mutePauses ? t("Spotify menjeda iklan yang dibisukan, jadi suaranya dikecilkan ke volume di bawah. Simpan lagi untuk mencoba membisukan.")
+                  : t("Kalau Spotify menjeda iklan yang dibisukan, aplikasi otomatis beralih ke mengecilkan suara."))
+    : mode === "quiet" ? t("Volume Spotify dikecilkan selama iklan, lalu dikembalikan seperti semula.") : "";
+}
+document.querySelectorAll("input[name=ads-mode]").forEach(r => r.addEventListener("change", () => updateAdsNote(false)));
+$("ads-save").onclick = async () => {
+  const ads = { mode: document.querySelector("input[name=ads-mode]:checked").value,
+                volume: +$("ads-volume").value, text: $("ads-text").value.trim() };
+  try { const c = await api("/api/config", { ads }); renderConfig(c); renderAds(c); toast("Tersimpan"); }
+  catch (e) { toast(e.message, true); }
+};
+
 $("players-all").addEventListener("change", async () => {
   try { renderConfig(await api("/api/config", { players: $("players-all").checked ? "all" : "spotify" })); toast("Tersimpan"); }
   catch (e) { toast(e.message, true); }
@@ -1535,6 +1580,7 @@ function renderConfig(c) {
     loadLyrics(c.lyrics || {});
     $("card-frame").src = "/overlay?preview=1";
     $("ly-frame").src = "/lyrics";
+    renderAds(c);
     $("t-format").value = (c.text || {}).format || "";
     $("t-hide").checked = !!(c.text || {}).hide_paused;
     updateCard(false);
@@ -1546,6 +1592,7 @@ function renderConfig(c) {
   $("account-box").hidden = c.source === "local";
   $("players-box").hidden = c.source === "account" || !c.local_available;
   $("players-all").checked = c.players === "all";
+  $("ads-box").hidden = !c.audio_available;
 
   $("app-startup").checked = c.startup.enabled;
   $("app-startup").disabled = !c.startup.supported;

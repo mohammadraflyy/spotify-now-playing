@@ -34,6 +34,7 @@ Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 - **Overlay lirik**: tampil seperti di Spotify, dengan latar mengikuti warna cover lagu. Liriknya dari [LRCLIB](https://lrclib.net), tersimpan di PC supaya tetap ada walaupun LRCLIB sedang down
 - **Bukan cuma Spotify**: opsional, bisa juga membaca YouTube Music, Apple Music, TIDAL, dan player lain di PC yang sama
 - **Request lagu dari penonton** lewat chat Twitch, YouTube, dan TikTok, dengan antrian dan overlay OBS. Aplikasi hanya membaca chat, tidak pernah mengirim pesan
+- **Saat iklan Spotify Free**: overlay menampilkan "Jeda sebentar" dan suara Spotify otomatis dibisukan atau dikecilkan, lalu dikembalikan setelah iklan selesai
 - **File teks dan cover** untuk OBS Text/Image source
 - **Riwayat lagu** per hari, bisa di-download sebagai `.txt` untuk deskripsi VOD
 - **Berjalan di system tray**, tanpa jendela console. Pengaturan lewat browser, dalam bahasa Indonesia atau Inggris
@@ -196,6 +197,16 @@ Aplikasi hanya **mendengarkan** chat, tidak pernah mengirim pesan, jadi tidak ad
 Lainnya:
 - **Overlay OBS** `http://127.0.0.1:8765/requests` menampilkan antrian di stream, supaya penonton, termasuk dari TikTok, tahu request-nya masuk. Tampilannya bisa diatur seperti kartu Now Playing: lebar, ukuran teks, jumlah lagu, sudut, latar (gelap, warna tetap, transparan), warna aksen, serta judul, nama penonton, platform, dan petunjuk perintah yang bisa ditampilkan atau disembunyikan. Ukuran Browser Source untuk OBS dihitung otomatis.
 - Perintah, batas request per penonton, dan panjang antrian bisa diatur.
+
+### Saat iklan Spotify
+
+Untuk Spotify Free. Iklan **tidak di-skip**, karena itu melanggar ketentuan Spotify. Yang diatur aplikasi hanya tampilan dan suaranya di stream:
+
+- Kartu Now Playing menampilkan **Jeda sebentar** (teksnya bisa diganti), lirik disembunyikan, dan iklan tidak masuk riwayat atau file teks.
+- Suara Spotify **dibisukan** selama iklan. Kalau Spotify ternyata menjeda iklan yang dibisukan, aplikasi otomatis beralih ke **mengecilkan** volume, lalu mengingat pilihan itu. Bisa juga dipilih langsung *Kecilkan* atau *Biarkan*.
+- Yang diubah hanya suara Spotify di Windows (seperti di Volume Mixer), bukan suara aplikasi lain. Volume aslinya dikembalikan setelah iklan selesai, juga kalau aplikasi tertutup di tengah iklan.
+
+Atur di tab **Sumber Musik** → **Saat iklan Spotify**.
 
 ### Riwayat lagu
 

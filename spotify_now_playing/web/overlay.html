@@ -92,6 +92,8 @@
     background: #111; box-shadow: 0 0 0 2px rgba(255,255,255,.18); }
   .layout-vinyl .cover-wrap .eq { display: none; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  /* iklan Spotify: hanya teks "Jeda sebentar", tanpa progress dan animasi */
+  .card.ad .progress, .card.ad .eq, .card.ad .label, .card.ad .artist { display: none; }
 </style>
 </head>
 <body>
@@ -123,6 +125,8 @@
   let coverVersion = -1, lastTitle = null, lastLayout = "";
   let lastTrack = null, wasPlaying = false, shownUntil = 0;
 
+  // cover selama iklan: ikon jeda (Lucide "pause") di latar gelap
+  const AD_COVER = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#282828"/><g transform="translate(20 20)" fill="none" stroke="#b3b3b3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></g></svg>');
   const fmt = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
   const num = (v, d, min, max) => { v = parseFloat(v); return isNaN(v) ? d : Math.min(max, Math.max(min, v)); };
   const flag = v => v === true || v === "1" || v === "true";
@@ -220,14 +224,17 @@
       card.classList.toggle("show", visible);
       card.classList.toggle("paused", !s.playing);
       card.classList.toggle("no-dur", !s.duration);
-      $("label").textContent = s.playing ? "Now Playing" : "Paused";
+      card.classList.toggle("ad", !!s.ad);
+      $("label").textContent = s.ad ? "" : s.playing ? "Now Playing" : "Paused";
 
       if (key !== lastTitle) {
         lastTitle = key;
         setMarquee($("title"), s.title);
         setMarquee($("artist"), s.artist);
       }
-      if (s.cover_version !== coverVersion) {
+      if (s.ad) {
+        if (coverVersion !== "ad") { coverVersion = "ad"; $("cover").src = AD_COVER; }
+      } else if (s.cover_version !== coverVersion) {
         coverVersion = s.cover_version;
         $("cover").src = "/cover?v=" + coverVersion;
       }

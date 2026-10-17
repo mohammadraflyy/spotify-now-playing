@@ -153,6 +153,10 @@ class SpotifyAccount:
     def now_playing(self):
         """Info lagu yang sedang diputar, atau None."""
         code, data = self.get("/me/player?additional_types=episode")
+        if data and data.get("currently_playing_type") == "ad":
+            return {"id": "ad", "ad": True, "title": "", "artist": "", "album": "", "cover": lambda: b"",
+                    "duration": 0.0, "position": 0.0, "playing": bool(data.get("is_playing")),
+                    "device": (data.get("device") or {}).get("name", "")}
         if code == 204 or not data or not data.get("item"):
             return None
         item = data["item"]

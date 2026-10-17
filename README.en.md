@@ -14,6 +14,7 @@ Shows the song you're playing on Spotify, with synced lyrics, as overlays in OBS
 - **Lyrics overlay**: shown like in Spotify, with a background that follows the album cover's color. Lyrics come from [LRCLIB](https://lrclib.net) and are cached on your PC. Wrong lyrics can be replaced from the settings page, or with your own `.lrc` file.
 - **Not just Spotify**: optionally reads YouTube Music, Apple Music, TIDAL and other players on the same PC.
 - **Song requests from viewers** through Twitch, YouTube and TikTok chat, with a queue and an OBS overlay. The app only reads chat and never sends messages.
+- **During Spotify Free ads**: the overlay shows "Short break" and Spotify's sound is muted or lowered automatically, then set back when the ad ends. Ads are not skipped.
 - **Text files and cover** for OBS Text/Image sources.
 - **Song history** per day, exportable as `.txt` for VOD descriptions.
 - **Runs in the system tray**. Settings are a page in your browser, in English or Indonesian.

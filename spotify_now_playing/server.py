@@ -8,7 +8,7 @@ import threading
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import __version__, i18n, local_media, lyrics, startup
+from . import __version__, audio, i18n, local_media, lyrics, startup
 from .app import format_line
 from .config import DATA_DIR, OUTPUT_DIR, WEB_DIR
 
@@ -53,6 +53,9 @@ def make_handler(app, port):
             "data_dir": str(DATA_DIR),
             "text": cfg.get("text", {}),
             "lyrics": cfg.get("lyrics", {}),
+            "ads": {k: v for k, v in (cfg.get("ads") or {}).items() if k in ("mode", "volume", "text", "mute_pauses")},
+            "ad_text_default": i18n.t(cfg, "ad_break"),
+            "audio_available": audio.AVAILABLE,
             "local_available": local_media.AVAILABLE,
             "redirect_uri": app.account.redirect_uri,
             "port": port,
@@ -106,7 +109,9 @@ def make_handler(app, port):
                 # untuk chatbot lokal (Streamer.bot, Mix It Up): perintah !song
                 s = app.snapshot()
                 fmt = (q.get("format") or [None])[0] or app.cfg.get("text", {}).get("format")
-                if s["active"]:
+                if s["active"] and s.get("ad"):
+                    text = s["title"]
+                elif s["active"]:
                     text = format_line(fmt, s)
                 else:
                     text = (q.get("empty") or [None])[0] or i18n.t(app.cfg, "nothing")
@@ -390,6 +395,16 @@ def make_handler(app, port):
                 except (TypeError, ValueError):
                     return "Offset lirik harus angka"
                 cfg.update(lyrics={**{k: lyr[k] for k in lyr if k != "offset"}, "offset": offset})
+            if isinstance(body.get("ads"), dict):
+                ads = body["ads"]
+                if ads.get("mode") not in audio.MODES:
+                    return "Pilihan suara iklan tidak dikenal"
+                try:
+                    volume = max(0, min(50, int(ads.get("volume", audio.DEFAULT_VOLUME))))
+                except (TypeError, ValueError):
+                    return "Volume harus angka"
+                # memilih ulang mode = coba lagi dari awal (lupakan "Spotify menjeda iklan yang dibisukan")
+                cfg.update(ads={"mode": ads["mode"], "volume": volume, "text": str(ads.get("text") or "").strip()[:60]})
             if isinstance(body.get("text"), dict):
                 cfg.update(text={"format": str(body["text"].get("format") or "")[:200],
                                  "hide_paused": bool(body["text"].get("hide_paused"))})

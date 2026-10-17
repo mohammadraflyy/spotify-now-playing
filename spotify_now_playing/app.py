@@ -1,11 +1,12 @@
 """Loop utama: ambil lagu dari sumber terpilih, simpan state, tulis file untuk OBS."""
 
+import atexit
 import logging
 import sys
 import threading
 import time
 
-from . import local_media
+from . import audio, i18n, local_media
 from .config import DATA_DIR, OUTPUT_DIR
 from .lyrics import LyricsProvider
 from .spotify_api import SpotifyAccount
@@ -44,10 +45,13 @@ class NowPlayingApp:
         self.history = History(DATA_DIR / "history")
         from .chatbot import ChatBot  # import di sini: chatbot memakai app.snapshot / app.history
         self.chat = ChatBot(self, DATA_DIR)
+        self.ad_audio = audio.AdAudio(config) if audio.AVAILABLE else None
+        if self.ad_audio:
+            atexit.register(self.ad_audio.shutdown)  # jangan tinggalkan Spotify dalam keadaan bisu
         self.console = False  # True: tampilkan status di console (--console)
         self.lock = threading.Lock()
         self.state = {
-            "playing": False, "active": False,
+            "playing": False, "active": False, "ad": False,
             "title": "", "artist": "", "album": "", "device": "",
             "position": 0.0, "duration": 0.0,
             "updated": 0.0,  # epoch saat position diambil
@@ -115,15 +119,31 @@ class NowPlayingApp:
         self.status = {"source": used, "error": error}
         self._apply(info)
         snap = self.snapshot()
+        if self.ad_audio:
+            try:
+                self.ad_audio.update(snap["active"] and snap["ad"], snap["playing"])
+            except Exception:
+                log.exception("pengaturan suara iklan gagal")
         self._write_files(snap)
-        self.history.observe(snap)
+        self.history.observe(dict(snap, active=False) if snap["ad"] else snap)  # iklan tidak dicatat
         self._render_console(snap)
         return delay
+
+    def ad_text(self):
+        return (self.cfg.get("ads") or {}).get("text") or i18n.t(self.cfg, "ad_break")
 
     def _apply(self, info):
         if info is None:
             with self.lock:
-                self.state.update(active=False, playing=False)
+                self.state.update(active=False, playing=False, ad=False)
+            return
+        if info.get("ad"):
+            # lirik, request, dan cover tidak disentuh; lagu sesudah iklan dianggap lagu baru
+            self._last_id = None
+            with self.lock:
+                self.state.update(active=True, ad=True, updated=time.time(), title=self.ad_text(),
+                                  artist="", album="", position=0.0, duration=0.0,
+                                  playing=info["playing"], device=info["device"])
             return
         if info["id"] != self._last_id:
             try:
@@ -144,7 +164,7 @@ class NowPlayingApp:
             self.lyrics.track_changed(info["id"], info["title"], info["artist"],
                                       info["album"], info["duration"])
         with self.lock:
-            self.state.update(active=True, updated=time.time(),
+            self.state.update(active=True, ad=False, updated=time.time(),
                               **{k: info[k] for k in ("title", "artist", "album", "device",
                                                       "position", "duration", "playing")})
 
@@ -155,6 +175,10 @@ class NowPlayingApp:
         if not s["active"] or (not s["playing"] and text.get("hide_paused")):
             for f in TEXT_FILES:
                 _write_text(f, "")
+            return
+        if s["ad"]:
+            for f in TEXT_FILES:
+                _write_text(f, s["title"] + "   " if f == "nowplaying.txt" else "")
             return
         line = format_line(text.get("format"), s)
         _write_text("nowplaying.txt", line + "   ")  # spasi: enak untuk filter scroll OBS

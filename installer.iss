@@ -42,7 +42,7 @@ CloseApplications=yes
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [CustomMessages]
-StartupTask=Jalankan otomatis saat Windows menyala (minimized)
+StartupTask=Jalankan otomatis saat Windows menyala (di system tray)
 SettingsIcon=Pengaturan (browser)
 
 [Tasks]
@@ -57,10 +57,28 @@ Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{group}\{cm:SettingsIcon}"; Filename: "http://127.0.0.1:8765/settings"
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
-Name: "{userstartup}\{#AppName}"; Filename: "{app}\{#AppExe}"; Parameters: "--no-browser"; Flags: runminimized; Tasks: startup
+
+[Registry]
+; startup lewat registry Run (sama dengan toggle di tray/pengaturan); dihapus saat uninstall
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "SpotifyNowPlaying"; ValueData: """{app}\{#AppExe}"" --no-browser"; Tasks: startup
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "SpotifyNowPlaying"; Flags: uninsdeletevalue dontcreatekey
+
+[InstallDelete]
+; versi <= 1.3 memakai shortcut di folder Startup
+Type: files; Name: "{userstartup}\{#AppName}.lnk"
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM {#AppExe}"; Flags: runhidden; RunOnceId: "KillApp"
+
+[Code]
+// aplikasi berjalan di tray (tanpa jendela), jadi tutup dulu sebelum file ditimpa
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  Code: Integer;
+begin
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM {#AppExe}', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Result := '';
+end;

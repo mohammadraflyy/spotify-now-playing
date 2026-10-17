@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8">
 <title>Now Playing</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="/static/fonts.css" rel="stylesheet">
+<link rel="icon" href="/favicon.ico">
 <style>
   /* Default dari halaman pengaturan; bisa ditimpa lewat URL:
      ?width=460 ?height=112 ?radius=16 ?bg=dark|cover|color|none ?color=282828 ?opacity=82
-     ?accent=1db954 ?hidePaused=1 ?noProgress=1 */
+     ?accent=1db954 ?hidePaused=1 ?noProgress=1 ?show=always|change ?showFor=8
+     ?preset=nama  -> pakai preset dari halaman pengaturan */
   @property --c1 { syntax: "<color>"; inherits: true; initial-value: rgba(18,18,18,.82); }
   @property --c2 { syntax: "<color>"; inherits: true; initial-value: rgba(18,18,18,.82); }
   :root {
@@ -81,8 +83,11 @@
   const $ = id => document.getElementById(id);
   const root = document.documentElement;
   const card = $("card");
+  const preset = q.get("preset");
+  const isPreview = q.has("preview");          // preview di halaman pengaturan: selalu tampil
   let opts = {}, coverHsl = null;
   let coverVersion = -1, lastTitle = null, lastLayout = "";
+  let lastTrack = null, wasPlaying = false, shownUntil = 0;
 
   const fmt = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
   const num = (v, d, min, max) => { v = parseFloat(v); return isNaN(v) ? d : Math.min(max, Math.max(min, v)); };
@@ -103,6 +108,8 @@
       hidePaused: flag(get("hidePaused", false)),
       noProgress: flag(get("noProgress", false)),
       noCover: flag(get("noCover", false)),
+      show: get("show", "always"),
+      showFor: num(get("showFor", 8), 8, 2, 120),
     };
     root.style.setProperty("--w", opts.width + "px");
     root.style.setProperty("--h", opts.height + "px");
@@ -140,7 +147,10 @@
   }
 
   async function loadConfig() {
-    try { applyOpts((await (await fetch("/api/config", { cache: "no-store" })).json()).overlay || {}); }
+    try {
+      const c = await (await fetch("/api/config", { cache: "no-store" })).json();
+      applyOpts((preset && c.presets?.[preset]) || c.overlay || {});
+    }
     catch {}
   }
 
@@ -163,11 +173,18 @@
   async function poll() {
     try {
       const s = await (await fetch("/api/now", { cache: "no-store" })).json();
-      card.classList.toggle("show", s.active && (s.playing || !opts.hidePaused));
+      // mode "change": muncul beberapa detik saat lagu berganti atau mulai diputar lagi
+      const key = s.title + "|" + s.artist;
+      const now = Date.now();
+      if (s.active && (key !== lastTrack || (s.playing && !wasPlaying))) shownUntil = now + opts.showFor * 1000;
+      lastTrack = s.active ? key : null;
+      wasPlaying = s.active && s.playing;
+      let visible = s.active && (s.playing || !opts.hidePaused);
+      if (opts.show === "change" && !isPreview) visible = visible && now < shownUntil;
+      card.classList.toggle("show", visible);
       card.classList.toggle("paused", !s.playing);
       $("label").textContent = s.playing ? "Now Playing" : "Paused";
 
-      const key = s.title + "|" + s.artist;
       if (key !== lastTitle) {
         lastTitle = key;
         setMarquee($("title"), s.title);

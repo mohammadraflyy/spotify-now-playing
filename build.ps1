@@ -12,16 +12,21 @@ if (-not (Test-Path ".venv\Scripts\python.exe")) {
 }
 $py = ".venv\Scripts\python.exe"
 & $py -m pip install --quiet --upgrade pip
-& $py -m pip install --quiet -r requirements.txt pyinstaller pillow
+& $py -m pip install --quiet -r requirements.txt pyinstaller
 if ($LASTEXITCODE) { throw "pip install gagal" }
+
+# 2a. unit test dulu, jangan build kalau ada yang rusak
+& $py -m unittest discover -s tests -t .
+if ($LASTEXITCODE) { throw "Unit test gagal" }
 
 # 2. icon
 if (-not (Test-Path "assets\icon.ico")) { & $py scripts\make_icon.py }
 
 # 3. exe (folder, bukan onefile: start lebih cepat & lebih jarang dicurigai antivirus)
 #    --noupx: kompresi UPX sering memicu false positive antivirus
+#    --windowed: tanpa jendela console, aplikasi berjalan di system tray
 & $py scripts\make_version_info.py
-& $py -m PyInstaller --noconfirm --clean --noupx `
+& $py -m PyInstaller --noconfirm --clean --noupx --windowed `
     --name SpotifyNowPlaying `
     --icon assets\icon.ico `
     --version-file build/version_info.txt `
@@ -29,6 +34,7 @@ if (-not (Test-Path "assets\icon.ico")) { & $py scripts\make_icon.py }
     --collect-submodules winrt `
     --collect-binaries winrt `
     --hidden-import typing_extensions `
+    --hidden-import pystray._win32 `
     run.py
 if ($LASTEXITCODE) { throw "PyInstaller gagal" }
 

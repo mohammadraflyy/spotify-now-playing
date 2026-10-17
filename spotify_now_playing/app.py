@@ -1,13 +1,17 @@
 """Loop utama: ambil lagu dari sumber terpilih, simpan state, tulis file untuk OBS."""
 
+import logging
 import sys
 import threading
 import time
 
 from . import local_media
-from .config import OUTPUT_DIR
+from .config import DATA_DIR, OUTPUT_DIR
 from .lyrics import LyricsProvider
 from .spotify_api import SpotifyAccount
+from .updates import UpdateChecker
+
+log = logging.getLogger("snp")
 
 API_BACKOFF = 60     # detik jeda ke API setelah gagal (mode otomatis)
 API_INTERVAL = 2.0   # jangan terlalu sering ke Web API (rate limit)
@@ -24,8 +28,11 @@ class NowPlayingApp:
     def __init__(self, config):
         self.cfg = config
         self.account = SpotifyAccount(config)
-        self.local = local_media.LocalSpotify() if local_media.AVAILABLE else None
-        self.lyrics = LyricsProvider()
+        self.local = (local_media.LocalSpotify(lambda: config.get("players") == "all")
+                      if local_media.AVAILABLE else None)
+        self.lyrics = LyricsProvider(cache_dir=DATA_DIR / "lyrics")
+        self.updates = UpdateChecker(config)
+        self.console = False  # True: tampilkan status di console (--console)
         self.lock = threading.Lock()
         self.state = {
             "playing": False, "active": False,
@@ -86,6 +93,8 @@ class NowPlayingApp:
             elif source == "local":
                 error = "Mode lokal tidak tersedia di sistem ini"
 
+        if error and error != self.status.get("error"):
+            log.warning(error)
         self.status = {"source": used, "error": error}
         self._apply(info)
         snap = self.snapshot()
@@ -140,6 +149,8 @@ class NowPlayingApp:
         _write_text("lyrics.txt", self.lyrics.line_at(s["position"], offset))
 
     def _render_console(self, s):
+        if not self.console:
+            return
         if self.status["error"] and not s["active"]:
             line = f"  ⚠  {self.status['error']}"
         elif not s["active"]:

@@ -3,15 +3,21 @@
 import argparse
 import ctypes
 import json
+import logging
+import logging.handlers
 import os
 import sys
+import threading
 import urllib.request
 import webbrowser
 
 from . import APP_NAME, __version__
 from .app import NowPlayingApp
-from .config import CONFIG_FILE, OUTPUT_DIR, Config
+from .config import DATA_DIR, Config
 from .server import start_server
+
+LOG_FILE = DATA_DIR / "app.log"
+log = logging.getLogger("snp")
 
 
 def already_running(port):
@@ -23,16 +29,38 @@ def already_running(port):
         return False
 
 
+def message_box(text, error=False):
+    if os.name == "nt":
+        ctypes.windll.user32.MessageBoxW(None, text, APP_NAME, 0x10 if error else 0x40)
+    else:
+        print(text)
+
+
+def setup_logging():
+    """Tanpa console, error dicatat ke app.log di folder data aplikasi."""
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        handler = logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=256_000, backupCount=1,
+                                                       encoding="utf-8")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+        log.addHandler(handler)
+        log.setLevel(logging.INFO)
+    except OSError:
+        pass
+    sys.excepthook = lambda *exc: log.error("crash", exc_info=exc)
+    threading.excepthook = lambda a: log.error("thread crash", exc_info=(a.exc_type, a.exc_value,
+                                                                         a.exc_traceback))
+
+
 def main():
     p = argparse.ArgumentParser(prog="SpotifyNowPlaying", description=f"{APP_NAME} untuk OBS")
     p.add_argument("--port", type=int, help="port web untuk sesi ini (default 8765)")
     p.add_argument("--no-browser", action="store_true", help="jangan buka halaman pengaturan")
+    p.add_argument("--console", action="store_true", help="tampilkan status di console, tanpa ikon tray")
     p.add_argument("--version", action="version", version=__version__)
     args = p.parse_args()
 
-    if os.name == "nt":
-        os.system("")  # aktifkan ANSI di console lama
-        ctypes.windll.kernel32.SetConsoleTitleW(f"{APP_NAME} {__version__}")
+    setup_logging()
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.reconfigure(encoding="utf-8")
@@ -48,32 +76,40 @@ def main():
         start_server(app, port)
     except OSError:
         if already_running(port):
-            print("  Aplikasi sudah berjalan, membuka halaman pengaturan...")
-            webbrowser.open(settings_url)
+            if not args.no_browser:
+                webbrowser.open(settings_url)  # sudah jalan di tray: buka pengaturannya saja
         else:
-            print(f"  Port {port} dipakai aplikasi lain. Jalankan dengan --port 8766")
-            input("  Tekan Enter untuk keluar...")
+            message_box(f"Port {port} sedang dipakai aplikasi lain.\n\n"
+                        f"Tutup aplikasi tersebut, atau jalankan dengan --port 8766.", error=True)
         return
 
-    print("=" * 64)
-    print(f"  {APP_NAME} untuk OBS  v{__version__}")
-    print("=" * 64)
-    print(f"  Pengaturan     : {settings_url}")
-    print(f"  Browser source : http://127.0.0.1:{port}/overlay")
-    print(f"  File teks      : {OUTPUT_DIR}")
-    print(f"  Config         : {CONFIG_FILE}")
-    print("  Tutup jendela ini atau tekan Ctrl+C untuk keluar.")
-    print("-" * 64)
-
-    if cfg.first_run:
+    log.info("start v%s port %s", __version__, port)
+    first_run = cfg.first_run
+    if first_run:
         cfg.update()  # buat config.json supaya browser tidak terbuka tiap start
-    if not args.no_browser and cfg.first_run:
+    if not args.no_browser and first_run:
         webbrowser.open(settings_url)
+    app.updates.start()
 
     try:
-        app.run()
-    except KeyboardInterrupt:
-        print("\n  Bye!")
+        from .tray import run_tray
+    except ImportError:
+        args.console = True  # dijalankan dari source tanpa pystray
+
+    if args.console:
+        if os.name == "nt":
+            ctypes.windll.kernel32.SetConsoleTitleW(f"{APP_NAME} {__version__}")
+        print(f"  {APP_NAME} v{__version__}  |  {settings_url}  |  Ctrl+C untuk keluar")
+        app.console = True
+        try:
+            app.run()
+        except KeyboardInterrupt:
+            pass
+        return
+
+    threading.Thread(target=app.run, daemon=True).start()
+    run_tray(app, settings_url, greet=not args.no_browser and not first_run)
+    log.info("exit")
 
 
 if __name__ == "__main__":

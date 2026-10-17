@@ -27,6 +27,7 @@ jobs:
             choco install innosetup -y --no-progress
           }
 
+      # build.ps1 juga menjalankan unit test sebelum build
       - name: Build exe and installer
         shell: pwsh
         run: ./build.ps1

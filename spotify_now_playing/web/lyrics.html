@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <title>Lyrics</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800&display=swap" rel="stylesheet">
+<link href="/static/fonts.css" rel="stylesheet">
+<link rel="icon" href="/favicon.ico">
 <style>
   /* Default dari halaman pengaturan; bisa ditimpa lewat URL:
      ?style=list|single  ?size=34  ?align=left|center|right
@@ -71,6 +72,7 @@
   let opts = {};
   let lyricsKey = null, lines = [], curIdx = -2, coverVersion = -1;
   let pos = 0, playing = false, stamp = performance.now(), active = false;
+  let songOffset = 0;   // offset khusus lagu ini (diatur di halaman pengaturan)
 
   // ---------------------------------------------------------- warna lagu --
 
@@ -128,7 +130,8 @@
   async function pollLyrics() {
     try {
       const l = await (await fetch("/api/lyrics", { cache: "no-store" })).json();
-      const key = l.key + "|" + l.status;
+      songOffset = l.offset || 0;
+      const key = l.key + "|" + l.status + "|" + l.rev;
       if (key !== lyricsKey) {
         lyricsKey = key;
         lines = l.status === "synced" ? l.lines : [];
@@ -149,7 +152,7 @@
   }
 
   function frame() {
-    const t = pos + (playing ? (performance.now() - stamp) / 1000 : 0) + opts.offset;
+    const t = pos + (playing ? (performance.now() - stamp) / 1000 : 0) + opts.offset + songOffset;
     let idx = -1;
     for (let i = 0; i < lines.length && lines[i].t <= t; i++) idx = i;
 

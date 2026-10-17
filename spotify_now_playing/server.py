@@ -2,18 +2,25 @@
 
 import json
 import os
+import re
+import socket
 import threading
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import __version__, local_media
-from .config import OUTPUT_DIR, WEB_DIR
+from . import __version__, local_media, lyrics, startup
+from .config import DATA_DIR, OUTPUT_DIR, WEB_DIR
 
 PAGES = {
     "/": "overlay.html", "/overlay": "overlay.html", "/overlay.html": "overlay.html",
     "/settings": "settings.html", "/settings.html": "settings.html",
     "/lyrics": "lyrics.html", "/lyrics.html": "lyrics.html",
 }
+STATIC = re.compile(r"^/static/((?:fonts/)?[\w.-]+\.(js|css|woff2|txt))$")
+STATIC_TYPES = {"js": "text/javascript; charset=utf-8", "css": "text/css; charset=utf-8",
+                "woff2": "font/woff2", "txt": "text/plain; charset=utf-8"}
+PRESET_NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,23}$")
+MAX_BODY = 1_000_000
 
 
 def make_handler(app, port):
@@ -32,6 +39,12 @@ def make_handler(app, port):
             "auth_type": cfg.get("auth_type", ""),
             "source": cfg.get("source", "auto"),
             "overlay": cfg.get("overlay", {}),
+            "presets": cfg.get("presets", {}),
+            "players": cfg.get("players", "spotify"),
+            "check_updates": bool(cfg.get("check_updates", False)),
+            "update": app.updates.available,
+            "startup": {"supported": startup.supported(), "enabled": startup.is_enabled()},
+            "data_dir": str(DATA_DIR),
             "text": cfg.get("text", {}),
             "lyrics": cfg.get("lyrics", {}),
             "local_available": local_media.AVAILABLE,
@@ -70,12 +83,16 @@ def make_handler(app, port):
             q = urllib.parse.parse_qs(query)
             if path in PAGES:
                 self._send(200, (WEB_DIR / PAGES[path]).read_bytes(), "text/html; charset=utf-8")
-            elif path.startswith("/static/") and path.endswith(".js") and "/" not in path[8:]:
-                f = WEB_DIR / path[8:]
+            elif STATIC.match(path):
+                name, ext = STATIC.match(path).groups()
+                f = WEB_DIR / name
                 if f.is_file():
-                    self._send(200, f.read_bytes(), "text/javascript; charset=utf-8")
+                    self._send(200, f.read_bytes(), STATIC_TYPES[ext],
+                               {"Cache-Control": "max-age=86400"} if ext == "woff2" else None)
                 else:
                     self._send(404, b"not found", "text/plain")
+            elif path == "/favicon.ico":
+                self._send(200, (WEB_DIR / "icon.ico").read_bytes(), "image/x-icon")
             elif path == "/api/now":
                 self._send(200, json.dumps(app.snapshot()).encode(), "application/json",
                            {"Access-Control-Allow-Origin": "*"})
@@ -119,11 +136,18 @@ def make_handler(app, port):
                 return
             try:
                 length = int(self.headers.get("Content-Length") or 0)
+                if length > MAX_BODY:
+                    raise ValueError
                 body = json.loads(self.rfile.read(length) or b"{}")
+                if not isinstance(body, dict):
+                    raise ValueError
             except ValueError:
                 self._json({"error": "JSON tidak valid"}, 400)
                 return
 
+            if self.path.startswith("/api/lyrics/"):
+                self._lyrics_action(self.path[len("/api/lyrics/"):], body)
+                return
             if self.path == "/api/config":
                 err = self._save_config(body)
                 if err:
@@ -134,10 +158,47 @@ def make_handler(app, port):
             elif self.path == "/api/open-output":
                 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
                 os.startfile(OUTPUT_DIR)
+            elif self.path == "/api/open-data":
+                DATA_DIR.mkdir(parents=True, exist_ok=True)
+                os.startfile(DATA_DIR)
+            elif self.path == "/api/startup":
+                try:
+                    startup.set_enabled(bool(body.get("enabled")))
+                except OSError as e:
+                    self._json({"error": str(e)}, 400)
+                    return
             else:
                 self._json({"error": "not found"}, 404)
                 return
             self._json(public_config())
+
+        def _lyrics_action(self, action, body):
+            """Perbaikan lirik untuk lagu yang sedang diputar."""
+            try:
+                if action == "search":
+                    title = str(body.get("title") or "").strip()
+                    if not title:
+                        raise ValueError("Isi judul lagu")
+                    self._json({"results": lyrics.candidates(title, str(body.get("artist") or "").strip())})
+                    return
+                if action == "use":
+                    result = app.lyrics.use_lrclib(body.get("id"))
+                elif action == "lrc":
+                    result = app.lyrics.use_lrc(str(body.get("text") or ""))
+                elif action == "offset":
+                    result = app.lyrics.set_offset(body.get("offset") or 0)
+                elif action == "reset":
+                    result = app.lyrics.reset()
+                else:
+                    self._json({"error": "not found"}, 404)
+                    return
+            except (TypeError, ValueError) as e:
+                self._json({"error": str(e) or "Input tidak valid"}, 400)
+                return
+            except Exception as e:  # LRCLIB error / offline
+                self._json({"error": f"Gagal menghubungi LRCLIB: {e}"}, 502)
+                return
+            self._json(result)
 
         def _save_config(self, body):
             cfg = app.cfg
@@ -153,6 +214,19 @@ def make_handler(app, port):
                 cfg.update(source=body["source"])
             if isinstance(body.get("overlay"), dict):
                 cfg.update(overlay=body["overlay"])
+            if isinstance(body.get("presets"), dict):
+                presets = body["presets"]
+                if len(presets) > 20:
+                    return "Maksimal 20 preset"
+                for name, opts in presets.items():
+                    if not PRESET_NAME.match(name) or not isinstance(opts, dict):
+                        return "Nama preset hanya boleh huruf kecil, angka, dan tanda -"
+                cfg.update(presets=presets)
+            if body.get("players") in ("spotify", "all"):
+                cfg.update(players=body["players"])
+            if "check_updates" in body:
+                cfg.update(check_updates=bool(body["check_updates"]))
+                app.updates.check_now()
             if isinstance(body.get("lyrics"), dict):
                 lyr = body["lyrics"]
                 try:
@@ -168,9 +242,21 @@ def make_handler(app, port):
     return Handler
 
 
+class Server(ThreadingHTTPServer):
+    # HTTPServer bawaan memakai SO_REUSEADDR. Di Windows itu membuat dua aplikasi bisa
+    # memakai port yang sama sekaligus, jadi instance kedua tidak pernah tahu port sudah dipakai.
+    allow_reuse_address = False
+    daemon_threads = True
+
+    def server_bind(self):
+        if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
 def start_server(app, port):
     """Raise OSError kalau port sudah dipakai."""
     app.account.redirect_uri = f"http://127.0.0.1:{port}/callback"  # Spotify menolak "localhost"
-    server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(app, port))
+    server = Server(("127.0.0.1", port), make_handler(app, port))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server

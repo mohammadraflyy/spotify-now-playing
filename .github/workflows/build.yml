@@ -43,9 +43,6 @@ jobs:
         shell: pwsh
         run: ./build.ps1
 
-      # Tempat langkah code signing (SignPath) setelah pendaftaran disetujui:
-      # upload artifact ke SignPath, tunggu approval manual, lalu pakai installer yang sudah ditandatangani.
-
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
@@ -78,6 +75,6 @@ jobs:
             echo
             echo "SHA-256: \`$(sha256sum "$file" | cut -d' ' -f1)\`"
             echo
-            echo "Dibuild otomatis oleh GitHub Actions dari tag ini. [Code signing policy](https://github.com/${GITHUB_REPOSITORY}/blob/main/docs/CODE_SIGNING_POLICY.md)"
+            echo "Dibuild otomatis oleh GitHub Actions dari tag ini."
           } > notes.md
           gh release create "$TAG" "$file" --title "$TAG" --notes-file notes.md --latest

@@ -789,6 +789,36 @@
           <button class="primary" id="rq-save">Simpan</button>
           <p class="muted small" style="margin:12px 0 0">Request dibaca dari platform yang aktif di tab <a href="#chat">Chatbot</a>.</p>
         </div>
+        <div class="panel">
+          <h3>Tampilan overlay</h3>
+          <div class="field">
+            <span class="label">Ukuran</span>
+            <div class="slider"><span>Lebar</span><input type="range" id="ro-width" min="200" max="1200" step="1"><span class="numwrap"><input type="number" class="num" id="ro-width-v" data-range="ro-width">px</span></div>
+            <div class="slider"><span>Teks</span><input type="range" id="ro-size" min="10" max="48" step="1"><span class="numwrap"><input type="number" class="num" id="ro-size-v" data-range="ro-size">px</span></div>
+            <div class="slider"><span>Jumlah</span><input type="range" id="ro-count" min="1" max="20" step="1"><span class="numwrap"><input type="number" class="num" id="ro-count-v" data-range="ro-count">lagu</span></div>
+            <div class="slider"><span>Sudut</span><input type="range" id="ro-radius" min="0" max="60" step="1"><span class="numwrap"><input type="number" class="num" id="ro-radius-v" data-range="ro-radius">px</span></div>
+          </div>
+          <div class="field">
+            <span class="label">Latar</span>
+            <div class="seg">
+              <label><input type="radio" name="ro-bg" value="dark">Gelap</label>
+              <label><input type="radio" name="ro-bg" value="color">Warna tetap</label>
+              <label><input type="radio" name="ro-bg" value="none">Transparan</label>
+            </div>
+            <div class="slider" id="ro-color-wrap" style="margin-top:12px"><span>Warna</span><input type="color" id="ro-color" value="#181818"></div>
+            <div class="slider" id="ro-opacity-wrap" style="margin-top:8px"><span>Opasitas</span><input type="range" id="ro-opacity" min="0" max="100" step="1"><span class="numwrap"><input type="number" class="num" id="ro-opacity-v" data-range="ro-opacity">%</span></div>
+            <div class="slider" style="margin-top:8px"><span>Aksen</span><input type="color" id="ro-accent" value="#1db954"><span class="muted small">warna judul dan nomor urut</span></div>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <span class="label">Tampilkan</span>
+            <label class="check"><input type="checkbox" id="ro-header"> Judul "Request lagu" dan jumlah antrian</label>
+            <label class="check"><input type="checkbox" id="ro-user"> Nama penonton</label>
+            <label class="check"><input type="checkbox" id="ro-platform"> Platform (Twitch, YouTube, TikTok)</label>
+            <label class="check"><input type="checkbox" id="ro-hint"> Petunjuk cara request</label>
+            <label class="check"><input type="checkbox" id="ro-hide"> Sembunyikan overlay saat antrian kosong</label>
+          </div>
+        </div>
+        <button class="ghost sm" id="ro-reset"><svg class="i"><use href="#i-reset"/></svg> Kembalikan ke default</button>
       </div>
       <div class="sticky">
         <div class="preview" id="rq-preview-box"><span class="tag">preview</span><iframe id="rq-frame" title="Preview request"></iframe></div>
@@ -798,9 +828,9 @@
             <input type="text" class="mono" id="rq-url" readonly>
             <button class="primary" data-copy="rq-url">Salin</button>
           </div>
-          <div class="size">Ukuran Browser Source: <span>Width <b>440</b></span><span>Height <b>380</b></span><span>(boleh diubah)</span></div>
+          <div class="size">Ukuran Browser Source: <span>Width <b id="rq-w">440</b></span><span>Height <b id="rq-h">380</b></span></div>
           <a class="drag" id="rq-drag" draggable="true"><svg class="i"><use href="#i-grip"/></svg> <b>Atau seret kotak ini ke jendela preview OBS</b></a>
-          <p class="muted small" style="margin:10px 0 0">Opsi URL: <code>?count=5</code> jumlah yang ditampilkan, <code>?hideEmpty=1</code> sembunyikan saat kosong, <code>?hint=0</code> tanpa petunjuk perintah.</p>
+          <p class="muted small" style="margin:10px 0 0">Tinggi dihitung untuk antrian penuh. Preview memakai contoh request kalau antrian masih kosong. Kalau ukuran diubah, samakan juga Width/Height di OBS.</p>
         </div>
       </div>
     </div>
@@ -936,7 +966,7 @@ function fitPreviews() {
   const box = cardBox(o);
   fitPreview($("card-preview"), $("card-frame"), box.w, box.h);
   fitPreview($("ly-preview-box"), $("ly-frame"), 800, 340);
-  fitPreview($("rq-preview-box"), $("rq-frame"), 440, 380);
+  fitPreview($("rq-preview-box"), $("rq-frame"), rqBox.w, rqBox.h);
 }
 window.addEventListener("resize", fitPreviews);
 
@@ -1454,9 +1484,9 @@ async function loadRequests() {
       $("rq-cmd").value = c.request_cmd;
       $("rq-max-user").value = c.request_max_user; setNum("rq-max-user-v", c.request_max_user);
       $("rq-max-total").value = c.request_max_total; setNum("rq-max-total-v", c.request_max_total);
-      $("rq-frame").src = "/requests";
-      makeDrag($("rq-drag"), $("rq-url").value, "Song Requests", 440, 380);
-      fitPreview($("rq-preview-box"), $("rq-frame"), 440, 380);
+      loadRqLook(cfg?.requests_overlay || {});
+      $("rq-frame").onload = () => updateRqLook(false);
+      $("rq-frame").src = "/requests?preview=1";
     }
     $("rq-example").textContent = (r.cmd || "!request") + " " + t("judul lagu");
     renderRequests(r.items);
@@ -1483,6 +1513,53 @@ function renderRequests(items) {
     list.appendChild(row);
   });
 }
+// tampilan overlay request
+const RQ_DEFAULT = { width: 420, size: 17, count: 5, radius: 16, bg: "dark", color: "181818", opacity: 82, accent: "1db954",
+  header: true, user: true, platform: true, hint: true, hideEmpty: false };
+let rqBox = { w: 440, h: 380 }, rqTimer;
+function rqValues() {
+  return {
+    width: +$("ro-width").value, size: +$("ro-size").value, count: +$("ro-count").value, radius: +$("ro-radius").value,
+    bg: radio("ro-bg") || "dark", color: $("ro-color").value.slice(1), opacity: +$("ro-opacity").value,
+    accent: $("ro-accent").value.slice(1), header: $("ro-header").checked, user: $("ro-user").checked,
+    platform: $("ro-platform").checked, hint: $("ro-hint").checked, hideEmpty: $("ro-hide").checked,
+  };
+}
+function loadRqLook(o) {
+  o = { ...RQ_DEFAULT, ...o };
+  ["width", "size", "count", "radius", "opacity"].forEach(k => $("ro-" + k).value = o[k]);
+  setRadio("ro-bg", o.bg); $("ro-color").value = "#" + o.color; $("ro-accent").value = "#" + o.accent;
+  $("ro-header").checked = o.header; $("ro-user").checked = o.user; $("ro-platform").checked = o.platform;
+  $("ro-hint").checked = o.hint; $("ro-hide").checked = o.hideEmpty;
+}
+function measureRq() {
+  const o = rqValues();
+  const h = $("rq-frame").contentWindow?.fullHeight?.();
+  rqBox = { w: o.width + 20, h: Math.ceil(h || 380) };
+  $("rq-w").textContent = rqBox.w; $("rq-h").textContent = rqBox.h;
+  makeDrag($("rq-drag"), $("rq-url").value, "Song Requests", rqBox.w, rqBox.h);
+  fitPreview($("rq-preview-box"), $("rq-frame"), rqBox.w, rqBox.h);
+}
+function updateRqLook(save = true) {
+  const o = rqValues();
+  ["width", "size", "count", "radius", "opacity"].forEach(k => setNum("ro-" + k + "-v", o[k]));
+  $("ro-color-wrap").hidden = o.bg !== "color";
+  $("ro-opacity-wrap").hidden = o.bg === "none";
+  if (!save) return setTimeout(measureRq, 150);
+  clearTimeout(rqTimer);
+  rqTimer = setTimeout(async () => {
+    try {
+      await api("/api/config", { requests_overlay: o });
+      await $("rq-frame").contentWindow?.loadConfig?.();
+      setTimeout(measureRq, 100);
+    } catch (e) { toast(e.message, true); }
+  }, 200);
+}
+["ro-width", "ro-size", "ro-count", "ro-radius", "ro-color", "ro-opacity", "ro-accent", "ro-header", "ro-user", "ro-platform", "ro-hint", "ro-hide"]
+  .forEach(id => $(id).addEventListener("input", () => updateRqLook()));
+document.querySelectorAll('input[name="ro-bg"]').forEach(r => r.addEventListener("change", () => updateRqLook()));
+$("ro-reset").onclick = () => { loadRqLook(RQ_DEFAULT); updateRqLook(); toast("Tampilan overlay dikembalikan ke default"); };
+
 $("rq-clear").onclick = async () => {
   if (!confirm(t("Hapus semua request di antrian?"))) return;
   renderRequests((await api("/api/requests/clear", {})).items);

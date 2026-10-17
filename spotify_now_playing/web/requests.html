@@ -6,34 +6,39 @@
 <link href="/static/fonts.css" rel="stylesheet">
 <link rel="icon" href="/favicon.ico">
 <style>
-  /* Opsi lewat URL: ?count=5 (jumlah ditampilkan) ?hint=0 (sembunyikan petunjuk perintah)
-     ?hideEmpty=1 (sembunyikan saat antrian kosong) ?accent=1db954 */
-  :root { --accent: #1db954; --fg: #fff; --muted: rgba(255,255,255,.66); }
+  /* Default dari halaman pengaturan; bisa ditimpa lewat URL:
+     ?width=420 ?size=17 ?count=5 ?radius=16 ?bg=dark|color|none ?color=181818 ?opacity=82 ?accent=1db954
+     ?header=0 ?user=0 ?platform=0 ?hint=0 ?hideEmpty=1 */
+  :root { --w: 420px; --size: 17px; --r: 16px; --accent: #1db954; --bg: rgba(18,18,18,.82);
+    --fg: #fff; --muted: rgba(255,255,255,.66); --line: rgba(255,255,255,.08); }
   html, body { margin: 0; background: transparent; overflow: hidden; font-family: Inter, "Segoe UI", sans-serif; }
   body { padding: 10px; }
-  .box { box-sizing: border-box; width: 100%; padding: 16px 18px; border-radius: 16px; color: var(--fg);
-    background: rgba(18,18,18,.82); box-shadow: 0 8px 28px rgba(0,0,0,.4); transition: opacity .4s; }
+  .box { box-sizing: border-box; width: var(--w); padding: calc(var(--size) * .95) calc(var(--size) * 1.05);
+    border-radius: var(--r); color: var(--fg); background: var(--bg); box-shadow: 0 8px 28px rgba(0,0,0,.4);
+    transition: opacity .4s; font-size: var(--size); }
+  .bg-none .box { box-shadow: none; padding-left: 0; padding-right: 0; }
+  .bg-none .box * { text-shadow: 0 2px 8px rgba(0,0,0,.75); }
   .hidden .box { opacity: 0; }
-  .head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; letter-spacing: .1em;
-    text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
-  .head svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .head { display: flex; align-items: center; gap: .5em; font-size: .76em; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: .75em; }
+  .head svg { width: 1.2em; height: 1.2em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .head .count { margin-left: auto; color: var(--muted); font-weight: 600; letter-spacing: 0; }
+  .no-header .head { display: none; }
   ol { list-style: none; margin: 0; padding: 0; }
-  li { display: flex; gap: 10px; align-items: baseline; padding: 7px 0; border-top: 1px solid rgba(255,255,255,.08);
-    animation: in .4s ease both; }
+  li { display: flex; gap: .6em; align-items: baseline; padding: .4em 0; border-top: 1px solid var(--line); animation: in .4s ease both; }
   li:first-child { border-top: 0; }
   @keyframes in { from { opacity: 0; transform: translateX(-12px); } }
-  .num { flex: 0 0 auto; width: 20px; color: var(--accent); font-weight: 800; font-variant-numeric: tabular-nums; }
-  .song { flex: 1; min-width: 0; font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .who { flex: 0 0 auto; max-width: 40%; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .empty { color: var(--muted); font-size: 15px; padding: 4px 0; }
-  .more { color: var(--muted); font-size: 13px; padding-top: 6px; }
-  .hint { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.08); font-size: 13px; color: var(--muted); }
+  .num { flex: 0 0 auto; min-width: 1.2em; color: var(--accent); font-weight: 800; font-variant-numeric: tabular-nums; }
+  .song { flex: 1; min-width: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .who { flex: 0 1 auto; max-width: 45%; font-size: .76em; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .empty { color: var(--muted); font-size: .88em; padding: .2em 0; }
+  .more { color: var(--muted); font-size: .76em; padding-top: .35em; }
+  .hint { margin-top: .75em; padding-top: .6em; border-top: 1px solid var(--line); font-size: .76em; color: var(--muted); }
   .hint b { color: var(--fg); }
 </style>
 </head>
 <body>
-<div class="box">
+<div class="box" id="box">
   <div class="head">
     <!-- Ikon: Lucide list-music (ISC License) -->
     <svg viewBox="0 0 24 24"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></svg>
@@ -42,53 +47,106 @@
   <ol id="list"></ol>
   <div class="hint" id="hint"></div>
 </div>
+<script src="/static/color.js"></script>
 <script>
   const q = new URLSearchParams(location.search);
-  const COUNT = Math.max(1, Math.min(20, parseInt(q.get("count")) || 5));
-  const SHOW_HINT = q.get("hint") !== "0";
-  const HIDE_EMPTY = q.get("hideEmpty") === "1";
-  if (q.get("accent")) document.documentElement.style.setProperty("--accent", "#" + q.get("accent").replace("#", ""));
+  const isPreview = q.has("preview");   // halaman pengaturan: tampilkan contoh supaya tata letak terlihat
+  const root = document.documentElement;
   const TEXT = {
     id: { title: "Request lagu", empty: "Belum ada request", more: "+{n} lagi", hint: "Ketik <b>{cmd} judul lagu</b> di chat untuk request" },
     en: { title: "Song requests", empty: "No requests yet", more: "+{n} more", hint: "Type <b>{cmd} song title</b> in chat to request" },
   };
+  const SAMPLE = [
+    ["Hindia - Evaluasi", "budi", "tiktok"], ["Nadin Amizah - Bertaut", "ani", "twitch"],
+    ["Sal Priadi - Gala Bunga Matahari", "cici", "youtube"], ["Tulus - Interaksi", "dodi", "tiktok"],
+    ["Bernadya - Untungnya, Hidup Harus Tetap Berjalan", "eka", "youtube"],
+  ];
   const PLATFORM = { twitch: "Twitch", youtube: "YouTube", tiktok: "TikTok" };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  let last = "";
+  const num = (v, d, min, max) => { v = parseFloat(v); return isNaN(v) ? d : Math.min(max, Math.max(min, v)); };
+  const flag = (v, d) => v === undefined || v === null ? d : v === true || v === "1" || v === "true";
+  let opts = {}, last = "", data = null;
+
+  function applyOpts(c) {
+    const get = (k, d) => q.get(k) ?? c[k] ?? d;
+    opts = {
+      width: num(get("width", 420), 420, 200, 1200), size: num(get("size", 17), 17, 10, 48),
+      count: Math.round(num(get("count", 5), 5, 1, 20)), radius: num(get("radius", 16), 16, 0, 60),
+      bg: get("bg", "dark"), color: String(get("color", "181818")).replace("#", ""),
+      opacity: num(get("opacity", 82), 82, 0, 100) / 100, accent: String(get("accent", "1db954")).replace("#", ""),
+      header: flag(get("header", true), true), user: flag(get("user", true), true),
+      platform: flag(get("platform", true), true), hint: flag(get("hint", true), true),
+      hideEmpty: flag(get("hideEmpty", false), false),
+    };
+    root.style.setProperty("--w", opts.width + "px");
+    root.style.setProperty("--size", opts.size + "px");
+    root.style.setProperty("--r", opts.radius + "px");
+    root.style.setProperty("--accent", "#" + opts.accent);
+    let bg = `rgba(18,18,18,${opts.opacity})`;
+    if (opts.bg === "none") bg = "transparent";
+    else if (opts.bg === "color") { const [h, s, l] = SNPColor.hexToHsl(opts.color); bg = SNPColor.hsl(h, s, l, opts.opacity); }
+    root.style.setProperty("--bg", bg);
+    document.body.classList.toggle("bg-none", opts.bg === "none");
+    document.body.classList.toggle("no-header", !opts.header);
+    last = "";
+    if (data) render(data);
+  }
+
+  async function loadConfig() {
+    try { applyOpts((await (await fetch("/api/config", { cache: "no-store" })).json()).requests_overlay || {}); }
+    catch {}
+  }
+
+  function render(r) {
+    let items = r.items;
+    if (isPreview && !items.length) {
+      items = Array.from({ length: opts.count }, (_, n) => {
+        const [text, user, platform] = SAMPLE[n % SAMPLE.length];
+        return { id: -n, text, user, platform };
+      });
+    }
+    const T = TEXT[r.lang] || TEXT.id;
+    document.body.classList.toggle("hidden", !isPreview && (!r.enabled || (opts.hideEmpty && !items.length)));
+    const key = JSON.stringify([items.map(i => i.id), r.lang, r.cmd]);
+    if (key === last) return;
+    last = key;
+    document.getElementById("title").textContent = T.title;
+    document.getElementById("count").textContent = items.length || "";
+    const list = document.getElementById("list");
+    list.innerHTML = items.length ? "" : `<div class="empty">${esc(T.empty)}</div>`;
+    items.slice(0, opts.count).forEach((it, n) => {
+      const who = [opts.user ? it.user : "", opts.platform ? PLATFORM[it.platform] || "" : ""].filter(Boolean).join(" · ");
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="num">${n + 1}</span><span class="song">${esc(it.text)}</span>` +
+        (who ? `<span class="who">${esc(who)}</span>` : "");
+      list.appendChild(li);
+    });
+    if (items.length > opts.count) {
+      const more = document.createElement("div");
+      more.className = "more";
+      more.textContent = T.more.replace("{n}", items.length - opts.count);
+      list.appendChild(more);
+    }
+    const hint = document.getElementById("hint");
+    hint.hidden = !opts.hint || !r.cmd;
+    hint.innerHTML = T.hint.replace("{cmd}", esc(r.cmd));
+  }
+
+  /** Tinggi Browser Source saat antrian penuh (dipakai halaman pengaturan untuk saran ukuran OBS). */
+  window.fullHeight = () => document.getElementById("box").offsetHeight + 20;
 
   async function poll() {
     try {
-      const r = await (await fetch("/api/requests", { cache: "no-store" })).json();
-      const T = TEXT[r.lang] || TEXT.id;
-      const key = JSON.stringify([r.items.map(i => i.id), r.lang, r.cmd, r.enabled]);
-      document.body.classList.toggle("hidden", !r.enabled || (HIDE_EMPTY && !r.items.length));
-      if (key === last) return;
-      last = key;
-      document.getElementById("title").textContent = T.title;
-      document.getElementById("count").textContent = r.items.length || "";
-      const list = document.getElementById("list");
-      list.innerHTML = r.items.length ? "" : `<div class="empty">${esc(T.empty)}</div>`;
-      r.items.slice(0, COUNT).forEach((it, n) => {
-        const li = document.createElement("li");
-        li.innerHTML = `<span class="num">${n + 1}</span><span class="song">${esc(it.text)}</span>` +
-          `<span class="who">${esc(it.user)}${PLATFORM[it.platform] ? " · " + PLATFORM[it.platform] : ""}</span>`;
-        list.appendChild(li);
-      });
-      if (r.items.length > COUNT) {
-        const more = document.createElement("div");
-        more.className = "more";
-        more.textContent = T.more.replace("{n}", r.items.length - COUNT);
-        list.appendChild(more);
-      }
-      const hint = document.getElementById("hint");
-      hint.hidden = !SHOW_HINT || !r.cmd;
-      hint.innerHTML = T.hint.replace("{cmd}", esc(r.cmd));
+      data = await (await fetch("/api/requests", { cache: "no-store" })).json();
+      render(data);
     } catch {
       document.body.classList.add("hidden");   // aplikasi tidak berjalan
       last = "";
     }
   }
-  poll();
+  applyOpts({});
+  loadConfig().then(poll);
+  setInterval(loadConfig, 3000);   // ikut perubahan dari halaman pengaturan
   setInterval(poll, 2000);
 </script>
 </body>

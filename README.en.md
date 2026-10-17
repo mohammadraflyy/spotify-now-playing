@@ -1,6 +1,6 @@
 # Spotify Now Playing for OBS
 
-**[Download the Windows installer](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** · [Code signing policy](docs/CODE_SIGNING_POLICY.md) · [Privacy](#privacy) · [Bahasa Indonesia](README.md)
+**[Download the Windows installer](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** · [Privacy](#privacy) · [Bahasa Indonesia](README.md)
 
 Shows the song you're playing on Spotify, with synced lyrics, as overlays in OBS.
 
@@ -23,7 +23,6 @@ Shows the song you're playing on Spotify, with synced lyrics, as overlays in OBS
 
 1. Download `SpotifyNowPlaying-Setup-x.y.z.exe` from **[Releases](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** and run it. No admin rights needed.
    - If Windows SmartScreen shows a warning, click **More info → Run anyway**.
-   - Or with winget (pending Microsoft's review): `winget install mohammadrafly.SpotifyNowPlaying`
 2. Open **Spotify Now Playing** from the Start Menu. It runs in the **system tray** (bottom right of the taskbar). Click the icon to open the settings, right-click for the menu.
 3. The settings page opens on first run. Switch the language with **ID / EN** in the top right.
 4. Play a song in Spotify Desktop, then follow the **3 steps** on the Home tab. Each step has a **Copy URL** button to paste into OBS.
@@ -64,7 +63,7 @@ Viewers type `!request song title` in chat, for example `!request Tulus - Pamit`
 
 - **Twitch and YouTube**: read by the chat bot, and viewers get a reply in chat.
 - **TikTok**: read by a listener, with no reply in chat. It needs a free API key from [Euler Stream](https://www.eulerstream.com), a third-party service that connects apps to TikTok LIVE chat. Enter your TikTok username and API key in the **Chatbot** tab.
-- **OBS overlay** `http://127.0.0.1:8765/requests` (440 × 380) shows the queue on stream, so viewers (including TikTok) can see their request was added.
+- **OBS overlay** `http://127.0.0.1:8765/requests` shows the queue on stream, so viewers (including TikTok) can see their request was added. Its look can be customized like the Now Playing card: width, text size, number of songs, corners, background (dark, fixed color, transparent), accent color, and whether to show the title, viewer names, platform and command hint. The OBS Browser Source size is calculated for you.
 
 ### Card URL parameters
 
@@ -97,13 +96,7 @@ The app only connects to other services for features you use:
 - **TikTok listener**: only if you turn it on. Your TikTok username and API key are sent to Euler Stream to read your live chat.
 - **New version notifications**: off by default. When enabled, the app checks GitHub releases once a day.
 
-The song history stays on your PC. There is no telemetry or analytics. Details are in the [code signing policy](docs/CODE_SIGNING_POLICY.md#privacy-policy).
-
-## Code signing policy
-
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
-
-Installers are built by GitHub Actions from the source in this repository, and every release is approved manually before signing. See [docs/CODE_SIGNING_POLICY.md](docs/CODE_SIGNING_POLICY.md).
+The song history stays on your PC. There is no telemetry or analytics. Details are in the [privacy policy](docs/PRIVACY.md).
 
 ## Development
 

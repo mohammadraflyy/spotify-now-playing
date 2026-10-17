@@ -1,6 +1,6 @@
 # Spotify Now Playing untuk OBS
 
-**[Download installer (Windows)](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** · [Code signing policy](docs/CODE_SIGNING_POLICY.md) · [Privasi](#privasi) · [English](README.en.md)
+**[Download installer (Windows)](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** · [Privasi](#privasi) · [English](README.en.md)
 
 Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 
@@ -48,7 +48,6 @@ Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 1. Download installer terbaru dari halaman **[Releases](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)**: file `SpotifyNowPlaying-Setup-x.y.z.exe` di bagian *Assets*. Lalu jalankan.
    - Kalau muncul peringatan Windows SmartScreen, klik **More info → Run anyway**.
    - Installer tidak butuh admin. Centang **Jalankan otomatis saat Windows menyala** kalau mau aplikasinya selalu siap.
-   - Atau lewat winget (menunggu persetujuan Microsoft): `winget install mohammadrafly.SpotifyNowPlaying`
 2. Buka **Spotify Now Playing** dari Start Menu atau desktop. Aplikasinya berjalan di **system tray** (ikon hijau di pojok kanan bawah taskbar, mungkin tersembunyi di balik tanda panah `^`).
    - **Klik** ikonnya untuk membuka halaman pengaturan.
    - **Klik kanan** untuk menu: buka folder file teks, jalankan saat Windows menyala, dan keluar.
@@ -208,7 +207,7 @@ Penonton mengetik `!request judul lagu` di chat, misalnya `!request Tulus - Pami
 
 - **Twitch dan YouTube**: request dibaca lewat chatbot, dan penonton mendapat balasan di chat, misalnya `@budi request masuk: Tulus - Pamit (antrian ke-3)`.
 - **TikTok**: request dibaca lewat listener, tanpa balasan di chat. Butuh API key gratis dari [Euler Stream](https://www.eulerstream.com), layanan pihak ketiga yang menyambungkan aplikasi ke chat TikTok LIVE. Isi username TikTok dan API key-nya di tab **Chatbot**.
-- **Overlay OBS** `http://127.0.0.1:8765/requests` (440 × 380) menampilkan antrian di stream, supaya penonton, termasuk dari TikTok, tahu request-nya masuk.
+- **Overlay OBS** `http://127.0.0.1:8765/requests` menampilkan antrian di stream, supaya penonton, termasuk dari TikTok, tahu request-nya masuk. Tampilannya bisa diatur seperti kartu Now Playing: lebar, ukuran teks, jumlah lagu, sudut, latar (gelap, warna tetap, transparan), warna aksen, serta judul, nama penonton, platform, dan petunjuk perintah yang bisa ditampilkan atau disembunyikan. Ukuran Browser Source untuk OBS dihitung otomatis.
 - Perintah, batas request per penonton, dan panjang antrian bisa diatur.
 
 ### Riwayat lagu
@@ -300,18 +299,7 @@ Aplikasi ini tidak mengirim data apa pun ke luar kecuali untuk fitur yang kamu p
 - **Listener TikTok**: hanya kalau kamu menyalakannya. Username TikTok dan API key-mu dikirim ke Euler Stream untuk membaca chat live-mu.
 - **Notifikasi versi baru**: mati secara default. Kalau dinyalakan di tab **Aplikasi**, aplikasi mengecek halaman rilis GitHub sehari sekali.
 
-Riwayat lagu hanya disimpan di PC ini. Tidak ada telemetri atau analitik. Font sudah disertakan di aplikasi, jadi overlay tidak memuat apa pun dari Google Fonts. Web server lokal hanya bisa diakses dari PC ini (`127.0.0.1`). Detail lengkapnya ada di [Code signing policy](docs/CODE_SIGNING_POLICY.md#privacy-policy).
-
-## Code signing policy
-
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
-
-Installer dibuild otomatis oleh GitHub Actions dari source di repo ini, dan setiap rilis disetujui manual sebelum ditandatangani. Penjelasan proses build, peran tim, dan kebijakan privasi ada di **[docs/CODE_SIGNING_POLICY.md](docs/CODE_SIGNING_POLICY.md)**.
-
-| Peran | Anggota |
-|---|---|
-| Committer dan reviewer | [mohammadraflyy](https://github.com/mohammadraflyy) |
-| Approver | [mohammadraflyy](https://github.com/mohammadraflyy) |
+Riwayat lagu hanya disimpan di PC ini. Tidak ada telemetri atau analitik. Font sudah disertakan di aplikasi, jadi overlay tidak memuat apa pun dari Google Fonts. Web server lokal hanya bisa diakses dari PC ini (`127.0.0.1`). Detail lengkapnya ada di [kebijakan privasi](docs/PRIVACY.md).
 
 ## Lisensi
 

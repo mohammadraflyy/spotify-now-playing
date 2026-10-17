@@ -43,6 +43,7 @@ def make_handler(app, port):
             "source": cfg.get("source", "auto"),
             "overlay": cfg.get("overlay", {}),
             "presets": cfg.get("presets", {}),
+            "requests_overlay": cfg.get("requests_overlay", {}),
             "players": cfg.get("players", "spotify"),
             "lang": i18n.lang(cfg),
             "check_updates": bool(cfg.get("check_updates", False)),
@@ -420,6 +421,8 @@ def make_handler(app, port):
                 cfg.update(source=body["source"])
             if isinstance(body.get("overlay"), dict):
                 cfg.update(overlay=body["overlay"])
+            if isinstance(body.get("requests_overlay"), dict):
+                cfg.update(requests_overlay=body["requests_overlay"])
             if isinstance(body.get("presets"), dict):
                 presets = body["presets"]
                 if len(presets) > 20:

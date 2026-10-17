@@ -11,7 +11,7 @@ import threading
 import urllib.request
 import webbrowser
 
-from . import APP_NAME, __version__
+from . import APP_NAME, __version__, i18n
 from .app import NowPlayingApp
 from .config import DATA_DIR, Config
 from .server import start_server
@@ -79,8 +79,7 @@ def main():
             if not args.no_browser:
                 webbrowser.open(settings_url)  # sudah jalan di tray: buka pengaturannya saja
         else:
-            message_box(f"Port {port} sedang dipakai aplikasi lain.\n\n"
-                        f"Tutup aplikasi tersebut, atau jalankan dengan --port 8766.", error=True)
+            message_box(i18n.t(cfg, "port_busy", port=port), error=True)
         return
 
     log.info("start v%s port %s", __version__, port)
@@ -89,7 +88,6 @@ def main():
         cfg.update()  # buat config.json supaya browser tidak terbuka tiap start
     if not args.no_browser and first_run:
         webbrowser.open(settings_url)
-    app.updates.start()
 
     try:
         from .tray import run_tray
@@ -101,6 +99,7 @@ def main():
             ctypes.windll.kernel32.SetConsoleTitleW(f"{APP_NAME} {__version__}")
         print(f"  {APP_NAME} v{__version__}  |  {settings_url}  |  Ctrl+C untuk keluar")
         app.console = True
+        app.updates.start()
         try:
             app.run()
         except KeyboardInterrupt:

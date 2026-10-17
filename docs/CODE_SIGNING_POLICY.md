@@ -17,7 +17,7 @@ Only binaries built from this repository are signed. Third-party files bundled b
 2. GitHub Actions ([`.github/workflows/build.yml`](../.github/workflows/build.yml)) builds the app on a clean `windows-latest` runner, using [`build.ps1`](../build.ps1): PyInstaller for the app, then Inno Setup for the installer.
 3. The build artifact is submitted to SignPath. SignPath verifies that it came from this repository's GitHub Actions workflow.
 4. An approver manually approves the signing request.
-5. The signed installer is published on [GitHub Releases](https://github.com/mohammadraflyy/spotify-now-playing/releases).
+5. The same workflow publishes the signed installer on [GitHub Releases](https://github.com/mohammadraflyy/spotify-now-playing/releases), with its SHA-256 in the release notes.
 
 Locally built binaries are never signed.
 
@@ -49,7 +49,7 @@ The connections the program makes are all part of features the user turns on or 
 - The program has no telemetry, analytics or crash reporting. Fonts are bundled, so no font service is contacted.
 - Errors are written to a local log file (`%APPDATA%\SpotifyNowPlaying\app.log`) that is never uploaded.
 - The local web server listens on `127.0.0.1` only, so it cannot be reached from other devices.
-- Settings and login tokens are stored only on the user's PC, in `%APPDATA%\SpotifyNowPlaying\config.json`.
+- Settings, login tokens, the lyrics cache and the song history are stored only on the user's PC, in `%APPDATA%\SpotifyNowPlaying\`.
 - The installer does not need administrator rights and does not change system configuration. The optional *run at Windows startup* setting adds a per-user `Run` registry value, which the uninstaller removes. Uninstalling it through Windows *Settings → Apps* removes the program.
 
 Use of LRCLIB and Spotify is subject to their own privacy policies.

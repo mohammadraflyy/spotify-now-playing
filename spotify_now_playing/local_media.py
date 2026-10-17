@@ -92,7 +92,7 @@ class LocalSpotify:
             "duration": duration,
             "position": position,
             "playing": playing,
-            "device": f"{player_name(session.source_app_user_model_id)} (lokal)",
+            "device": player_name(session.source_app_user_model_id),
         }
 
     @staticmethod

@@ -157,6 +157,14 @@
   .kind { font-size: 11px; font-weight: 600; border-radius: 99px; padding: 1px 8px; border: 1px solid var(--line); color: var(--dim); margin-left: 6px; }
   .kind.ok { color: var(--accent); border-color: rgba(29,185,84,.4); }
 
+  /* ---------- riwayat ---------- */
+  .history { display: grid; gap: 2px; margin-top: 12px; }
+  .history .h-row { display: flex; gap: 14px; align-items: baseline; padding: 8px 4px; border-bottom: 1px solid var(--line); }
+  .history .h-time { font: 12px ui-monospace, Consolas, monospace; color: var(--dim); flex: 0 0 auto; }
+  .history .h-song { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .history .h-player { color: var(--dim); font-size: 12px; flex: 0 0 auto; }
+  .lang { background: var(--panel2); border: 1px solid var(--line); color: var(--muted); border-radius: 99px; padding: 4px 8px; font: 600 12px Inter, sans-serif; width: auto; }
+
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(90px); background: var(--fg); color: var(--bg);
     padding: 10px 18px; border-radius: 99px; font-weight: 600; transition: transform .25s; z-index: 20; }
   .toast.show { transform: translateX(-50%) translateY(0); }
@@ -190,6 +198,8 @@
   <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></symbol>
   <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+  <symbol id="i-message" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol>
 </svg>
 <header>
   <div class="bar">
@@ -197,6 +207,7 @@
       <div class="logo"><svg class="i"><use href="#i-music"/></svg></div>
       <h1>Spotify Now Playing</h1>
       <span class="pill"><span class="dot" id="pill-dot"></span><span id="pill-text">Memuat…</span></span>
+      <select class="lang" id="lang" title="Bahasa / Language"><option value="id">ID</option><option value="en">EN</option></select>
     </div>
     <nav id="tabs">
       <button data-tab="home"><svg class="i"><use href="#i-home"/></svg>Beranda</button>
@@ -204,6 +215,7 @@
       <button data-tab="lyrics"><svg class="i"><use href="#i-mic"/></svg>Lirik</button>
       <button data-tab="source"><svg class="i"><use href="#i-plug"/></svg>Sumber Musik</button>
       <button data-tab="files"><svg class="i"><use href="#i-file"/></svg>File Teks</button>
+      <button data-tab="history"><svg class="i"><use href="#i-history"/></svg>Riwayat</button>
       <button data-tab="app"><svg class="i"><use href="#i-settings"/></svg>Aplikasi</button>
     </nav>
   </div>
@@ -299,15 +311,25 @@
         </div>
         <div class="panel">
           <div class="field">
+            <span class="label">Layout</span>
+            <div class="seg">
+              <label><input type="radio" name="o-layout" value="row">Baris<small>cover di kiri</small></label>
+              <label><input type="radio" name="o-layout" value="vertical">Vertikal<small>cover besar</small></label>
+              <label><input type="radio" name="o-layout" value="minimal">Minimal<small>satu baris teks</small></label>
+              <label><input type="radio" name="o-layout" value="vinyl">Vinyl<small>cover berputar</small></label>
+            </div>
+          </div>
+          <div class="field">
             <span class="label">Ukuran</span>
             <div class="chips" id="presets" style="margin-bottom:14px">
               <button data-preset="340,84">Kecil</button>
               <button data-preset="460,112">Sedang</button>
               <button data-preset="600,150">Besar</button>
-              <button data-preset="760,96">Lebar</button>
+              <button data-preset="760,96" data-en="Wide">Lebar</button>
             </div>
             <div class="slider"><span>Lebar</span><input type="range" id="o-width" min="200" max="1200" step="1"><span class="numwrap"><input type="number" class="num" id="o-width-v" data-range="o-width">px</span></div>
-            <div class="slider"><span>Tinggi</span><input type="range" id="o-height" min="48" max="400" step="1"><span class="numwrap"><input type="number" class="num" id="o-height-v" data-range="o-height">px</span></div>
+            <div class="slider" id="o-height-wrap"><span>Tinggi</span><input type="range" id="o-height" min="48" max="400" step="1"><span class="numwrap"><input type="number" class="num" id="o-height-v" data-range="o-height">px</span></div>
+            <p class="muted small" id="o-vertical-hint" style="margin:0 0 10px" hidden>Di layout vertikal, tinggi kartu mengikuti lebarnya.</p>
             <div class="slider"><span>Sudut</span><input type="range" id="o-radius" min="0" max="60" step="1"><span class="numwrap"><input type="number" class="num" id="o-radius-v" data-range="o-radius">px</span></div>
           </div>
 
@@ -497,7 +519,7 @@
       <div class="panel">
         <h3>Spotify App <span class="muted small" style="font-weight:400">(cukup sekali)</span></h3>
         <ol class="how" style="margin:0 0 16px">
-          <li>Buka <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">Spotify Developer Dashboard</a> → <b>Create app</b>. Login dengan akun <b>Premium</b>.</li>
+          <li>Buka <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">Spotify Developer Dashboard</a> → <b>Create app</b>. Login dengan akun <b data-en="Premium account">Premium</b>.</li>
           <li>Centang <b>Web API</b>. Di <b>Redirect URIs</b>, tempel URL di bawah → <b>Add</b> → <b>Save</b>.</li>
           <li>Buka <b>Settings → User Management</b>, lalu tambahkan email akun Spotify kamu.</li>
           <li>Salin <b>Client ID</b> ke kolom di bawah → <b>Simpan</b> → <b>Login dengan Spotify</b>.</li>
@@ -560,6 +582,35 @@
       </div>
       <label class="check"><input type="checkbox" id="t-hide"> Kosongkan teks saat lagu di-pause</label>
     </div>
+
+    <div class="panel">
+      <h3><svg class="i"><use href="#i-message"/></svg> Perintah !song untuk chatbot</h3>
+      <p class="muted small" style="margin:-4px 0 12px">URL ini berisi teks lagu yang sedang diputar, dengan format yang sama seperti <code>nowplaying.txt</code>. Pakai di chatbot yang berjalan di PC ini, seperti Streamer.bot atau Mix It Up.</p>
+      <div class="row">
+        <input type="text" class="mono" id="now-txt-url" readonly>
+        <button data-copy="now-txt-url">Salin</button>
+      </div>
+      <ol class="how" style="margin-top:12px">
+        <li><b>Streamer.bot</b>: buat Command <code>!song</code>, tambahkan sub-action <b>Core → Network → Fetch URL</b> dengan URL di atas, lalu kirim hasilnya lewat <b>Twitch/YouTube → Send Message</b>.</li>
+        <li>Format bisa diganti lewat URL, misalnya <code>?format=Sekarang: {title} oleh {artist}</code>.</li>
+        <li>Nightbot dan bot cloud lain <b>tidak bisa</b> memakai URL ini, karena hanya bisa diakses dari PC ini.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ======================= RIWAYAT ======================= -->
+  <section class="page" id="page-history">
+    <h2 class="page-title">Riwayat Lagu</h2>
+    <p class="page-sub">Lagu yang diputar minimal 15 detik dicatat di sini. Berguna untuk deskripsi VOD atau menjawab "lagu tadi apa?". Riwayat hanya tersimpan di PC ini.</p>
+    <div class="panel">
+      <div class="row" style="flex-wrap:wrap">
+        <select id="h-date" style="width:auto;min-width:180px"></select>
+        <button id="h-copy"><svg class="i"><use href="#i-copy"/></svg> Salin</button>
+        <a class="btn" id="h-download"><svg class="i"><use href="#i-download"/></svg> Download .txt</a>
+        <button class="danger" id="h-clear"><svg class="i"><use href="#i-trash"/></svg> Hapus</button>
+      </div>
+      <div class="history" id="h-list"></div>
+    </div>
   </section>
 
   <!-- ======================= APLIKASI ======================= -->
@@ -592,19 +643,22 @@
 </main>
 <div class="toast" id="toast"></div>
 
+<script src="/static/i18n.js"></script>
 <script>
 const $ = id => document.getElementById(id);
+const t = (text, vars) => SNPI18n.t(text, vars);
+let LANG = "id";
 const radio = name => document.querySelector(`input[name="${name}"]:checked`)?.value;
 const setRadio = (name, v) => { const r = document.querySelector(`input[name="${name}"][value="${v}"]`); if (r) r.checked = true; };
 let cfg = null, loaded = false;
 
-const CARD_DEFAULT = { width: 460, height: 112, radius: 16, bg: "dark", color: "282828", opacity: 82, accent: "1db954", hidePaused: false, noProgress: false, noCover: false, show: "always", showFor: 8 };
+const CARD_DEFAULT = { layout: "row", width: 460, height: 112, radius: 16, bg: "dark", color: "282828", opacity: 82, accent: "1db954", hidePaused: false, noProgress: false, noCover: false, show: "always", showFor: 8 };
 const LYRICS_DEFAULT = { style: "list", align: "left", size: 34, bg: "cover", color: "535353", offset: 0 };
 
 function toast(msg, err) {
-  const t = $("toast");
-  t.textContent = msg; t.className = "toast show" + (err ? " err" : "");
-  clearTimeout(t._h); t._h = setTimeout(() => t.className = "toast", 2800);
+  const el = $("toast");
+  el.textContent = t(msg); el.className = "toast show" + (err ? " err" : "");
+  clearTimeout(el._h); el._h = setTimeout(() => el.className = "toast", 2800);
 }
 
 async function api(path, body) {
@@ -614,10 +668,10 @@ async function api(path, body) {
   return j;
 }
 
-async function copy(text) {
+async function copy(text, msg = "URL tersalin, tinggal tempel di OBS") {
   try { await navigator.clipboard.writeText(text); }
   catch { const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); }
-  toast("URL tersalin, tinggal tempel di OBS");
+  toast(msg);
 }
 
 // ------------------------------------------------------------------ tab --
@@ -627,6 +681,7 @@ function showTab(name) {
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === "page-" + name));
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
   if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+  if (name === "history") loadHistory(historyDate);
   requestAnimationFrame(fitPreviews);
 }
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
@@ -663,7 +718,8 @@ function fitPreview(box, frame, w, h) {
 function fitPreviews() {
   if (!cfg) return;
   const o = cardValues();
-  fitPreview($("card-preview"), $("card-frame"), o.width + 20, o.height + 20);
+  const box = cardBox(o);
+  fitPreview($("card-preview"), $("card-frame"), box.w, box.h);
   fitPreview($("ly-preview-box"), $("ly-frame"), 800, 340);
 }
 window.addEventListener("resize", fitPreviews);
@@ -678,8 +734,14 @@ document.querySelectorAll(".drag").forEach(d => {
 
 // ------------------------------------------------------------ kartu --
 
+/** Ukuran Browser Source OBS: kartu + margin 10px tiap sisi untuk bayangan. */
+function cardBox(o) {
+  const h = o.layout === "vertical" ? Math.round(o.width * 1.4) : o.height;
+  return { w: o.width + 20, h: h + 20 };
+}
 function cardValues() {
   return {
+    layout: radio("o-layout") || "row",
     width: +$("o-width").value, height: +$("o-height").value, radius: +$("o-radius").value,
     bg: radio("o-bg") || "dark", color: $("o-color").value.slice(1), opacity: +$("o-opacity").value,
     accent: $("o-accent").value.slice(1),
@@ -689,6 +751,7 @@ function cardValues() {
 }
 function loadCard(o) {
   o = { ...CARD_DEFAULT, ...o };
+  setRadio("o-layout", o.layout);
   $("o-width").value = o.width; $("o-height").value = o.height; $("o-radius").value = o.radius;
   setRadio("o-bg", o.bg); $("o-color").value = "#" + o.color; $("o-opacity").value = o.opacity;
   $("o-accent").value = "#" + o.accent;
@@ -704,7 +767,9 @@ function updateCard(save = true) {
   $("o-color-wrap").hidden = o.bg !== "color";
   $("o-opacity-wrap").hidden = o.bg === "none";
   document.querySelectorAll("#presets button").forEach(b => b.classList.toggle("on", b.dataset.preset === `${o.width},${o.height}`));
-  const w = o.width + 20, h = o.height + 20;   // + margin 10px tiap sisi untuk bayangan
+  $("o-height-wrap").hidden = o.layout === "vertical";
+  $("o-vertical-hint").hidden = o.layout !== "vertical";
+  const { w, h } = cardBox(o);
   $("card-w").textContent = w; $("card-h").textContent = h;
   $("home-card-size").textContent = `${w} × ${h}`;
   makeDrag($("card-drag"), $("card-url").value, "Spotify Now Playing" + (curPreset ? ` (${curPreset})` : ""), w, h);
@@ -720,7 +785,7 @@ function updateCard(save = true) {
 }
 ["o-width", "o-height", "o-radius", "o-color", "o-opacity", "o-accent", "o-hide", "o-noprog", "o-nocover", "o-showfor"]
   .forEach(id => $(id).addEventListener("input", () => updateCard()));
-document.querySelectorAll('input[name="o-bg"], input[name="o-show"]').forEach(r => r.addEventListener("change", () => updateCard()));
+document.querySelectorAll('input[name="o-bg"], input[name="o-show"], input[name="o-layout"]').forEach(r => r.addEventListener("change", () => updateCard()));
 document.querySelectorAll("[data-preset]").forEach(b => b.onclick = () => {
   const [w, h] = b.dataset.preset.split(",");
   $("o-width").value = w; $("o-height").value = h; updateCard();
@@ -744,23 +809,23 @@ function renderPresets() {
     b.onclick = () => selectPreset(name);
     list.appendChild(b);
   };
-  chip("", "Utama");
+  chip("", t("Utama"));
   Object.keys(presets).sort().forEach(n => chip(n, n));
   const add = document.createElement("button");
   add.className = "ghost";
-  add.innerHTML = '<svg class="i"><use href="#i-plus"/></svg> Gaya baru';
+  add.innerHTML = '<svg class="i"><use href="#i-plus"/></svg> ' + t("Gaya baru");
   add.onclick = addPreset;
   list.appendChild(add);
   if (curPreset) {
     const del = document.createElement("button");
     del.className = "danger";
-    del.innerHTML = '<svg class="i"><use href="#i-trash"/></svg> Hapus';
+    del.innerHTML = '<svg class="i"><use href="#i-trash"/></svg> ' + t("Hapus");
     del.onclick = deletePreset;
     list.appendChild(del);
   }
   $("preset-hint").textContent = curPreset
-    ? `Sedang mengatur gaya "${curPreset}". URL-nya berbeda dari kartu utama, jadi bisa dipakai di scene lain.`
-    : "Mau tampilan berbeda di tiap scene? Buat gaya baru. Setiap gaya punya URL sendiri.";
+    ? t('Sedang mengatur gaya "{name}". URL-nya berbeda dari kartu utama, jadi bisa dipakai di scene lain.', { name: curPreset })
+    : t("Mau tampilan berbeda di tiap scene? Buat gaya baru. Setiap gaya punya URL sendiri.");
 }
 function selectPreset(name) {
   curPreset = name;
@@ -771,7 +836,7 @@ function selectPreset(name) {
   updateCard(false);
 }
 async function addPreset() {
-  const raw = prompt("Nama gaya baru (misalnya gaming, chill, podcast):");
+  const raw = prompt(t("Nama gaya baru (misalnya gaming, chill, podcast):"));
   if (raw == null) return;
   const name = raw.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24);
   if (!name) return toast("Nama hanya boleh huruf, angka, dan tanda -", true);
@@ -782,11 +847,11 @@ async function addPreset() {
     await api("/api/config", { presets: next });
     presets = next;
     selectPreset(name);
-    toast(`Gaya "${name}" dibuat`);
+    toast(t('Gaya "{name}" dibuat', { name }));
   } catch (e) { toast(e.message, true); }
 }
 async function deletePreset() {
-  if (!confirm(`Hapus gaya "${curPreset}"? Source OBS yang memakai URL gaya ini akan kembali ke kartu utama.`)) return;
+  if (!confirm(t('Hapus gaya "{name}"? Source OBS yang memakai URL gaya ini akan kembali ke kartu utama.', { name: curPreset }))) return;
   const next = { ...presets };
   delete next[curPreset];
   try {
@@ -843,7 +908,7 @@ const fmtDur = s => { s = Math.round(s || 0); return Math.floor(s / 60) + ":" + 
 
 async function lyricsAction(action, body, msg) {
   try {
-    const l = await api("/api/lyrics/" + action, body || {});
+    const l = await api("/api/lyrics/" + action, { ...body, ckey: curLyrics.ckey });
     renderLyricsStatus(l);
     $("ly-frame").contentWindow?.pollLyrics?.();
     if (msg) toast(msg);
@@ -855,18 +920,18 @@ $("ly-find").onclick = () => {
   const box = $("ly-search");
   box.hidden = !box.hidden;
   if (!box.hidden) {
-    const t = curLyrics.track || {};
-    $("ly-q-title").value = (t.title || "").replace(/\s*[\(\[].*?[\)\]]/g, "").replace(/\s+-\s+.*$/, "");
-    $("ly-q-artist").value = (t.artist || "").split(",")[0].trim();
+    const trk = curLyrics.track || {};
+    $("ly-q-title").value = (trk.title || "").replace(/\s*[\(\[].*?[\)\]]/g, "").replace(/\s+-\s+.*$/, "");
+    $("ly-q-artist").value = (trk.artist || "").split(",")[0].trim();
     searchLyrics();
   }
 };
 async function searchLyrics() {
   const res = $("ly-results");
-  res.innerHTML = '<div class="muted small">Mencari…</div>';
+  res.innerHTML = `<div class="muted small">${t("Mencari…")}</div>`;
   try {
     const { results } = await api("/api/lyrics/search", { title: $("ly-q-title").value, artist: $("ly-q-artist").value });
-    res.innerHTML = results.length ? "" : '<div class="muted small">Tidak ada hasil. Coba ubah judul atau artisnya.</div>';
+    res.innerHTML = results.length ? "" : `<div class="muted small">${t("Tidak ada hasil. Coba ubah judul atau artisnya.")}</div>`;
     const dur = (curLyrics.track || {}).duration || 0;
     if (dur) results.sort((a, b) => (Math.abs(a.duration - dur) > 3) - (Math.abs(b.duration - dur) > 3) || b.synced - a.synced);
     for (const r of results) {
@@ -879,16 +944,16 @@ async function searchLyrics() {
       a.firstChild.textContent = r.title;
       const kind = document.createElement("span");
       kind.className = "kind" + (r.synced ? " ok" : "");
-      kind.textContent = r.instrumental ? "instrumental" : r.synced ? "tersinkron" : "tanpa timing";
+      kind.textContent = t(r.instrumental ? "instrumental" : r.synced ? "tersinkron" : "tanpa timing");
       a.appendChild(kind);
       const b = document.createElement("div");
       b.className = "muted small";
       const diff = dur && r.duration ? Math.round(r.duration - dur) : null;
-      b.textContent = [r.artist, r.album, fmtDur(r.duration) + (diff ? ` (${diff > 0 ? "+" : ""}${diff} dtk)` : "")].filter(Boolean).join(" · ");
+      b.textContent = [r.artist, r.album, fmtDur(r.duration) + (diff ? ` (${diff > 0 ? "+" : ""}${diff} ${t("dtk")})` : "")].filter(Boolean).join(" · ");
       meta.append(a, b);
       const use = document.createElement("button");
       use.className = "sm" + (r.synced ? " primary" : "");
-      use.textContent = "Pakai";
+      use.textContent = t("Pakai");
       use.onclick = async () => {
         if (await lyricsAction("use", { id: r.id }, "Lirik diganti dan disimpan untuk lagu ini")) $("ly-search").hidden = true;
       };
@@ -920,9 +985,9 @@ $("ly-song-offset").addEventListener("input", () => {
 
 function renderLyricsStatus(l) {
   curLyrics = l;
-  const t = l.track || {};
-  const src = { manual: "Dipilih manual dari LRCLIB", file: "Dari file .lrc" }[l.source];
-  $("ly-track").textContent = t.title ? `${t.title} — ${t.artist}` + (src ? ` · ${src}` : "") : "";
+  const trk = l.track || {};
+  const src = { manual: t("Dipilih manual dari LRCLIB"), file: t("Dari file .lrc") }[l.source];
+  $("ly-track").textContent = trk.title ? `${trk.title} — ${trk.artist}` + (src ? ` · ${src}` : "") : "";
   const hasSong = !!l.ckey;
   $("ly-find").disabled = $("ly-file-btn").disabled = !hasSong;
   $("ly-reset").hidden = !hasSong || !(src || l.offset);
@@ -932,7 +997,7 @@ function renderLyricsStatus(l) {
     setNum("ly-song-offset-v", l.offset || 0);
   }
   const map = {
-    synced: ["ok", "Lirik ditemukan", `${l.lines.length} baris tersinkron untuk lagu ini`],
+    synced: ["ok", "Lirik ditemukan", t("{n} baris tersinkron untuk lagu ini", { n: l.lines.length })],
     plain: ["warn", "Lirik tanpa timing", "LRCLIB belum punya versi tersinkron untuk lagu ini, jadi lirik tidak ditampilkan"],
     instrumental: ["", "Instrumental", "Lagu ini tanpa lirik"],
     none: ["warn", "Lirik tidak ditemukan", "Lagu ini belum ada di LRCLIB. Coba putar lagu lain."],
@@ -940,13 +1005,13 @@ function renderLyricsStatus(l) {
     error: ["err", "Gagal mengambil lirik", l.error || "Cek koneksi internet"],
     idle: ["", "Belum ada lagu", "Putar lagu untuk melihat liriknya"],
   };
-  const [dot, title, msg] = map[l.status] || map.idle;
+  const [dot, title, msg] = (map[l.status] || map.idle).map(x => t(x));
   $("ly-placeholder").hidden = l.status === "synced";
-  $("ly-placeholder").textContent = l.status === "loading" ? "Mencari lirik…"
-    : "Preview lirik akan muncul di sini saat lagu yang punya lirik sedang diputar.";
+  $("ly-placeholder").textContent = t(l.status === "loading" ? "Mencari lirik…"
+    : "Preview lirik akan muncul di sini saat lagu yang punya lirik sedang diputar.");
   $("ly-dot").className = "dot " + dot; $("ly-title").textContent = title; $("ly-msg").textContent = msg;
-  $("home-lyrics-status").textContent = l.status === "synced" ? "Lirik lagu ini tersedia."
-    : l.status === "none" ? "Lirik lagu ini belum tersedia." : "";
+  $("home-lyrics-status").textContent = l.status === "synced" ? t("Lirik lagu ini tersedia.")
+    : l.status === "none" ? t("Lirik lagu ini belum tersedia.") : "";
 }
 
 // ---------------------------------------------------------- sumber --
@@ -973,7 +1038,7 @@ $("save").onclick = async () => {
   } catch (e) { toast(e.message, true); }
 };
 $("clear-secret").onclick = async () => {
-  if (!confirm("Hapus Client Secret? Login berikutnya tidak memakai secret.")) return;
+  if (!confirm(t("Hapus Client Secret? Login berikutnya tidak memakai secret."))) return;
   renderConfig(await api("/api/config", { client_secret: "" }));
   toast("Secret dihapus");
 };
@@ -1009,6 +1074,66 @@ $("app-updates").addEventListener("change", async () => {
     toast("Tersimpan");
   } catch (e) { toast(e.message, true); }
 });
+// ---------------------------------------------------------- riwayat --
+
+let historyDate = "";
+async function loadHistory(date) {
+  try {
+    const h = await api("/api/history" + (date ? "?date=" + date : ""));
+    historyDate = h.date;
+    const sel = $("h-date");
+    sel.innerHTML = "";
+    const today = new Date().toLocaleDateString("sv");   // YYYY-MM-DD waktu lokal
+    for (const d of h.dates) {
+      const o = document.createElement("option");
+      o.value = d;
+      o.textContent = (d === today ? t("Hari ini") + " · " : "") +
+        new Date(d + "T00:00").toLocaleDateString(LANG === "en" ? "en-GB" : "id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+      sel.appendChild(o);
+    }
+    sel.value = h.date;
+    sel.hidden = !h.dates.length;
+    ["h-copy", "h-download", "h-clear"].forEach(id => $(id).hidden = !h.entries.length);
+    $("h-download").href = "/api/history.txt?date=" + h.date;
+    const list = $("h-list");
+    list.innerHTML = "";
+    if (!h.entries.length) list.innerHTML = `<p class="muted">${t("Belum ada lagu di riwayat. Putar lagu minimal 15 detik, lalu buka tab ini lagi.")}</p>`;
+    for (const e of h.entries) {
+      const row = document.createElement("div");
+      row.className = "h-row";
+      const time = document.createElement("span");
+      time.className = "h-time";
+      time.textContent = new Date(e.time * 1000).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }).replace(".", ":");
+      const song = document.createElement("span");
+      song.className = "h-song";
+      song.innerHTML = "<b></b> <span class='muted'></span>";
+      song.children[0].textContent = e.title;
+      song.children[1].textContent = "— " + e.artist;
+      const player = document.createElement("span");
+      player.className = "h-player";
+      player.textContent = e.player || "";
+      row.append(time, song, player);
+      list.appendChild(row);
+    }
+  } catch (e) { toast(t(e.message), true); }
+}
+$("h-date").onchange = () => loadHistory($("h-date").value);
+$("h-copy").onclick = async () => {
+  const text = await (await fetch("/api/history.txt?inline=1&date=" + historyDate)).text();
+  await copy(text, t("Riwayat tersalin"));
+};
+$("h-clear").onclick = async () => {
+  if (!confirm(t("Hapus riwayat tanggal ini?"))) return;
+  await api("/api/history/clear", { date: historyDate });
+  loadHistory();
+  toast(t("Riwayat dihapus"));
+};
+
+$("lang").onchange = async () => {
+  try { await api("/api/config", { lang: $("lang").value }); location.reload(); }
+  catch (e) { toast(e.message, true); }
+};
+
 $("open-data").onclick = () => api("/api/open-data", {}).then(() => toast("Folder dibuka"));
 
 document.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy($(b.dataset.copy).value));
@@ -1017,11 +1142,18 @@ document.querySelectorAll("[data-copy-text]").forEach(b => b.onclick = () => cop
 // ----------------------------------------------------------- render --
 
 function renderConfig(c) {
+  if (!cfg) {   // pertama kali: tentukan bahasa sebelum menggambar apa pun
+    SNPI18n.setLang(c.lang);
+    LANG = SNPI18n.lang;
+    $("lang").value = LANG;
+    SNPI18n.apply();
+  }
   cfg = c;
   const base = baseUrl = `http://127.0.0.1:${c.port}`;
   $("card-url-main").value = base + "/overlay";
   setCardUrl();
   $("lyrics-url").value = base + "/lyrics";
+  $("now-txt-url").value = base + "/api/now.txt";
   $("datadir").value = c.data_dir;
   $("redirect").value = c.redirect_uri;
   $("outdir").value = c.output_dir;
@@ -1050,30 +1182,32 @@ function renderConfig(c) {
 
   $("app-startup").checked = c.startup.enabled;
   $("app-startup").disabled = !c.startup.supported;
-  $("app-startup-note").textContent = c.startup.supported
+  $("app-startup-note").textContent = t(c.startup.supported
     ? "Aplikasi langsung berjalan di tray tanpa membuka browser."
-    : "Hanya tersedia di versi yang di-install.";
+    : "Hanya tersedia di versi yang di-install.");
   $("app-updates").checked = c.check_updates;
-  $("app-update-status").innerHTML = "";
-  if (c.update) {
-    $("app-update-status").innerHTML = `<b>Versi ${c.update.version} tersedia.</b> <a target="_blank" rel="noopener">Download di GitHub</a>`;
-    $("app-update-status").querySelector("a").href = c.update.url;
-  } else if (c.check_updates) {
-    $("app-update-status").innerHTML = '<span class="muted">Kamu sudah memakai versi terbaru.</span>';
+  // dibangun ulang hanya kalau isinya berubah (refresh tiap 2 detik)
+  const upd = c.update ? `<b>${t("Versi {version} tersedia.", { version: c.update.version })}</b> <a target="_blank" rel="noopener">${t("Download di GitHub")}</a>`
+    : !c.check_updates ? ""
+    : `<span class="muted">${t({ ok: "Kamu sudah memakai versi terbaru.", error: "Gagal mengecek versi terbaru. Dicoba lagi nanti." }[c.update_status] || "Mengecek versi terbaru…")}</span>`;
+  if ($("app-update-status").dataset.html !== upd) {
+    $("app-update-status").dataset.html = upd;
+    $("app-update-status").innerHTML = upd;
+    if (c.update) $("app-update-status").querySelector("a").href = c.update.url;
   }
   $("home-update").hidden = !c.update;
   if (c.update) {
-    $("home-update-text").textContent = `Versi ${c.update.version} sudah tersedia. Kamu memakai versi ${c.version}.`;
+    $("home-update-text").textContent = t("Versi {version} sudah tersedia. Kamu memakai versi {current}.", { version: c.update.version, current: c.version });
     $("home-update-link").href = c.update.url;
   }
   $("local-ok").hidden = c.source !== "local";
   if (!$("cid").dataset.dirty) $("cid").value = c.client_id;
-  $("secret-saved").textContent = c.has_secret ? "Secret tersimpan: " + c.secret_hint : "";
+  $("secret-saved").textContent = c.has_secret ? t("Secret tersimpan: {hint}", { hint: c.secret_hint }) : "";
   $("clear-secret").hidden = !c.has_secret;
   $("acc-dot").className = "dot " + (c.logged_in ? "ok" : "");
-  $("acc-title").textContent = c.logged_in ? "Terhubung" + (c.user ? " sebagai " + c.user : "") : "Belum login";
-  $("acc-msg").textContent = c.logged_in ? "" : c.client_id ? "Klik Login dengan Spotify" : "Isi Client ID dulu (lihat langkah di bawah)";
-  $("login").textContent = c.logged_in ? "Ganti akun" : "Login dengan Spotify";
+  $("acc-title").textContent = c.logged_in ? (c.user ? t("Terhubung sebagai {user}", { user: c.user }) : t("Terhubung")) : t("Belum login");
+  $("acc-msg").textContent = c.logged_in ? "" : t(c.client_id ? "Klik Login dengan Spotify" : "Isi Client ID dulu (lihat langkah di bawah)");
+  $("login").textContent = t(c.logged_in ? "Ganti akun" : "Login dengan Spotify");
   $("login").classList.toggle("primary", !c.logged_in);
   $("logout").hidden = !c.logged_in;
 }
@@ -1082,28 +1216,28 @@ function renderStatus(c, now) {
   const s = c.status;
   const labels = { account: "Akun Spotify", local: c.players === "all" ? "Player lokal" : "Spotify Desktop", idle: "Menunggu lagu" };
   $("pill-dot").className = "dot " + (s.error ? "warn" : now.active ? "ok" : "");
-  $("pill-text").textContent = labels[s.source] + (now.active && !now.playing ? " (pause)" : "");
+  $("pill-text").textContent = t(labels[s.source]) + (now.active && !now.playing ? t(" (pause)") : "");
 
   $("np").hidden = !now.active;
   $("np-empty").hidden = now.active;
   if (now.active) {
-    $("np-kicker").textContent = now.playing ? "Sedang diputar" : "Di-pause";
+    $("np-kicker").textContent = t(now.playing ? "Sedang diputar" : "Di-pause");
     $("np-title").textContent = now.title;
     $("np-artist").textContent = now.artist + (now.device ? " · " + now.device : "");
     const src = "/cover?v=" + now.cover_version;
     if ($("np-cover").getAttribute("src") !== src) $("np-cover").src = src;
   } else {
-    $("np-empty-hint").textContent = c.source === "account" && !c.logged_in
+    $("np-empty-hint").textContent = t(c.source === "account" && !c.logged_in
       ? "Kamu memilih Akun Spotify tapi belum login. Buka tab Sumber Musik, atau pilih Spotify Desktop."
-      : "Buka Spotify Desktop dan putar lagu. Lagunya akan muncul di sini.";
+      : "Buka Spotify Desktop dan putar lagu. Lagunya akan muncul di sini.");
   }
   $("home-error").hidden = !s.error;
-  $("home-error-text").textContent = s.error;
+  $("home-error-text").textContent = t(s.error);
 
   $("step1").classList.toggle("done", !!now.active);
   $("step1-text").textContent = now.active
-    ? `Terdeteksi: ${now.title} — ${now.artist}`
-    : "Buka Spotify Desktop di PC ini dan putar lagu apa saja.";
+    ? t("Terdeteksi: {title} — {artist}", { title: now.title, artist: now.artist })
+    : t("Buka Spotify Desktop di PC ini dan putar lagu apa saja.");
 }
 
 async function refresh() {
@@ -1114,13 +1248,13 @@ async function refresh() {
     renderLyricsStatus(ly);
   } catch {
     $("pill-dot").className = "dot err";
-    $("pill-text").textContent = "Aplikasi tidak berjalan";
+    $("pill-text").textContent = t("Aplikasi tidak berjalan");
   }
 }
 
 const qs = new URLSearchParams(location.search);
-if (qs.get("login") === "ok") { toast("Login berhasil"); location.hash = "source"; }
-if (qs.get("login") === "error") { toast("Login gagal: " + (qs.get("msg") || ""), true); location.hash = "source"; }
+if (qs.get("login") === "ok") { setTimeout(() => toast("Login berhasil"), 300); location.hash = "source"; }
+if (qs.get("login") === "error") { setTimeout(() => toast(t("Login gagal: {msg}", { msg: qs.get("msg") || "" }), true), 300); location.hash = "source"; }
 if (qs.has("login")) history.replaceState(null, "", "/settings" + location.hash);
 
 showTab(location.hash.slice(1) || "home");

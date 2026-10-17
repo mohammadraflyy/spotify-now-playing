@@ -1,6 +1,6 @@
 # Spotify Now Playing untuk OBS
 
-**[Download installer (Windows)](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** · [Code signing policy](docs/CODE_SIGNING_POLICY.md) · [Privasi](#privasi)
+**[Download installer (Windows)](https://github.com/mohammadraflyy/spotify-now-playing/releases/latest)** · [Code signing policy](docs/CODE_SIGNING_POLICY.md) · [Privasi](#privasi) · [English](README.en.md)
 
 Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 
@@ -30,11 +30,12 @@ Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 
 ![Halaman pengaturan: memilih lirik](docs/screenshots/settings-lyrics.png)
 
-- **Overlay now playing**: cover, judul, artis, dan progress bar. Bisa tampil terus atau hanya beberapa detik setiap ganti lagu, dan bisa punya beberapa gaya untuk scene berbeda
+- **Overlay now playing**: cover, judul, artis, dan progress bar, dengan 4 layout (baris, vertikal, minimal, vinyl). Bisa tampil terus atau hanya beberapa detik setiap ganti lagu, dan bisa punya beberapa gaya untuk scene berbeda
 - **Overlay lirik**: tampil seperti di Spotify, dengan latar mengikuti warna cover lagu. Liriknya dari [LRCLIB](https://lrclib.net), tersimpan di PC supaya tetap ada walaupun LRCLIB sedang down
 - **Bukan cuma Spotify**: opsional, bisa juga membaca YouTube Music, Apple Music, TIDAL, dan player lain di PC yang sama
-- **File teks dan cover** untuk OBS Text/Image source
-- **Berjalan di system tray**, tanpa jendela console. Pengaturan lewat browser
+- **File teks dan cover** untuk OBS Text/Image source, plus URL teks untuk perintah `!song` di chatbot
+- **Riwayat lagu** per hari, bisa di-download sebagai `.txt` untuk deskripsi VOD
+- **Berjalan di system tray**, tanpa jendela console. Pengaturan lewat browser, dalam bahasa Indonesia atau Inggris
 
 ---
 
@@ -98,7 +99,12 @@ Kalau muncul error:
    - **Width** dan **Height**: ikuti angka yang tertera di halaman pengaturan. Untuk ukuran default, `480` × `132`.
 4. Klik **OK**, lalu atur posisinya di scene.
 
-**Atur tampilan kartu** di halaman pengaturan, bagian **3. Tambahkan ke OBS**. Perubahannya langsung terlihat di OBS tanpa ganti URL:
+**Atur tampilan kartu** di halaman pengaturan, tab **Kartu Now Playing**. Perubahannya langsung terlihat di OBS tanpa ganti URL:
+- **Layout**:
+  - *Baris*: cover di kiri, teks di kanan (default)
+  - *Vertikal*: cover besar di atas. Tinggi kartu mengikuti lebarnya
+  - *Minimal*: satu baris teks "Judul — Artis"
+  - *Vinyl*: cover bulat yang berputar selama lagu diputar
 - **Ukuran**:
   - Preset: *Kecil*, *Sedang*, *Besar*, *Lebar*
   - Atau atur sendiri **lebar**, **tinggi**, dan **sudut lengkung**, lewat slider atau dengan mengetik angka px secara manual. Cover dan teks ikut menyesuaikan tinggi kartu.
@@ -119,6 +125,7 @@ Semua opsi juga bisa ditimpa lewat parameter URL, misalnya untuk beberapa scene 
 
 | Parameter | Fungsi |
 |---|---|
+| `layout=row\|vertical\|minimal\|vinyl` | layout kartu |
 | `width=460` `height=112` | ukuran kartu (px) |
 | `radius=16` | sudut lengkung (px) |
 | `bg=dark\|cover\|color\|none` | jenis latar |
@@ -167,6 +174,21 @@ Semua file ada di `Documents\Spotify Now Playing`. Tombol **Buka folder** ada di
 
 > Tips: untuk teks berjalan, klik kanan source Text → **Filters** → **+** → **Scroll**.
 
+#### d. Perintah `!song` di chat (opsional)
+
+`http://127.0.0.1:8765/api/now.txt` berisi teks lagu yang sedang diputar, dengan format yang sama seperti `nowplaying.txt`. Formatnya bisa diganti lewat URL, misalnya `?format={title} oleh {artist}`.
+
+Pakai di chatbot yang berjalan di PC yang sama. Contoh di **Streamer.bot**: buat Command `!song`, tambahkan sub-action **Core → Network → Fetch URL** dengan URL di atas, lalu kirim hasilnya lewat **Twitch → Send Message**. Nightbot dan bot cloud lain tidak bisa memakainya, karena URL ini hanya bisa diakses dari PC-mu.
+
+### Riwayat lagu
+
+Tab **Riwayat** mencatat setiap lagu yang diputar minimal 15 detik, lengkap dengan jamnya. Pilih tanggalnya, lalu klik **Salin** atau **Download .txt** untuk ditempel di deskripsi VOD:
+
+```
+21:03  Tulus - Hati-Hati di Jalan
+21:07  Tulus - Pamit
+```
+
 ### 4. Kalau overlay tidak muncul atau tidak berubah
 
 1. Pastikan ikon **Spotify Now Playing** ada di system tray. Kalau tidak ada, buka lagi aplikasinya dari Start Menu.
@@ -183,7 +205,7 @@ Semua file ada di `Documents\Spotify Now Playing`. Tombol **Buka folder** ada di
 |---|---|
 | Aplikasi | `%LOCALAPPDATA%\Programs\Spotify Now Playing` |
 | Pengaturan dan login | `%APPDATA%\SpotifyNowPlaying\config.json`. Jangan dibagikan, karena berisi token login |
-| Cache lirik dan log | `%APPDATA%\SpotifyNowPlaying\lyrics\` dan `app.log` |
+| Cache lirik, riwayat, dan log | `%APPDATA%\SpotifyNowPlaying\lyrics\`, `history\`, dan `app.log` |
 | File teks dan cover | `Documents\Spotify Now Playing` |
 
 Uninstall lewat **Settings → Apps → Spotify Now Playing**, atau Start Menu → *Uninstall Spotify Now Playing*.
@@ -206,6 +228,8 @@ Opsi command line: `--port 8766` untuk ganti port, `--no-browser` supaya halaman
 
 Setiap push ke `main` di-build oleh GitHub Actions (`.github/workflows/build.yml`), termasuk menjalankan unit test.
 
+Cara rilis: naikkan `__version__`, tulis catatan rilis di `docs/release-notes/vX.Y.Z.md`, lalu push tag `vX.Y.Z`. GitHub Actions akan mem-build installer dan membuat GitHub Release-nya.
+
 ### Struktur
 
 ```
@@ -216,11 +240,13 @@ spotify_now_playing/
   spotify_api.py  OAuth (PKCE / secret) dan Web API
   local_media.py  Spotify / player lain lewat Windows Media Controls
   lyrics.py       lirik dari LRCLIB, cache di disk, perbaikan manual
+  history.py      riwayat lagu per hari
   server.py       web server lokal dan API JSON
   updates.py      cek versi baru (opt-in)
   startup.py      jalankan saat Windows menyala
   config.py       lokasi file dan penyimpanan config
-  web/            overlay.html, lyrics.html, settings.html, font Inter
+  i18n.py         teks tray dan dialog (Indonesia / Inggris)
+  web/            overlay.html, lyrics.html, settings.html, i18n.js (terjemahan), font Inter
 tests/            unit test
 installer.iss     script Inno Setup
 build.ps1         test, build PyInstaller, dan installer
@@ -236,7 +262,7 @@ Aplikasi ini tidak mengirim data apa pun ke luar kecuali untuk fitur yang kamu p
 - **Mode Akun Spotify**: hanya kalau kamu mengisi Client ID dan login. Aplikasi lalu terhubung ke server Spotify untuk membaca lagu yang sedang diputar.
 - **Notifikasi versi baru**: mati secara default. Kalau dinyalakan di tab **Aplikasi**, aplikasi mengecek halaman rilis GitHub sehari sekali.
 
-Tidak ada telemetri atau analitik. Font sudah disertakan di aplikasi, jadi overlay tidak memuat apa pun dari Google Fonts. Web server lokal hanya bisa diakses dari PC ini (`127.0.0.1`). Detail lengkapnya ada di [Code signing policy](docs/CODE_SIGNING_POLICY.md#privacy-policy).
+Riwayat lagu hanya disimpan di PC ini. Tidak ada telemetri atau analitik. Font sudah disertakan di aplikasi, jadi overlay tidak memuat apa pun dari Google Fonts. Web server lokal hanya bisa diakses dari PC ini (`127.0.0.1`). Detail lengkapnya ada di [Code signing policy](docs/CODE_SIGNING_POLICY.md#privacy-policy).
 
 ## Code signing policy
 

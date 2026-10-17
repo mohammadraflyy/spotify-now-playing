@@ -9,6 +9,7 @@ from . import local_media
 from .config import DATA_DIR, OUTPUT_DIR
 from .lyrics import LyricsProvider
 from .spotify_api import SpotifyAccount
+from .history import History
 from .updates import UpdateChecker
 
 log = logging.getLogger("snp")
@@ -17,6 +18,14 @@ API_BACKOFF = 60     # detik jeda ke API setelah gagal (mode otomatis)
 API_INTERVAL = 2.0   # jangan terlalu sering ke Web API (rate limit)
 LOCAL_INTERVAL = 0.5
 TEXT_FILES = ("nowplaying.txt", "title.txt", "artist.txt", "album.txt", "progress.txt", "lyrics.txt")
+
+
+def format_line(fmt, s):
+    """Format nowplaying.txt / now.txt, mis. "{artist} - {title}"."""
+    try:
+        return (fmt or "{artist} - {title}").format(title=s["title"], artist=s["artist"], album=s["album"])
+    except (KeyError, IndexError, ValueError, AttributeError):
+        return f"{s['artist']} - {s['title']}"
 
 
 def fmt_time(sec):
@@ -32,6 +41,7 @@ class NowPlayingApp:
                       if local_media.AVAILABLE else None)
         self.lyrics = LyricsProvider(cache_dir=DATA_DIR / "lyrics")
         self.updates = UpdateChecker(config)
+        self.history = History(DATA_DIR / "history")
         self.console = False  # True: tampilkan status di console (--console)
         self.lock = threading.Lock()
         self.state = {
@@ -62,7 +72,12 @@ class NowPlayingApp:
     def run(self):
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         while True:
-            delay = self.tick()
+            try:
+                delay = self.tick()
+            except Exception:  # jangan sampai loop mati diam-diam di belakang ikon tray
+                log.exception("tick gagal")
+                self.status = {"source": "idle", "error": "Terjadi error, lihat app.log"}
+                delay = 2
             time.sleep(delay)
 
     def tick(self):
@@ -99,6 +114,7 @@ class NowPlayingApp:
         self._apply(info)
         snap = self.snapshot()
         self._write_files(snap)
+        self.history.observe(snap)
         self._render_console(snap)
         return delay
 
@@ -135,16 +151,13 @@ class NowPlayingApp:
             for f in TEXT_FILES:
                 _write_text(f, "")
             return
-        fmt = text.get("format") or "{artist} - {title}"
-        try:
-            line = fmt.format(title=s["title"], artist=s["artist"], album=s["album"])
-        except (KeyError, IndexError, ValueError):
-            line = f"{s['artist']} - {s['title']}"
+        line = format_line(text.get("format"), s)
         _write_text("nowplaying.txt", line + "   ")  # spasi: enak untuk filter scroll OBS
         _write_text("title.txt", s["title"])
         _write_text("artist.txt", s["artist"])
         _write_text("album.txt", s["album"])
-        _write_text("progress.txt", f"{fmt_time(s['position'])} / {fmt_time(s['duration'])}")
+        # sebagian player (mis. browser) tidak memberi durasi: jangan tulis "0:00 / 0:00"
+        _write_text("progress.txt", f"{fmt_time(s['position'])} / {fmt_time(s['duration'])}" if s["duration"] else "")
         offset = float(self.cfg.get("lyrics", {}).get("offset") or 0)
         _write_text("lyrics.txt", self.lyrics.line_at(s["position"], offset))
 

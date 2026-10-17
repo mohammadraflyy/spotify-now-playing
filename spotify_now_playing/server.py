@@ -8,7 +8,8 @@ import threading
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import __version__, local_media, lyrics, startup
+from . import __version__, i18n, local_media, lyrics, startup
+from .app import format_line
 from .config import DATA_DIR, OUTPUT_DIR, WEB_DIR
 
 PAGES = {
@@ -41,8 +42,10 @@ def make_handler(app, port):
             "overlay": cfg.get("overlay", {}),
             "presets": cfg.get("presets", {}),
             "players": cfg.get("players", "spotify"),
+            "lang": i18n.lang(cfg),
             "check_updates": bool(cfg.get("check_updates", False)),
             "update": app.updates.available,
+            "update_status": app.updates.status,
             "startup": {"supported": startup.supported(), "enabled": startup.is_enabled()},
             "data_dir": str(DATA_DIR),
             "text": cfg.get("text", {}),
@@ -96,6 +99,26 @@ def make_handler(app, port):
             elif path == "/api/now":
                 self._send(200, json.dumps(app.snapshot()).encode(), "application/json",
                            {"Access-Control-Allow-Origin": "*"})
+            elif path == "/api/now.txt":
+                # untuk chatbot lokal (Streamer.bot, Mix It Up): perintah !song
+                s = app.snapshot()
+                fmt = (q.get("format") or [None])[0] or app.cfg.get("text", {}).get("format")
+                if s["active"]:
+                    text = format_line(fmt, s)
+                else:
+                    text = (q.get("empty") or [None])[0] or i18n.t(app.cfg, "nothing")
+                self._send(200, text.encode("utf-8"), "text/plain; charset=utf-8",
+                           {"Access-Control-Allow-Origin": "*"})
+            elif path == "/api/history":
+                dates = app.history.dates()
+                date = (q.get("date") or [None])[0] or (dates[0] if dates else "")
+                self._json({"dates": dates, "date": date, "entries": app.history.entries(date)})
+            elif path == "/api/history.txt":
+                date = (q.get("date") or [""])[0]
+                date = date if re.match(r"^\d{4}-\d{2}-\d{2}$", date) else ""
+                extra = {} if q.get("inline") else {
+                    "Content-Disposition": f'attachment; filename="riwayat-lagu-{date}.txt"'}
+                self._send(200, app.history.text(date).encode("utf-8"), "text/plain; charset=utf-8", extra)
             elif path == "/api/lyrics":
                 self._send(200, json.dumps(app.lyrics.get()).encode(), "application/json",
                            {"Access-Control-Allow-Origin": "*"})
@@ -158,6 +181,8 @@ def make_handler(app, port):
             elif self.path == "/api/open-output":
                 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
                 os.startfile(OUTPUT_DIR)
+            elif self.path == "/api/history/clear":
+                app.history.clear(str(body.get("date") or ""))
             elif self.path == "/api/open-data":
                 DATA_DIR.mkdir(parents=True, exist_ok=True)
                 os.startfile(DATA_DIR)
@@ -181,14 +206,15 @@ def make_handler(app, port):
                         raise ValueError("Isi judul lagu")
                     self._json({"results": lyrics.candidates(title, str(body.get("artist") or "").strip())})
                     return
+                ckey = body.get("ckey")  # lagu yang dimaksud halaman pengaturan
                 if action == "use":
-                    result = app.lyrics.use_lrclib(body.get("id"))
+                    result = app.lyrics.use_lrclib(body.get("id"), ckey)
                 elif action == "lrc":
-                    result = app.lyrics.use_lrc(str(body.get("text") or ""))
+                    result = app.lyrics.use_lrc(str(body.get("text") or ""), ckey)
                 elif action == "offset":
-                    result = app.lyrics.set_offset(body.get("offset") or 0)
+                    result = app.lyrics.set_offset(body.get("offset") or 0, ckey)
                 elif action == "reset":
-                    result = app.lyrics.reset()
+                    result = app.lyrics.reset(ckey)
                 else:
                     self._json({"error": "not found"}, 404)
                     return
@@ -222,6 +248,8 @@ def make_handler(app, port):
                     if not PRESET_NAME.match(name) or not isinstance(opts, dict):
                         return "Nama preset hanya boleh huruf kecil, angka, dan tanda -"
                 cfg.update(presets=presets)
+            if body.get("lang") in i18n.TEXT:
+                cfg.update(lang=body["lang"])
             if body.get("players") in ("spotify", "all"):
                 cfg.update(players=body["players"])
             if "check_updates" in body:

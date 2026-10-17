@@ -8,7 +8,7 @@ import webbrowser
 import pystray
 from PIL import Image
 
-from . import APP_NAME, startup
+from . import APP_NAME, i18n, startup
 from .config import OUTPUT_DIR, WEB_DIR
 
 
@@ -32,28 +32,31 @@ def run_tray(app, settings_url, greet):
         except OSError as e:
             icon.notify(str(e), APP_NAME)
 
+    def tr(key, **kw):
+        return i18n.t(app.cfg, key, **kw)
+
     def quit_app(icon, item):
         icon.stop()
 
     def update_label(item):
         a = app.updates.available
-        return f"Download versi {a['version']}" if a else ""
+        return tr("download", version=a["version"]) if a else ""
 
     icon = pystray.Icon(
         "SpotifyNowPlaying", Image.open(WEB_DIR / "icon.ico"), APP_NAME,
         pystray.Menu(
-            pystray.MenuItem("Buka pengaturan", open_settings, default=True),
+            pystray.MenuItem(lambda item: tr("open_settings"), open_settings, default=True),
             pystray.MenuItem(update_label, open_update, visible=lambda item: bool(app.updates.available)),
-            pystray.MenuItem("Buka folder file teks", open_folder),
+            pystray.MenuItem(lambda item: tr("open_folder"), open_folder),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Jalankan saat Windows menyala", toggle_startup,
+            pystray.MenuItem(lambda item: tr("startup"), toggle_startup,
                              checked=lambda item: startup.is_enabled(), enabled=startup.supported()),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Keluar", quit_app),
+            pystray.MenuItem(lambda item: tr("quit"), quit_app),
         ))
 
     def on_update(info):
-        icon.notify(f"Versi {info['version']} tersedia. Klik kanan ikon ini untuk download.", APP_NAME)
+        icon.notify(tr("update_found", version=info["version"]), APP_NAME)
         icon.update_menu()
 
     def watch_title():
@@ -61,12 +64,12 @@ def run_tray(app, settings_url, greet):
         while True:
             s = app.snapshot()
             if s["active"]:
-                state = "" if s["playing"] else " (pause)"
+                state = "" if s["playing"] else tr("paused")
                 title = f"{s['artist']} — {s['title']}{state}"
             elif app.status.get("error"):
                 title = app.status["error"]
             else:
-                title = "Tidak ada lagu yang diputar"
+                title = tr("nothing")
             title = f"{APP_NAME}\n{title}"[:127]  # batas tooltip Windows
             if title != last:
                 last = icon.title = title
@@ -75,8 +78,9 @@ def run_tray(app, settings_url, greet):
     def setup(icon):
         icon.visible = True
         app.updates.on_found = on_update
+        app.updates.start()  # setelah on_found terpasang, supaya notifikasi pertama tidak terlewat
         threading.Thread(target=watch_title, daemon=True).start()
         if greet:
-            icon.notify("Berjalan di system tray. Klik ikonnya untuk membuka pengaturan.", APP_NAME)
+            icon.notify(tr("greet"), APP_NAME)
 
     icon.run(setup=setup)

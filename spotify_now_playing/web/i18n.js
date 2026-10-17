@@ -1,0 +1,360 @@
+/* Terjemahan halaman pengaturan. Teks sumber (bahasa Indonesia) ada langsung di HTML/JS,
+   kamus ini memetakannya ke bahasa Inggris. Teks yang tidak ada di kamus tetap tampil apa adanya.
+
+   SNPI18n.t("teks {nama}", { nama: "x" })  -> teks terjemahan dengan variabel
+   SNPI18n.apply()                          -> terjemahkan teks statis halaman            */
+window.SNPI18n = (() => {
+  const EN = {
+    // ---------------------------------------------------------------- umum
+    "Memuat…": "Loading…",
+    "Beranda": "Home",
+    "Kartu Now Playing": "Now Playing card",
+    "Lirik": "Lyrics",
+    "Sumber Musik": "Music source",
+    "File Teks": "Text files",
+    "Riwayat": "History",
+    "Aplikasi": "App",
+    "Salin": "Copy",
+    "Simpan": "Save",
+    "Hapus": "Delete",
+    "Buka": "Open",
+    "Buka folder": "Open folder",
+    "Cari": "Search",
+    "Pakai": "Use",
+    "Tersimpan": "Saved",
+    "Folder dibuka": "Folder opened",
+    "preview": "preview",
+    "detik": "sec",
+    "dan": "and",
+    "Isi": "Set",
+    "Pilih": "Choose",
+
+    // ------------------------------------------------------------- beranda
+    "Sedang diputar": "Now playing",
+    "Di-pause": "Paused",
+    "Belum ada lagu yang diputar": "Nothing is playing yet",
+    "Buka Spotify Desktop dan putar lagu. Lagunya akan muncul di sini.": "Open Spotify Desktop and play a song. It will show up here.",
+    "Kamu memilih Akun Spotify tapi belum login. Buka tab Sumber Musik, atau pilih Spotify Desktop.": "You chose Spotify account but haven't logged in. Open the Music source tab, or choose Spotify Desktop.",
+    "Mulai dalam 3 langkah": "Get started in 3 steps",
+    "Cukup dilakukan sekali. Setelah itu tinggal buka aplikasi ini setiap kali streaming.": "You only need to do this once. After that, just keep this app running while you stream.",
+    "Putar lagu di Spotify": "Play a song on Spotify",
+    "Buka Spotify Desktop di PC ini dan putar lagu apa saja.": "Open Spotify Desktop on this PC and play any song.",
+    "Terdeteksi: {title} — {artist}": "Detected: {title} — {artist}",
+    "Tambahkan kartu Now Playing ke OBS": "Add the Now Playing card to OBS",
+    "Salin URL di bawah. Lalu di OBS buka": "Copy the URL below. Then in OBS open",
+    ", tempel URL-nya, dan isi ukurannya": ", paste the URL, and set the size to",
+    "Salin URL kartu": "Copy card URL",
+    "Atur tampilan": "Customize",
+    "Tambahkan lirik": "Add lyrics",
+    "opsional": "optional",
+    "Caranya sama seperti langkah 2, dengan ukuran": "Same as step 2, with the size",
+    "Salin URL lirik": "Copy lyrics URL",
+    "Lirik lagu ini tersedia.": "Lyrics are available for this song.",
+    "Lirik lagu ini belum tersedia.": "Lyrics are not available for this song yet.",
+    "Belum pernah menambahkan Browser Source di OBS? Lihat caranya di sini": "Never added a Browser Source in OBS? Here's how",
+    "Di OBS, buka panel": "In OBS, go to the",
+    "(kiri bawah), lalu klik tombol": "panel (bottom left), then click the",
+    ", beri nama (misalnya \"Spotify\"), lalu klik": ", give it a name (for example \"Spotify\"), then click",
+    "Hapus isi kolom": "Clear the",
+    ", lalu tempel URL yang sudah kamu salin (": "field, then paste the URL you copied (",
+    "sesuai ukuran di atas, lalu klik": "to the size above, then click",
+    "Geser dan atur posisinya di layar preview OBS": "Drag it into place in the OBS preview",
+    "Kalau tampilannya belum berubah: klik kanan source →": "If it doesn't update: right-click the source →",
+    "Versi {version} sudah tersedia. Kamu memakai versi {current}.": "Version {version} is available. You are using version {current}.",
+    "URL tersalin, tinggal tempel di OBS": "URL copied, now paste it in OBS",
+
+    // ----------------------------------------------------------- status
+    "Akun Spotify": "Spotify account",
+    "Spotify Desktop": "Spotify Desktop",
+    "Player lokal": "Local player",
+    "Menunggu lagu": "Waiting for music",
+    " (pause)": " (paused)",
+    "Aplikasi tidak berjalan": "App is not running",
+    "Belum login ke akun Spotify": "Not logged in to a Spotify account",
+    "Mode lokal tidak tersedia di sistem ini": "Local mode is not available on this system",
+    "Terjadi error, lihat app.log": "Something went wrong, see app.log",
+
+    // ------------------------------------------------------------- kartu
+    "Atur tampilannya di sini. Perubahan langsung terlihat di OBS tanpa perlu ganti URL.": "Customize it here. Changes show up in OBS right away, no need to change the URL.",
+    "Gaya kartu": "Card styles",
+    "Utama": "Main",
+    "Gaya baru": "New style",
+    "Mau tampilan berbeda di tiap scene? Buat gaya baru. Setiap gaya punya URL sendiri.": "Want a different look in each scene? Create a new style. Each style has its own URL.",
+    "Sedang mengatur gaya \"{name}\". URL-nya berbeda dari kartu utama, jadi bisa dipakai di scene lain.": "Editing the \"{name}\" style. It has its own URL, so you can use it in another scene.",
+    "Nama gaya baru (misalnya gaming, chill, podcast):": "Name for the new style (for example gaming, chill, podcast):",
+    "Nama hanya boleh huruf, angka, dan tanda -": "Names can only contain letters, numbers and -",
+    "Maksimal 20 gaya": "You can have up to 20 styles",
+    "Gaya \"{name}\" dibuat": "Style \"{name}\" created",
+    "Hapus gaya \"{name}\"? Source OBS yang memakai URL gaya ini akan kembali ke kartu utama.": "Delete the \"{name}\" style? OBS sources using this style's URL will go back to the main card.",
+    "Gaya dihapus": "Style deleted",
+    "Layout": "Layout",
+    "Baris": "Row",
+    "cover di kiri": "cover on the left",
+    "Vertikal": "Vertical",
+    "cover besar": "large cover",
+    "Minimal": "Minimal",
+    "satu baris teks": "one line of text",
+    "Vinyl": "Vinyl",
+    "cover berputar": "spinning cover",
+    "Ukuran": "Size",
+    "Kecil": "Small",
+    "Sedang": "Medium",
+    "Besar": "Large",
+    "Lebar": "Width",
+    "Tinggi": "Height",
+    "Di layout vertikal, tinggi kartu mengikuti lebarnya.": "In the vertical layout, the card's height follows its width.",
+    "Sudut": "Corners",
+    "Latar": "Background",
+    "Gelap": "Dark",
+    "Warna lagu": "Song color",
+    "dari cover": "from the cover",
+    "Warna tetap": "Fixed color",
+    "Transparan": "Transparent",
+    "Warna": "Color",
+    "Opasitas": "Opacity",
+    "Kapan kartu muncul": "When to show the card",
+    "Selalu": "Always",
+    "Saat ganti lagu": "On song change",
+    "lalu sembunyi lagi": "then hide again",
+    "Durasi": "Duration",
+    "Kartu juga muncul saat lagu diputar lagi setelah di-pause. Preview di sini selalu tampil.": "The card also shows when playback resumes after a pause. The preview here is always visible.",
+    "Lainnya": "Other",
+    "Aksen": "Accent",
+    "warna tulisan \"Now Playing\" & progress bar": "color of the \"Now Playing\" label & progress bar",
+    "Sembunyikan kartu saat lagu di-pause": "Hide the card while paused",
+    "Sembunyikan progress bar": "Hide the progress bar",
+    "Sembunyikan cover album": "Hide the album cover",
+    "Kembalikan ke default": "Reset to default",
+    "Kartu dikembalikan ke default": "Card reset to default",
+    "Preview kartu": "Card preview",
+    "Tambahkan ke OBS": "Add to OBS",
+    "Ukuran Browser Source:": "Browser Source size:",
+    "Atau seret kotak ini ke jendela preview OBS": "Or drag this box into the OBS preview",
+    "(langsung jadi source dengan ukuran yang pas)": "(creates a source with the right size)",
+    "Seret (drag) kotak ini ke jendela OBS, jangan diklik": "Drag this box into the OBS window, don't click it",
+    "Kalau ukuran kartu diubah, samakan juga Width/Height di OBS (klik kanan source → Properties).": "If you change the card size, update Width/Height in OBS too (right-click the source → Properties).",
+
+    // ------------------------------------------------------------- lirik
+    "Lirik tersinkron dari": "Synced lyrics from",
+    ", tampil seperti di Spotify. Perubahan langsung terlihat di OBS.": ", shown like in Spotify. Changes show up in OBS right away.",
+    "Lirik salah? Cari yang lain": "Wrong lyrics? Find others",
+    "Pakai file .lrc": "Use a .lrc file",
+    "Kembali ke otomatis": "Back to automatic",
+    "Offset": "Offset",
+    "Khusus lagu ini, tersimpan otomatis. Ditambahkan ke offset semua lagu.": "For this song only, saved automatically. Added on top of the offset for all songs.",
+    "Judul lagu": "Song title",
+    "Artis": "Artist",
+    "Mencari…": "Searching…",
+    "Tidak ada hasil. Coba ubah judul atau artisnya.": "No results. Try changing the title or artist.",
+    "instrumental": "instrumental",
+    "tersinkron": "synced",
+    "tanpa timing": "no timing",
+    "dtk": "s",
+    "Lirik diganti dan disimpan untuk lagu ini": "Lyrics replaced and saved for this song",
+    "Lirik dari file dipakai untuk lagu ini": "Using the lyrics from the file for this song",
+    "Kembali ke lirik otomatis": "Back to automatic lyrics",
+    "File terlalu besar": "File is too large",
+    "Dipilih manual dari LRCLIB": "Picked manually from LRCLIB",
+    "Dari file .lrc": "From a .lrc file",
+    "Lirik ditemukan": "Lyrics found",
+    "{n} baris tersinkron untuk lagu ini": "{n} synced lines for this song",
+    "Lirik tanpa timing": "Lyrics without timing",
+    "LRCLIB belum punya versi tersinkron untuk lagu ini, jadi lirik tidak ditampilkan": "LRCLIB has no synced version of this song yet, so no lyrics are shown",
+    "Instrumental": "Instrumental",
+    "Lagu ini tanpa lirik": "This song has no lyrics",
+    "Lirik tidak ditemukan": "Lyrics not found",
+    "Lagu ini belum ada di LRCLIB. Coba putar lagu lain.": "This song isn't on LRCLIB yet. Try another song.",
+    "Mencari lirik…": "Searching for lyrics…",
+    "Gagal mengambil lirik": "Couldn't get lyrics",
+    "Cek koneksi internet": "Check your internet connection",
+    "Belum ada lagu": "No song yet",
+    "Putar lagu untuk melihat liriknya": "Play a song to see its lyrics",
+    "Preview lirik akan muncul di sini saat lagu yang punya lirik sedang diputar.": "The lyrics preview shows up here while a song with lyrics is playing.",
+    "Tampilan": "Display",
+    "Beberapa baris": "Several lines",
+    "bergulir": "scrolling",
+    "Satu baris": "One line",
+    "hanya baris aktif": "current line only",
+    "seperti Spotify": "like Spotify",
+    "Teks": "Text",
+    "Rata": "Align",
+    "Kiri": "Left",
+    "Tengah": "Center",
+    "Kanan": "Right",
+    "Sinkronisasi semua lagu": "Sync for all songs",
+    "Lirik telat? Geser ke": "Lyrics late? Move toward",
+    ". Lirik terlalu cepat? Geser ke": ". Lyrics early? Move toward",
+    "Lirik dikembalikan ke default": "Lyrics reset to default",
+    "Preview lirik": "Lyrics preview",
+    "(boleh diubah)": "(can be changed)",
+    "Mau teks biasa? Gunakan file": "Want plain text? Use the",
+    ", ada di tab File Teks.": "file in the Text files tab.",
+
+    // ------------------------------------------------------------ sumber
+    "Dari mana aplikasi membaca lagu yang sedang diputar. Kalau Spotify kamu putar di PC ini, pilih": "Where the app reads the current song from. If you play Spotify on this PC, choose",
+    "dan tidak perlu setting apa-apa lagi.": "and there's nothing else to set up.",
+    "Disarankan": "Recommended",
+    "Membaca Spotify di PC ini. Tanpa login, tanpa setup.": "Reads Spotify on this PC. No login, no setup.",
+    "Otomatis": "Automatic",
+    "Pakai akun Spotify kalau bisa. Kalau tidak, pindah ke Spotify Desktop.": "Uses your Spotify account when possible, otherwise falls back to Spotify Desktop.",
+    "Baca dari semua device (HP, speaker, dll). Perlu login dan akun Premium.": "Reads from all devices (phone, speakers, etc). Needs a login and a Premium account.",
+    "Baca juga player lain di PC ini": "Also read other players on this PC",
+    "YouTube Music atau YouTube di browser, Apple Music, TIDAL, Deezer, dan player lain yang muncul di kontrol media Windows. Kalau beberapa player aktif, yang sedang memutar lagu diutamakan.": "YouTube Music or YouTube in a browser, Apple Music, TIDAL, Deezer, and other players that show up in the Windows media controls. If several players are active, the one that is playing wins.",
+    "Siap dipakai": "Ready to go",
+    "Mode ini tidak butuh pengaturan apa pun. Pastikan saja Spotify Desktop terbuka dan sedang memutar lagu.": "This mode needs no setup. Just make sure Spotify Desktop is open and playing.",
+    "Sumber musik diubah": "Music source changed",
+    "Status akun": "Account status",
+    "Belum login": "Not logged in",
+    "Terhubung": "Connected",
+    "Terhubung sebagai {user}": "Connected as {user}",
+    "Klik Login dengan Spotify": "Click Log in with Spotify",
+    "Isi Client ID dulu (lihat langkah di bawah)": "Enter a Client ID first (see the steps below)",
+    "Login dengan Spotify": "Log in with Spotify",
+    "Ganti akun": "Switch account",
+    "Logout": "Log out",
+    "(cukup sekali)": "(only once)",
+    ". Login dengan akun": ". Log in with a",
+    "account.": "account.",
+    "Centang": "Check",
+    ". Di": ". Under",
+    ", tempel URL di bawah →": ", paste the URL below →",
+    ", lalu tambahkan email akun Spotify kamu.": ", then add your Spotify account's email.",
+    "ke kolom di bawah →": "into the field below →",
+    "32 karakter dari dashboard": "32 characters from the dashboard",
+    "(opsional, boleh dikosongkan)": "(optional, can be left empty)",
+    "kosongkan saja": "leave empty",
+    "Tampilkan": "Show",
+    "Hapus secret": "Remove secret",
+    "Secret tersimpan: {hint}": "Secret saved: {hint}",
+    "Tersimpan. Client ID berubah, silakan login ulang": "Saved. The Client ID changed, please log in again",
+    "Tersimpan. Sekarang klik Login dengan Spotify": "Saved. Now click Log in with Spotify",
+    "Hapus Client Secret? Login berikutnya tidak memakai secret.": "Remove the Client Secret? The next login won't use a secret.",
+    "Secret dihapus": "Secret removed",
+    "Logout berhasil": "Logged out",
+    "Isi dan simpan Client ID dulu": "Enter and save a Client ID first",
+    "Login berhasil": "Logged in",
+    "Login gagal: {msg}": "Login failed: {msg}",
+
+    // -------------------------------------------------------------- file
+    "File Teks & Cover": "Text files & cover",
+    "Opsional. Untuk OBS": "Optional. For OBS",
+    "→ centang": "→ check",
+    ", atau": ", or",
+    "untuk cover.": "for the cover.",
+    "Folder": "Folder",
+    "Artis - Judul (formatnya bisa diubah di bawah)": "Artist - Title (format can be changed below)",
+    "judul / artis / album": "title / artist / album",
+    "contoh: 1:23 / 3:45": "e.g. 1:23 / 3:45",
+    "baris lirik yang sedang dinyanyikan": "the lyric line being sung",
+    "cover album (pakai source Image)": "album cover (use an Image source)",
+    "Format nowplaying.txt": "nowplaying.txt format",
+    "Bisa pakai": "You can use",
+    ". Contoh:": ". Example:",
+    "Kosongkan teks saat lagu di-pause": "Clear the text while paused",
+    "Perintah !song untuk chatbot": "!song command for chatbots",
+    "URL ini berisi teks lagu yang sedang diputar, dengan format yang sama seperti": "This URL returns the current song as text, in the same format as",
+    ". Pakai di chatbot yang berjalan di PC ini, seperti Streamer.bot atau Mix It Up.": ". Use it with a chatbot running on this PC, such as Streamer.bot or Mix It Up.",
+    ": buat Command": ": create a Command",
+    ", tambahkan sub-action": ", add the sub-action",
+    "dengan URL di atas, lalu kirim hasilnya lewat": "with the URL above, then send the result with",
+    "Format bisa diganti lewat URL, misalnya": "You can change the format in the URL, for example",
+    "Nightbot dan bot cloud lain": "Nightbot and other cloud bots",
+    "tidak bisa": "can't",
+    "memakai URL ini, karena hanya bisa diakses dari PC ini.": "use this URL, because it's only reachable from this PC.",
+
+    // ----------------------------------------------------------- riwayat
+    "Riwayat Lagu": "Song history",
+    "Lagu yang diputar minimal 15 detik dicatat di sini. Berguna untuk deskripsi VOD atau menjawab \"lagu tadi apa?\". Riwayat hanya tersimpan di PC ini.": "Songs played for at least 15 seconds are listed here. Handy for VOD descriptions or answering \"what was that song?\". History is only stored on this PC.",
+    "Download .txt": "Download .txt",
+    "Hari ini": "Today",
+    "Belum ada lagu di riwayat. Putar lagu minimal 15 detik, lalu buka tab ini lagi.": "No songs in the history yet. Play a song for at least 15 seconds, then open this tab again.",
+    "Riwayat tersalin": "History copied",
+    "Hapus riwayat tanggal ini?": "Delete the history for this date?",
+    "Riwayat dihapus": "History deleted",
+
+    // ---------------------------------------------------------- aplikasi
+    "Aplikasi berjalan di": "The app runs in the",
+    "system tray": "system tray",
+    "(pojok kanan bawah taskbar). Klik ikonnya untuk membuka halaman ini, klik kanan untuk menu lainnya.": "(bottom right of the taskbar). Click its icon to open this page, right-click for more options.",
+    "Jalankan otomatis saat Windows menyala": "Run automatically when Windows starts",
+    "Aplikasi langsung berjalan di tray tanpa membuka browser.": "The app starts in the tray without opening the browser.",
+    "Hanya tersedia di versi yang di-install.": "Only available in the installed version.",
+    "Hanya tersedia di versi yang di-install": "Only available in the installed version",
+    "Aplikasi akan berjalan saat Windows menyala": "The app will run when Windows starts",
+    "Tidak lagi berjalan otomatis": "No longer runs automatically",
+    "Beri tahu kalau ada versi baru": "Notify me about new versions",
+    "Mati secara default. Kalau dinyalakan, aplikasi mengecek halaman rilis di GitHub sehari sekali. Tidak ada data lain yang dikirim.": "Off by default. When on, the app checks the GitHub releases page once a day. No other data is sent.",
+    "Versi {version} tersedia.": "Version {version} is available.",
+    "Download di GitHub": "Download on GitHub",
+    "Kamu sudah memakai versi terbaru.": "You're on the latest version.",
+    "Mengecek versi terbaru…": "Checking for the latest version…",
+    "Gagal mengecek versi terbaru. Dicoba lagi nanti.": "Couldn't check for the latest version. Will try again later.",
+    "Folder data": "Data folder",
+    "Berisi pengaturan, login, cache lirik, dan catatan error (": "Contains settings, login, the lyrics cache, and the error log (",
+
+    // ------------------------------------------------- pesan dari server
+    "Client ID harus 32 karakter huruf/angka": "The Client ID must be 32 letters/numbers",
+    "Offset lirik harus angka": "The lyrics offset must be a number",
+    "Maksimal 20 preset": "You can have up to 20 styles",
+    "Nama preset hanya boleh huruf kecil, angka, dan tanda -": "Style names can only contain lowercase letters, numbers and -",
+    "Isi judul lagu": "Enter a song title",
+    "Belum ada lagu yang diputar": "Nothing is playing yet",
+    "Lagunya sudah berganti. Coba lagi untuk lagu yang sedang diputar.": "The song has changed. Try again for the song that's playing now.",
+    "Lirik tidak ditemukan di LRCLIB": "Lyrics not found on LRCLIB",
+    "File .lrc tidak berisi baris bertimestamp seperti [01:23.45]": "The .lrc file has no timestamped lines like [01:23.45]",
+    "Tunggu sampai lirik lagu ini selesai dimuat": "Wait until this song's lyrics have loaded",
+    "JSON tidak valid": "Invalid JSON",
+  };
+
+  // pesan dengan bagian yang berubah-ubah
+  const PATTERNS = [
+    [/^Gagal menghubungi LRCLIB: /, "Could not reach LRCLIB: "],
+    [/ — mencoba lagi dalam (\d+) detik$/, " — retrying in $1 seconds"],
+    [/^Mode lokal error: /, "Local mode error: "],
+    [/ — sementara memakai Spotify Desktop lokal$/, " — using local Spotify Desktop for now"],
+  ];
+
+  let lang = "id";
+  const norm = s => s.replace(/\s+/g, " ").trim();
+
+  function t(text, vars) {
+    let out = text;
+    if (lang === "en" && text) {
+      if (EN[text] !== undefined) out = EN[text];
+      else for (const [re, rep] of PATTERNS) out = out.replace(re, rep);
+    }
+    if (vars) out = out.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+    return out;
+  }
+
+  /** Terjemahkan semua teks statis (text node, placeholder, title). Panggil sekali saat halaman dimuat. */
+  function apply(root = document.body) {
+    if (lang !== "en") return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: n => n.parentElement.closest("script, style, code, svg") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    for (const n of nodes) {
+      const key = norm(n.nodeValue);
+      if (!key) continue;
+      const own = n.parentElement.dataset.en;   // data-en: terjemahan khusus kalau kata yang sama beda arti
+      const tr = own ?? EN[key];
+      if (tr === undefined) continue;
+      const lead = n.nodeValue.match(/^\s*/)[0], trail = n.nodeValue.match(/\s*$/)[0];
+      n.nodeValue = lead + tr + trail;
+    }
+    root.querySelectorAll("[placeholder], [title]").forEach(el => {
+      for (const attr of ["placeholder", "title"]) {
+        const v = el.getAttribute(attr);
+        if (v && EN[v] !== undefined) el.setAttribute(attr, EN[v]);
+      }
+    });
+  }
+
+  return {
+    t, apply, EN,
+    get lang() { return lang; },
+    setLang(l) { lang = l === "en" ? "en" : "id"; document.documentElement.lang = lang; },
+  };
+})();

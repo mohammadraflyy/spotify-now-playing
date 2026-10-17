@@ -90,7 +90,8 @@ def _result(hit, source="lrclib"):
 
 
 def search(title, artist, album, duration):
-    """Coba beberapa cara berurutan. Raise hanya kalau SEMUA cara error (bukan sekadar tidak ketemu)."""
+    """Coba beberapa cara berurutan. Kalau tidak ketemu dan ada cara yang error, raise:
+    hasil "tidak ada lirik" hanya dipercaya (dan di-cache) kalau semua cara benar-benar menjawab."""
     clean = clean_title(title)
     first_artist = artist.split(",")[0].strip()
     attempts = [
@@ -110,7 +111,7 @@ def search(title, artist, album, duration):
             break
         hit = None
     if not hit:
-        if len(errors) == len(attempts):
+        if errors:
             raise errors[-1]
         return {"status": "none", "lines": [], "plain": "", "source": "lrclib"}
     return _result(hit)
@@ -134,6 +135,15 @@ def cache_key(title, artist, album):
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:20]
 
 
+
+
+def _fresh(entry):
+    """Hasil "tidak ketemu" dicek ulang setelah NONE_TTL, siapa tahu liriknya sudah ditambahkan ke LRCLIB."""
+    if entry and entry.get("status") == "none" and time.time() - entry.get("saved", 0) > NONE_TTL:
+        return None
+    return entry
+
+
 class LyricsCache:
     """Lirik tersimpan di disk (satu file JSON per lagu), jadi tetap ada walaupun LRCLIB sedang down."""
 
@@ -148,13 +158,9 @@ class LyricsCache:
         if not self.folder:
             return None
         try:
-            entry = json.loads(self._path(ckey).read_text(encoding="utf-8"))
+            return _fresh(json.loads(self._path(ckey).read_text(encoding="utf-8")))
         except (OSError, ValueError):
             return None
-        # "tidak ketemu" dicek ulang berkala, siapa tahu liriknya sudah ditambahkan ke LRCLIB
-        if entry.get("status") == "none" and time.time() - entry.get("saved", 0) > NONE_TTL:
-            return None
-        return entry
 
     def save(self, ckey, entry):
         if not self.folder:
@@ -162,13 +168,13 @@ class LyricsCache:
         try:
             self.folder.mkdir(parents=True, exist_ok=True)
             tmp = self._path(ckey).with_suffix(".tmp")
-            tmp.write_text(json.dumps({**entry, "saved": time.time()}, ensure_ascii=False), encoding="utf-8")
+            tmp.write_text(json.dumps(entry, ensure_ascii=False), encoding="utf-8")
             tmp.replace(self._path(ckey))
-            if not self._pruned:
-                self._pruned = True
-                self._prune()
         except OSError:
-            pass
+            return
+        if not self._pruned:
+            self._pruned = True
+            threading.Thread(target=self._prune, daemon=True).start()
 
     def delete(self, ckey):
         if self.folder:
@@ -178,7 +184,10 @@ class LyricsCache:
                 pass
 
     def _prune(self):
-        files = sorted(self.folder.glob("*.json"), key=lambda f: f.stat().st_mtime)
+        try:
+            files = sorted(self.folder.glob("*.json"), key=lambda f: f.stat().st_mtime)
+        except OSError:
+            return
         for f in files[:max(0, len(files) - CACHE_MAX_FILES)]:
             try:
                 f.unlink()
@@ -195,13 +204,19 @@ def _public(entry):
 
 
 class LyricsProvider:
-    """Ambil lirik di background saat lagu berganti, dengan cache di memori dan disk."""
+    """Ambil lirik di background saat lagu berganti, dengan cache di memori dan disk.
+
+    Setiap perubahan (ganti lagu, pilihan manual, reset) menaikkan `gen`. Pencarian di background
+    hanya boleh menulis hasil kalau `gen`-nya masih sama, jadi hasil lama tidak menimpa yang baru.
+    Akses disk selalu di luar lock supaya loop utama (line_at) tidak tertahan.
+    """
 
     def __init__(self, cache_dir=None):
         self.lock = threading.Lock()
         self.memory = {}
         self.disk = LyricsCache(cache_dir)
         self.rev = 0
+        self.gen = 0
         self.current = {**EMPTY, "rev": 0}
 
     def _set(self, **values):
@@ -209,103 +224,125 @@ class LyricsProvider:
         self.rev += 1
         self.current = {**EMPTY, **values, "rev": self.rev}
 
+    def _remember(self, ckey, entry):
+        """Simpan ke memori (panggil sambil memegang self.lock); tulis ke disk sesudahnya."""
+        entry = {**entry, "saved": time.time()}
+        self.memory[ckey] = entry
+        return entry
+
     def track_changed(self, key, title, artist, album, duration):
         ckey = cache_key(title, artist, album)
         track = {"title": title, "artist": artist, "album": album, "duration": duration}
         with self.lock:
             if key == self.current["key"]:
                 return
-            entry = self.memory.get(ckey) or self.disk.load(ckey)
+            self.gen += 1
+            entry = _fresh(self.memory.get(ckey))
+        if entry is None:
+            entry = self.disk.load(ckey)
+        with self.lock:
             if entry:
                 self.memory[ckey] = entry
                 self._set(key=key, ckey=ckey, track=track, **_public(entry))
-                return
-            self._set(key=key, ckey=ckey, track=track, status="loading")
-        threading.Thread(target=self._fetch, args=(key, ckey, title, artist, album, duration),
-                         daemon=True).start()
+            else:
+                self._start_fetch(key, ckey, track)
+
+    def _start_fetch(self, key, ckey, track):
+        """Panggil sambil memegang self.lock."""
+        self.gen += 1
+        self._set(key=key, ckey=ckey, track=track, status="loading")
+        threading.Thread(target=self._fetch, args=(self.gen, key, ckey, track), daemon=True).start()
 
     def clear(self):
         with self.lock:
+            self.gen += 1
             self._set()
 
-    def _store(self, ckey, entry):
-        self.memory[ckey] = entry
-        self.disk.save(ckey, entry)
-
-    def _fetch(self, key, ckey, title, artist, album, duration):
+    def _fetch(self, gen, key, ckey, track):
         for retry, delay in enumerate((0, *BACKGROUND_RETRY)):
             if delay:
                 time.sleep(delay)
                 with self.lock:
-                    if self.current["key"] != key:
-                        return  # lagu sudah berganti
+                    if gen != self.gen:
+                        return  # lagu berganti atau lirik sudah dipilih manual
             try:
-                result = search(title, artist, album, duration)
-                with self.lock:
-                    if self.memory.get(ckey, {}).get("source") in ("manual", "file"):
-                        return  # sudah dipilih manual selama pencarian berjalan
-                    self._store(ckey, result)
-                    if self.current["key"] == key:
-                        self._set(key=key, ckey=ckey, track=self.current["track"], **_public(result))
-                return
+                result = search(track["title"], track["artist"], track["album"], track["duration"])
             except Exception as e:  # jangan di-cache; coba lagi sebentar lagi
                 last = retry == len(BACKGROUND_RETRY)
                 msg = str(e) + ("" if last else f" — mencoba lagi dalam {BACKGROUND_RETRY[retry]} detik")
                 with self.lock:
-                    if self.current["key"] == key:
-                        self._set(key=key, ckey=ckey, track=self.current["track"],
-                                  status="error", error=msg)
+                    if gen == self.gen:
+                        self._set(key=key, ckey=ckey, track=track, status="error", error=msg)
+                continue
+            with self.lock:
+                if gen != self.gen:
+                    return
+                entry = self._remember(ckey, result)
+                self._set(key=key, ckey=ckey, track=track, **_public(entry))
+            self.disk.save(ckey, entry)
+            return
 
     # ---------------------------------------------------- perbaikan manual --
 
-    def _replace(self, result):
-        """Simpan lirik pilihan user untuk lagu yang sedang diputar."""
-        with self.lock:
-            cur = self.current
-            if not cur["ckey"]:
-                raise ValueError("Belum ada lagu yang diputar")
-            entry = {**result, "offset": cur.get("offset", 0.0)}
-            self._store(cur["ckey"], entry)
-            self._set(key=cur["key"], ckey=cur["ckey"], track=cur["track"], **_public(entry))
-            return dict(self.current)
+    def _check(self, ckey):
+        """Lagu yang sedang aktif, dan pastikan masih lagu yang dimaksud halaman pengaturan."""
+        cur = self.current
+        if not cur["ckey"]:
+            raise ValueError("Belum ada lagu yang diputar")
+        if ckey and ckey != cur["ckey"]:
+            raise ValueError("Lagunya sudah berganti. Coba lagi untuk lagu yang sedang diputar.")
+        return cur
 
-    def use_lrclib(self, lrclib_id):
+    def _replace(self, result, ckey):
+        """Simpan lirik pilihan user untuk lagu `ckey` (harus lagu yang sedang diputar)."""
+        with self.lock:
+            cur = self._check(ckey)
+            self.gen += 1  # batalkan pencarian otomatis yang masih berjalan
+            entry = self._remember(cur["ckey"], {**result, "offset": cur.get("offset", 0.0)})
+            self._set(key=cur["key"], ckey=cur["ckey"], track=cur["track"], **_public(entry))
+            snapshot = dict(self.current)
+        self.disk.save(cur["ckey"], entry)
+        return snapshot
+
+    def use_lrclib(self, lrclib_id, ckey=None):
+        with self.lock:
+            self._check(ckey)
         hit = _get(f"get/{int(lrclib_id)}", {})
         if not hit:
             raise ValueError("Lirik tidak ditemukan di LRCLIB")
-        return self._replace(_result(hit, source="manual"))
+        return self._replace(_result(hit, source="manual"), ckey)
 
-    def use_lrc(self, text):
+    def use_lrc(self, text, ckey=None):
         lines = parse_lrc(text)
         if not lines:
             raise ValueError("File .lrc tidak berisi baris bertimestamp seperti [01:23.45]")
         return self._replace({"status": "synced", "lines": [{"t": t, "text": w} for t, w in lines],
-                              "plain": "", "source": "file"})
+                              "plain": "", "source": "file"}, ckey)
 
-    def set_offset(self, offset):
+    def set_offset(self, offset, ckey=None):
         offset = max(-10.0, min(10.0, float(offset)))
         with self.lock:
-            cur = self.current
-            entry = self.memory.get(cur["ckey"]) if cur["ckey"] else None
-            if entry is None:
+            cur = self._check(ckey)
+            entry = self.memory.get(cur["ckey"])
+            if entry is None or cur["status"] in ("loading", "error"):
                 raise ValueError("Tunggu sampai lirik lagu ini selesai dimuat")
-            entry = {**entry, "offset": offset}
-            self._store(cur["ckey"], entry)
+            entry = self._remember(cur["ckey"], {**entry, "offset": offset})
             self._set(key=cur["key"], ckey=cur["ckey"], track=cur["track"], **_public(entry))
-            return dict(self.current)
+            snapshot = dict(self.current)
+        self.disk.save(cur["ckey"], entry)
+        return snapshot
 
-    def reset(self):
+    def reset(self, ckey=None):
         """Hapus pilihan manual dan offset lagu ini, lalu cari ulang otomatis."""
         with self.lock:
-            cur = self.current
-            if not cur["ckey"]:
-                raise ValueError("Belum ada lagu yang diputar")
+            cur = self._check(ckey)
+            self.gen += 1
             self.memory.pop(cur["ckey"], None)
-            self.disk.delete(cur["ckey"])
-            key, track = cur["key"], cur["track"]
-            self.current = {**cur, "key": ""}  # supaya track_changed mencari ulang
-        self.track_changed(key, track["title"], track["artist"], track["album"], track["duration"])
-        return self.get()
+        self.disk.delete(cur["ckey"])
+        with self.lock:
+            if self.current["ckey"] == cur["ckey"]:
+                self._start_fetch(cur["key"], cur["ckey"], cur["track"])
+            return dict(self.current)
 
     # ---------------------------------------------------------------- baca --
 

@@ -9,6 +9,7 @@
   /* Default dari halaman pengaturan; bisa ditimpa lewat URL:
      ?width=460 ?height=112 ?radius=16 ?bg=dark|cover|color|none ?color=282828 ?opacity=82
      ?accent=1db954 ?hidePaused=1 ?noProgress=1 ?show=always|change ?showFor=8
+     ?layout=row|vertical|minimal|vinyl
      ?preset=nama  -> pakai preset dari halaman pengaturan */
   @property --c1 { syntax: "<color>"; inherits: true; initial-value: rgba(18,18,18,.82); }
   @property --c2 { syntax: "<color>"; inherits: true; initial-value: rgba(18,18,18,.82); }
@@ -58,7 +59,39 @@
     font-size: calc(var(--h) * .095); color: var(--muted); font-variant-numeric: tabular-nums; }
   .bar { flex: 1; height: max(3px, calc(var(--h) * .035)); border-radius: 99px; background: rgba(255,255,255,.2); overflow: hidden; }
   .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .5s linear; }
-  .no-progress .progress { display: none; }
+  .no-progress .progress, .card.no-dur .progress { display: none; }  /* no-dur: player tanpa durasi (mis. browser) */
+  .eq.mini { display: none; position: static; height: .7em; align-self: center; }
+
+  /* layout vertikal: cover besar di atas, ukuran mengikuti lebar */
+  .layout-vertical .card { flex-direction: column; align-items: stretch; height: calc(var(--w) * 1.4);
+    padding: calc(var(--w) * .06); gap: calc(var(--w) * .045); }
+  .layout-vertical .cover-wrap { width: 100%; height: auto; }
+  .layout-vertical .info { flex: 1; justify-content: flex-start; }
+  .layout-vertical .eq { height: 8%; right: 4%; bottom: 4%; }
+  .layout-vertical .label { font-size: calc(var(--w) * .036); }
+  .layout-vertical .title { font-size: calc(var(--w) * .072); }
+  .layout-vertical .artist { font-size: calc(var(--w) * .052); }
+  .layout-vertical .progress { font-size: calc(var(--w) * .036); margin-top: calc(var(--w) * .03); }
+  .layout-vertical .bar { height: max(3px, calc(var(--w) * .012)); }
+
+  /* layout minimal: satu baris teks "Judul — Artis" */
+  .layout-minimal .card { padding: 0 calc(var(--h) * .3); gap: calc(var(--h) * .2); }
+  .layout-minimal .cover-wrap, .layout-minimal .label, .layout-minimal .progress { display: none; }
+  .layout-minimal .info { flex-direction: row; align-items: center; justify-content: flex-start; gap: calc(var(--h) * .15); }
+  .layout-minimal .eq.mini { display: flex; flex: 0 0 auto; height: calc(var(--h) * .28); }
+  .layout-minimal .title { font-size: calc(var(--h) * .32); flex: 0 1 auto; min-width: 0; margin: 0; }
+  .layout-minimal .artist { font-size: calc(var(--h) * .27); flex: 0 1 auto; min-width: 0; }
+  .layout-minimal .artist::before { content: "— "; }
+  .layout-minimal .artist > span { padding-left: 0; }
+
+  /* layout vinyl: cover bulat yang berputar selama lagu diputar */
+  .layout-vinyl .cover { border-radius: 50%; animation: spin 7s linear infinite;
+    box-shadow: 0 0 0 calc(var(--h) * .03) #111, 0 4px 14px rgba(0,0,0,.5); }
+  .layout-vinyl .paused .cover { animation-play-state: paused; }
+  .layout-vinyl .cover-wrap::after { content: ""; position: absolute; inset: 41%; border-radius: 50%;
+    background: #111; box-shadow: 0 0 0 2px rgba(255,255,255,.18); }
+  .layout-vinyl .cover-wrap .eq { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -68,6 +101,7 @@
     <div class="eq"><span></span><span></span><span></span></div>
   </div>
   <div class="info">
+    <div class="eq mini"><span></span><span></span><span></span></div>
     <div class="label" id="label">Now Playing</div>
     <div class="marquee title"><span id="title"></span></div>
     <div class="marquee artist"><span id="artist"></span></div>
@@ -108,6 +142,7 @@
       hidePaused: flag(get("hidePaused", false)),
       noProgress: flag(get("noProgress", false)),
       noCover: flag(get("noCover", false)),
+      layout: ["row", "vertical", "minimal", "vinyl"].includes(get("layout", "row")) ? get("layout", "row") : "row",
       show: get("show", "always"),
       showFor: num(get("showFor", 8), 8, 2, 120),
     };
@@ -117,11 +152,12 @@
     root.style.setProperty("--accent", "#" + opts.accent);
     document.body.className = [
       "bg-" + opts.bg,
+      "layout-" + opts.layout,
       opts.noProgress ? "no-progress" : "",
       opts.noCover ? "no-cover" : "",
     ].join(" ");
     applyBg();
-    const layout = `${opts.width}x${opts.height}`;
+    const layout = `${opts.width}x${opts.height}x${opts.layout}`;
     if (layout !== lastLayout) { lastLayout = layout; lastTitle = null; } // hitung ulang marquee
   }
 
@@ -183,6 +219,7 @@
       if (opts.show === "change" && !isPreview) visible = visible && now < shownUntil;
       card.classList.toggle("show", visible);
       card.classList.toggle("paused", !s.playing);
+      card.classList.toggle("no-dur", !s.duration);
       $("label").textContent = s.playing ? "Now Playing" : "Paused";
 
       if (key !== lastTitle) {

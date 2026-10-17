@@ -36,6 +36,7 @@ class UpdateChecker:
         self.cfg = cfg
         self.on_found = on_found     # dipanggil sekali per versi baru, mis. untuk notifikasi tray
         self.available = None        # {"version", "url"} kalau ada versi lebih baru
+        self.status = "off"          # off | checking | ok | error
         self.wake = threading.Event()
         self._notified = None
 
@@ -46,20 +47,25 @@ class UpdateChecker:
         threading.Thread(target=self._loop, daemon=True).start()
 
     def check_now(self):
+        if self.enabled() and self.status in ("off", "error"):
+            self.status = "checking"
         self.wake.set()
 
     def _loop(self):
         while True:
             if self.enabled():
+                if self.status != "ok":
+                    self.status = "checking"
                 try:
                     latest = fetch_latest()
                     self.available = latest if is_newer(latest["version"]) else None
+                    self.status = "ok"
                 except Exception:
-                    pass  # offline / rate limit: coba lagi nanti
+                    self.status = "error"  # offline / rate limit: coba lagi nanti
                 if self.available and self._notified != self.available["version"] and self.on_found:
                     self._notified = self.available["version"]
                     self.on_found(self.available)
             else:
-                self.available = None
+                self.available, self.status = None, "off"
             self.wake.wait(CHECK_EVERY)
             self.wake.clear()

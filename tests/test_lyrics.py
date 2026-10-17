@@ -79,6 +79,16 @@ class SearchTest(unittest.TestCase):
             with self.assertRaises(OSError):
                 lyrics.search("a", "b", "c", 100)
 
+    def test_partial_failure_is_an_error_not_none(self):
+        # /get 404 lalu /search 503: belum pasti tidak ada lirik, jadi jangan di-cache sebagai "none"
+        def fake_get(path, params):
+            if path == "get":
+                return None
+            raise OSError("503")
+        with mock.patch.object(lyrics, "_get", fake_get):
+            with self.assertRaises(OSError):
+                lyrics.search("a", "b", "c", 100)
+
     def test_not_found(self):
         with mock.patch.object(lyrics, "_get", lambda p, q: None if p == "get" else []):
             self.assertEqual(lyrics.search("a", "b", "c", 100)["status"], "none")
@@ -183,10 +193,54 @@ class ProviderTest(unittest.TestCase):
 
     def test_none_result_expires(self):
         cache = lyrics.LyricsCache(self.tmp.name)
-        cache.save("x", {"status": "none", "lines": []})
+        cache.save("x", {"status": "none", "lines": [], "saved": time.time()})
         self.assertIsNotNone(cache.load("x"))
         with mock.patch.object(lyrics.time, "time", return_value=time.time() + lyrics.NONE_TTL + 10):
             self.assertIsNone(cache.load("x"))
+
+    def test_none_in_memory_is_rechecked(self):
+        # aplikasi tray bisa jalan berminggu-minggu: "tidak ketemu" di memori juga harus kedaluwarsa
+        self.result = {"status": "none", "lines": [], "plain": "", "source": "lrclib"}
+        p = self.provider()
+        p.track_changed("k1", "Judul", "Artis", "Album", 200)
+        self.assertTrue(wait_for(lambda: p.get()["status"] == "none"))
+        p.track_changed("k2", "Lain", "Artis", "Album", 200)
+        self.assertTrue(wait_for(lambda: p.get()["status"] == "none" and p.get()["key"] == "k2"))
+        self.result = {"status": "synced", "lines": [{"t": 1.0, "text": "a"}], "plain": "", "source": "lrclib"}
+        with mock.patch.object(lyrics.time, "time", return_value=time.time() + lyrics.NONE_TTL + 10):
+            p.track_changed("k1", "Judul", "Artis", "Album", 200)
+        self.assertTrue(wait_for(lambda: p.get()["status"] == "synced"))
+
+    def test_manual_pick_survives_failing_retry(self):
+        # LRCLIB down: pencarian otomatis gagal dan menunggu retry; user memakai file .lrc
+        self.search.side_effect = OSError("503")
+        with mock.patch.object(lyrics, "BACKGROUND_RETRY", (0.05, 0.05)):
+            p = self.provider()
+            p.track_changed("k1", "Judul", "Artis", "Album", 200)
+            self.assertTrue(wait_for(lambda: p.get()["status"] == "error"))
+            p.use_lrc(SYNCED)
+            time.sleep(0.3)  # retry berikutnya selesai (dan gagal)
+        self.assertEqual((p.get()["status"], p.get()["source"]), ("synced", "file"))
+
+    def test_fix_for_previous_song_is_rejected(self):
+        p = self.provider()
+        self.play(p)
+        ckey_a = p.get()["ckey"]
+        p.track_changed("k2", "Lagu B", "Artis", "Album", 200)
+        with self.assertRaises(ValueError):
+            p.use_lrc(SYNCED, ckey=ckey_a)
+        with self.assertRaises(ValueError):
+            p.set_offset(1, ckey=ckey_a)
+        self.assertNotEqual(p.get()["source"], "file")
+
+    def test_reset_cancels_old_fetch(self):
+        p = self.provider()
+        self.play(p)
+        p.use_lrc(SYNCED)
+        p.reset(p.get()["ckey"])
+        self.assertTrue(wait_for(lambda: p.get()["source"] == "lrclib"))
+        time.sleep(0.1)
+        self.assertEqual(self.search.call_count, 2)  # satu pencarian awal + satu setelah reset
 
 
 if __name__ == "__main__":

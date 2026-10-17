@@ -19,9 +19,12 @@ if ($LASTEXITCODE) { throw "pip install gagal" }
 if (-not (Test-Path "assets\icon.ico")) { & $py scripts\make_icon.py }
 
 # 3. exe (folder, bukan onefile: start lebih cepat & lebih jarang dicurigai antivirus)
-& $py -m PyInstaller --noconfirm --clean `
+#    --noupx: kompresi UPX sering memicu false positive antivirus
+& $py scripts\make_version_info.py
+& $py -m PyInstaller --noconfirm --clean --noupx `
     --name SpotifyNowPlaying `
     --icon assets\icon.ico `
+    --version-file build/version_info.txt `
     --add-data "spotify_now_playing\web;spotify_now_playing\web" `
     --collect-submodules winrt `
     --collect-binaries winrt `

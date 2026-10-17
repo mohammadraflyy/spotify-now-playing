@@ -3,6 +3,7 @@
 import json
 import re
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -36,16 +37,27 @@ def parse_lrc(text):
     return lines
 
 
+RETRY_DELAYS = (0.7, 2.0)            # retry singkat per request (LRCLIB kadang 503)
+BACKGROUND_RETRY = (5, 15, 30, 60)    # retry di background kalau semua cara gagal
+
+
 def _get(path, params):
+    """GET ke LRCLIB. 404 -> None. 5xx/timeout dicoba ulang beberapa kali."""
     url = f"{API}/{path}?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(req, timeout=10) as r:
-            return json.load(r)
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return None
-        raise
+    for attempt in range(len(RETRY_DELAYS) + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return None
+            if e.code < 500 or attempt == len(RETRY_DELAYS):
+                raise
+        except (urllib.error.URLError, TimeoutError, ValueError):
+            if attempt == len(RETRY_DELAYS):
+                raise
+        time.sleep(RETRY_DELAYS[attempt])
 
 
 def _pick(results, duration):
@@ -63,20 +75,28 @@ def _pick(results, duration):
 
 
 def search(title, artist, album, duration):
+    """Coba beberapa cara berurutan. Raise hanya kalau SEMUA cara error (bukan sekadar tidak ketemu)."""
     clean = clean_title(title)
     first_artist = artist.split(",")[0].strip()
-    hit = None
-    if duration:
+    attempts = [
+        lambda: _get("get", {"track_name": clean, "artist_name": first_artist,
+                             "album_name": album, "duration": round(duration)}) if duration else None,
+        lambda: _pick(_get("search", {"track_name": clean, "artist_name": first_artist}), duration),
+        lambda: _pick(_get("search", {"q": f"{first_artist} {clean}"}), duration),
+    ]
+    hit, errors = None, []
+    for attempt in attempts:
         try:
-            hit = _get("get", {"track_name": clean, "artist_name": first_artist,
-                               "album_name": album, "duration": round(duration)})
-        except (urllib.error.HTTPError, OSError):
-            hit = None  # /get kadang 503, lanjut ke pencarian
-    if not hit or not (hit.get("syncedLyrics") or hit.get("plainLyrics")):
-        hit = _pick(_get("search", {"track_name": clean, "artist_name": first_artist}), duration)
+            hit = attempt()
+        except Exception as e:
+            errors.append(e)
+            continue
+        if hit and (hit.get("syncedLyrics") or hit.get("plainLyrics") or hit.get("instrumental")):
+            break
+        hit = None
     if not hit:
-        hit = _pick(_get("search", {"q": f"{first_artist} {clean}"}), duration)
-    if not hit:
+        if len(errors) == len(attempts):
+            raise errors[-1]
         return {"status": "none", "lines": [], "plain": ""}
     if hit.get("instrumental"):
         return {"status": "instrumental", "lines": [], "plain": ""}
@@ -110,15 +130,26 @@ class LyricsProvider:
             self.current = {"key": "", "status": "idle", "lines": [], "plain": ""}
 
     def _fetch(self, key, title, artist, album, duration):
-        try:
-            result = search(title, artist, album, duration)
-            with self.lock:
-                self.cache[key] = result
-        except Exception as e:  # jaringan error: jangan cache, coba lagi di lagu berikutnya
-            result = {"status": "error", "lines": [], "plain": "", "error": str(e)}
-        with self.lock:
-            if self.current["key"] == key:
-                self.current = {"key": key, **result}
+        for retry, delay in enumerate((0, *BACKGROUND_RETRY)):
+            if delay:
+                time.sleep(delay)
+                with self.lock:
+                    if self.current["key"] != key:
+                        return  # lagu sudah berganti
+            try:
+                result = search(title, artist, album, duration)
+                with self.lock:
+                    self.cache[key] = result
+                    if self.current["key"] == key:
+                        self.current = {"key": key, **result}
+                return
+            except Exception as e:  # jangan di-cache; coba lagi sebentar lagi
+                last = retry == len(BACKGROUND_RETRY)
+                msg = str(e) + ("" if last else f" — mencoba lagi dalam {BACKGROUND_RETRY[retry]} detik")
+                with self.lock:
+                    if self.current["key"] == key:
+                        self.current = {"key": key, "status": "error", "lines": [], "plain": "",
+                                        "error": msg}
 
     def get(self):
         with self.lock:

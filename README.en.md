@@ -50,9 +50,9 @@ Changes on the settings page show up in OBS right away, without changing the URL
 
 ### Song requests
 
-Viewers type `!request song title` in chat, for example `!request Tulus - Pamit`. Requests go into the queue in the **Requests** tab, and you play them yourself in Spotify. A request leaves the queue automatically when that song plays, or you can mark it as played.
+Viewers type `!request song title` in chat, for example `!request Tulus - Pamit`. Requests go into the queue in the **Requests card** tab, and you play them yourself in Spotify. A request leaves the queue automatically when that song plays, or you can mark it as played.
 
-The app only **listens** to chat and never sends messages, so there are no chat replies; viewers see their request on the overlay. Set up platforms in the **Chat** tab:
+The app only **listens** to chat and never sends messages, so there are no chat replies; viewers see their request on the overlay. Set up platforms under **Chats to listen to** in the same tab:
 
 | Platform | Setup |
 |---|---|

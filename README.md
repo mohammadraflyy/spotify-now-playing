@@ -154,7 +154,7 @@ Contoh: `http://127.0.0.1:8765/overlay?bg=cover&width=600&height=150`
    - Baris yang sedang dinyanyikan berwarna putih, yang sudah lewat putih redup, dan yang berikutnya gelap
    - **Offset waktu**: geser ke **+** kalau lirik telat, ke **−** kalau terlalu cepat
 
-Tidak semua lagu punya lirik tersinkron. Status lirik untuk lagu yang sedang diputar ditampilkan di halaman pengaturan, di tab **Lirik**. Di sana juga ada:
+Tidak semua lagu punya lirik tersinkron. Status lirik untuk lagu yang sedang diputar ditampilkan di halaman pengaturan, di tab **Kartu Lirik**. Di sana juga ada:
 - **Lirik salah? Cari yang lain**: cari di LRCLIB dengan judul dan artis yang bisa diubah, lalu klik **Pakai**. Hasil yang durasinya paling cocok ditampilkan paling atas.
 - **Pakai file .lrc**: pakai lirik tersinkron milikmu sendiri.
 - **Offset khusus lagu ini**, untuk lagu yang liriknya telat atau terlalu cepat sendiri.
@@ -163,7 +163,7 @@ Semua pilihan ini tersimpan per lagu dan otomatis dipakai lagi saat lagu itu dip
 
 #### c. Teks dan cover biasa (opsional)
 
-Semua file ada di `Documents\Spotify Now Playing`. Tombol **Buka folder** ada di halaman pengaturan bagian 5.
+Semua file ada di `Documents\Spotify Now Playing`. Buka foldernya lewat klik kanan ikon tray → **Buka folder file teks**.
 
 | File | Isi | Source OBS |
 |---|---|---|
@@ -183,9 +183,9 @@ Pakai di chatbot yang berjalan di PC yang sama. Contoh di **Streamer.bot**: buat
 
 ### Request lagu dari penonton
 
-Penonton mengetik `!request judul lagu` di chat, misalnya `!request Tulus - Pamit`. Request masuk ke antrian di tab **Request**, lalu kamu memutarnya sendiri di Spotify. Request otomatis hilang dari antrian saat lagunya diputar, atau bisa ditandai selesai secara manual.
+Penonton mengetik `!request judul lagu` di chat, misalnya `!request Tulus - Pamit`. Request masuk ke antrian di tab **Kartu Request**, lalu kamu memutarnya sendiri di Spotify. Request otomatis hilang dari antrian saat lagunya diputar, atau bisa ditandai selesai secara manual.
 
-Aplikasi hanya **mendengarkan** chat, tidak pernah mengirim pesan, jadi tidak ada balasan di chat. Penonton melihat request-nya masuk lewat overlay. Atur platformnya di tab **Chat**:
+Aplikasi hanya **mendengarkan** chat, tidak pernah mengirim pesan, jadi tidak ada balasan di chat. Penonton melihat request-nya masuk lewat overlay. Atur platformnya di bagian **Chat yang didengarkan** di tab yang sama:
 
 | Platform | Setup |
 |---|---|

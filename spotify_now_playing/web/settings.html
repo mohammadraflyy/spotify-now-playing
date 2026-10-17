@@ -166,6 +166,7 @@
   /* ---------- chatbot ---------- */
   .platforms { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
   .platforms .panel { margin: 0; }
+  .section-title { display: flex; align-items: center; gap: 8px; font-size: 15px; margin: 0 0 8px; }
   .p-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
   .p-head h3 { margin: 0; }
   .p-status { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 14px; font-size: 13px; }
@@ -233,12 +234,10 @@
     <nav id="tabs">
       <button data-tab="home"><svg class="i"><use href="#i-home"/></svg>Beranda</button>
       <button data-tab="card"><svg class="i"><use href="#i-music"/></svg>Kartu Now Playing</button>
-      <button data-tab="lyrics"><svg class="i"><use href="#i-mic"/></svg>Lirik</button>
-      <button data-tab="source"><svg class="i"><use href="#i-plug"/></svg>Sumber Musik</button>
-      <button data-tab="files"><svg class="i"><use href="#i-file"/></svg>File Teks</button>
-      <button data-tab="chat"><svg class="i"><use href="#i-message"/></svg>Chat</button>
-      <button data-tab="requests"><svg class="i"><use href="#i-list-music"/></svg>Request</button>
+      <button data-tab="lyrics"><svg class="i"><use href="#i-mic"/></svg>Kartu Lirik</button>
+      <button data-tab="requests"><svg class="i"><use href="#i-list-music"/></svg>Kartu Request</button>
       <button data-tab="history"><svg class="i"><use href="#i-history"/></svg>Riwayat</button>
+      <button data-tab="source"><svg class="i"><use href="#i-plug"/></svg>Sumber Musik</button>
       <button data-tab="app"><svg class="i"><use href="#i-settings"/></svg>Aplikasi</button>
     </nav>
   </div>
@@ -621,11 +620,77 @@
     </div>
   </section>
 
-  <!-- ======================= CHAT ======================= -->
-  <section class="page" id="page-chat">
-    <h2 class="page-title">Chat</h2>
-    <p class="page-sub">Aplikasi mendengarkan chat live kamu untuk menerima <a href="#requests">request lagu</a> dari penonton. Hanya membaca: tidak ada pesan yang dikirim ke chat. Bisa dipakai di beberapa platform sekaligus.</p>
+  <!-- ======================= REQUEST ======================= -->
+  <section class="page" id="page-requests">
+    <h2 class="page-title">Request Lagu</h2>
+    <p class="page-sub">Penonton mengetik <code id="rq-example">!request judul lagu</code> di chat Twitch, YouTube, atau TikTok, lalu request-nya masuk ke antrian ini. Request otomatis hilang dari antrian saat lagunya kamu putar.</p>
 
+    <div class="editor">
+      <div>
+        <div class="panel">
+          <div class="p-head"><h3>Antrian</h3><button class="danger sm" id="rq-clear" hidden><svg class="i"><use href="#i-trash"/></svg> Hapus semua</button></div>
+          <div id="rq-list"></div>
+        </div>
+        <div class="panel">
+          <h3>Pengaturan</h3>
+          <label class="check"><input type="checkbox" id="rq-enabled"> Terima request lagu</label>
+          <div class="field" style="margin-top:12px">
+            <span class="label">Perintah</span>
+            <input type="text" class="mono" id="rq-cmd" style="max-width:200px" spellcheck="false">
+          </div>
+          <div class="slider"><span>Per orang</span><input type="range" id="rq-max-user" min="0" max="10" step="1"><span class="numwrap"><input type="number" class="num" id="rq-max-user-v" data-range="rq-max-user">lagu</span></div>
+          <div class="slider"><span>Maksimal</span><input type="range" id="rq-max-total" min="0" max="200" step="1"><span class="numwrap"><input type="number" class="num" id="rq-max-total-v" data-range="rq-max-total">lagu</span></div>
+          <p class="muted small" style="margin:0 0 14px">Isi 0 untuk tanpa batas. Tidak ada balasan di chat, jadi tampilkan overlay di stream supaya penonton tahu request-nya masuk.</p>
+          <button class="primary" id="rq-save">Simpan</button>
+        </div>
+        <div class="panel">
+          <h3>Tampilan overlay</h3>
+          <div class="field">
+            <span class="label">Ukuran</span>
+            <div class="slider"><span>Lebar</span><input type="range" id="ro-width" min="200" max="1200" step="1"><span class="numwrap"><input type="number" class="num" id="ro-width-v" data-range="ro-width">px</span></div>
+            <div class="slider"><span>Teks</span><input type="range" id="ro-size" min="10" max="48" step="1"><span class="numwrap"><input type="number" class="num" id="ro-size-v" data-range="ro-size">px</span></div>
+            <div class="slider"><span>Jumlah</span><input type="range" id="ro-count" min="1" max="20" step="1"><span class="numwrap"><input type="number" class="num" id="ro-count-v" data-range="ro-count">lagu</span></div>
+            <div class="slider"><span>Sudut</span><input type="range" id="ro-radius" min="0" max="60" step="1"><span class="numwrap"><input type="number" class="num" id="ro-radius-v" data-range="ro-radius">px</span></div>
+          </div>
+          <div class="field">
+            <span class="label">Latar</span>
+            <div class="seg">
+              <label><input type="radio" name="ro-bg" value="dark">Gelap</label>
+              <label><input type="radio" name="ro-bg" value="color">Warna tetap</label>
+              <label><input type="radio" name="ro-bg" value="none">Transparan</label>
+            </div>
+            <div class="slider" id="ro-color-wrap" style="margin-top:12px"><span>Warna</span><input type="color" id="ro-color" value="#181818"></div>
+            <div class="slider" id="ro-opacity-wrap" style="margin-top:8px"><span>Opasitas</span><input type="range" id="ro-opacity" min="0" max="100" step="1"><span class="numwrap"><input type="number" class="num" id="ro-opacity-v" data-range="ro-opacity">%</span></div>
+            <div class="slider" style="margin-top:8px"><span>Aksen</span><input type="color" id="ro-accent" value="#1db954"><span class="muted small">warna judul dan nomor urut</span></div>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <span class="label">Tampilkan</span>
+            <label class="check"><input type="checkbox" id="ro-header"> Judul "Request lagu" dan jumlah antrian</label>
+            <label class="check"><input type="checkbox" id="ro-user"> Nama penonton</label>
+            <label class="check"><input type="checkbox" id="ro-platform"> Platform (Twitch, YouTube, TikTok)</label>
+            <label class="check"><input type="checkbox" id="ro-hint"> Petunjuk cara request</label>
+            <label class="check"><input type="checkbox" id="ro-hide"> Sembunyikan overlay saat antrian kosong</label>
+          </div>
+        </div>
+        <button class="ghost sm" id="ro-reset"><svg class="i"><use href="#i-reset"/></svg> Kembalikan ke default</button>
+      </div>
+      <div class="sticky">
+        <div class="preview" id="rq-preview-box"><span class="tag">preview</span><iframe id="rq-frame" title="Preview request"></iframe></div>
+        <div class="obs">
+          <h3><svg class="i"><use href="#i-plus"/></svg> Tambahkan ke OBS</h3>
+          <div class="row">
+            <input type="text" class="mono" id="rq-url" readonly>
+            <button class="primary" data-copy="rq-url">Salin</button>
+          </div>
+          <div class="size">Ukuran Browser Source: <span>Width <b id="rq-w">440</b></span><span>Height <b id="rq-h">380</b></span></div>
+          <a class="drag" id="rq-drag" draggable="true"><svg class="i"><use href="#i-grip"/></svg> <b>Atau seret kotak ini ke jendela preview OBS</b></a>
+          <p class="muted small" style="margin:10px 0 0">Tinggi dihitung untuk antrian penuh. Preview memakai contoh request kalau antrian masih kosong. Kalau ukuran diubah, samakan juga Width/Height di OBS.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="section-title" id="chat" style="margin-top:28px"><svg class="i"><use href="#i-message"/></svg> Chat yang didengarkan</h3>
+    <p class="muted small" style="margin:-4px 0 14px">Hanya membaca: tidak ada pesan yang dikirim ke chat. Bisa dipakai di beberapa platform sekaligus.</p>
     <div class="platforms">
       <div class="panel" id="tw-box">
         <div class="p-head"><h3>Twitch</h3><label class="check" style="padding:0"><input type="checkbox" id="tw-enabled"> Aktif</label></div>
@@ -684,77 +749,6 @@
           </ol>
           <p class="muted small" style="margin:10px 0 0">Euler Stream adalah layanan pihak ketiga yang menyambungkan aplikasi ke chat TikTok LIVE. Username TikTok dan API key-mu dikirim ke sana. Saat kamu belum live, aplikasi mengecek ulang setiap 3 menit.</p>
         </details>
-      </div>
-    </div>
-  </section>
-
-  <!-- ======================= REQUEST ======================= -->
-  <section class="page" id="page-requests">
-    <h2 class="page-title">Request Lagu</h2>
-    <p class="page-sub">Penonton mengetik <code id="rq-example">!request judul lagu</code> di chat Twitch, YouTube, atau TikTok, lalu request-nya masuk ke antrian ini. Request otomatis hilang dari antrian saat lagunya kamu putar.</p>
-
-    <div class="editor">
-      <div>
-        <div class="panel">
-          <div class="p-head"><h3>Antrian</h3><button class="danger sm" id="rq-clear" hidden><svg class="i"><use href="#i-trash"/></svg> Hapus semua</button></div>
-          <div id="rq-list"></div>
-        </div>
-        <div class="panel">
-          <h3>Pengaturan</h3>
-          <label class="check"><input type="checkbox" id="rq-enabled"> Terima request lagu</label>
-          <div class="field" style="margin-top:12px">
-            <span class="label">Perintah</span>
-            <input type="text" class="mono" id="rq-cmd" style="max-width:200px" spellcheck="false">
-          </div>
-          <div class="slider"><span>Per orang</span><input type="range" id="rq-max-user" min="0" max="10" step="1"><span class="numwrap"><input type="number" class="num" id="rq-max-user-v" data-range="rq-max-user">lagu</span></div>
-          <div class="slider"><span>Maksimal</span><input type="range" id="rq-max-total" min="0" max="200" step="1"><span class="numwrap"><input type="number" class="num" id="rq-max-total-v" data-range="rq-max-total">lagu</span></div>
-          <p class="muted small" style="margin:0 0 14px">Isi 0 untuk tanpa batas. Tidak ada balasan di chat, jadi tampilkan overlay di stream supaya penonton tahu request-nya masuk.</p>
-          <button class="primary" id="rq-save">Simpan</button>
-          <p class="muted small" style="margin:12px 0 0">Request dibaca dari platform yang aktif di tab <a href="#chat">Chat</a>.</p>
-        </div>
-        <div class="panel">
-          <h3>Tampilan overlay</h3>
-          <div class="field">
-            <span class="label">Ukuran</span>
-            <div class="slider"><span>Lebar</span><input type="range" id="ro-width" min="200" max="1200" step="1"><span class="numwrap"><input type="number" class="num" id="ro-width-v" data-range="ro-width">px</span></div>
-            <div class="slider"><span>Teks</span><input type="range" id="ro-size" min="10" max="48" step="1"><span class="numwrap"><input type="number" class="num" id="ro-size-v" data-range="ro-size">px</span></div>
-            <div class="slider"><span>Jumlah</span><input type="range" id="ro-count" min="1" max="20" step="1"><span class="numwrap"><input type="number" class="num" id="ro-count-v" data-range="ro-count">lagu</span></div>
-            <div class="slider"><span>Sudut</span><input type="range" id="ro-radius" min="0" max="60" step="1"><span class="numwrap"><input type="number" class="num" id="ro-radius-v" data-range="ro-radius">px</span></div>
-          </div>
-          <div class="field">
-            <span class="label">Latar</span>
-            <div class="seg">
-              <label><input type="radio" name="ro-bg" value="dark">Gelap</label>
-              <label><input type="radio" name="ro-bg" value="color">Warna tetap</label>
-              <label><input type="radio" name="ro-bg" value="none">Transparan</label>
-            </div>
-            <div class="slider" id="ro-color-wrap" style="margin-top:12px"><span>Warna</span><input type="color" id="ro-color" value="#181818"></div>
-            <div class="slider" id="ro-opacity-wrap" style="margin-top:8px"><span>Opasitas</span><input type="range" id="ro-opacity" min="0" max="100" step="1"><span class="numwrap"><input type="number" class="num" id="ro-opacity-v" data-range="ro-opacity">%</span></div>
-            <div class="slider" style="margin-top:8px"><span>Aksen</span><input type="color" id="ro-accent" value="#1db954"><span class="muted small">warna judul dan nomor urut</span></div>
-          </div>
-          <div class="field" style="margin-bottom:0">
-            <span class="label">Tampilkan</span>
-            <label class="check"><input type="checkbox" id="ro-header"> Judul "Request lagu" dan jumlah antrian</label>
-            <label class="check"><input type="checkbox" id="ro-user"> Nama penonton</label>
-            <label class="check"><input type="checkbox" id="ro-platform"> Platform (Twitch, YouTube, TikTok)</label>
-            <label class="check"><input type="checkbox" id="ro-hint"> Petunjuk cara request</label>
-            <label class="check"><input type="checkbox" id="ro-hide"> Sembunyikan overlay saat antrian kosong</label>
-          </div>
-        </div>
-        <button class="ghost sm" id="ro-reset"><svg class="i"><use href="#i-reset"/></svg> Kembalikan ke default</button>
-      </div>
-      <div class="sticky">
-        <div class="preview" id="rq-preview-box"><span class="tag">preview</span><iframe id="rq-frame" title="Preview request"></iframe></div>
-        <div class="obs">
-          <h3><svg class="i"><use href="#i-plus"/></svg> Tambahkan ke OBS</h3>
-          <div class="row">
-            <input type="text" class="mono" id="rq-url" readonly>
-            <button class="primary" data-copy="rq-url">Salin</button>
-          </div>
-          <div class="size">Ukuran Browser Source: <span>Width <b id="rq-w">440</b></span><span>Height <b id="rq-h">380</b></span></div>
-          <a class="drag" id="rq-drag" draggable="true"><svg class="i"><use href="#i-grip"/></svg> <b>Atau seret kotak ini ke jendela preview OBS</b></a>
-          <p class="muted small" style="margin:10px 0 0">Tinggi dihitung untuk antrian penuh. Preview memakai contoh request kalau antrian masih kosong. Kalau ukuran diubah, samakan juga Width/Height di OBS.</p>
-        </div>
       </div>
     </div>
   </section>
@@ -849,13 +843,13 @@ async function copy(text, msg = "URL tersalin, tinggal tempel di OBS") {
 // ------------------------------------------------------------------ tab --
 
 function showTab(name) {
+  if (name === "chat") name = "requests";  // tab Chat lama, juga tujuan redirect login YouTube
   if (!$("page-" + name)) name = "home";
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === "page-" + name));
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
   if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
   if (name === "history") loadHistory(historyDate);
-  if (name === "chat") loadChat();
-  if (name === "requests") loadRequests();
+  if (name === "requests") { loadChat(); loadRequests(); }
   requestAnimationFrame(fitPreviews);
 }
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
@@ -1617,8 +1611,7 @@ async function refresh() {
     renderConfig(c);
     renderStatus(c, now);
     renderLyricsStatus(ly);
-    if ($("page-chat").classList.contains("active")) loadChat();
-    if ($("page-requests").classList.contains("active")) loadRequests();
+    if ($("page-requests").classList.contains("active")) { loadChat(); loadRequests(); }
   } catch {
     $("pill-dot").className = "dot err";
     $("pill-text").textContent = t("Aplikasi tidak berjalan");

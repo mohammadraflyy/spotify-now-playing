@@ -255,8 +255,9 @@ def add_to_queue(account, uri):
     except ApiError as e:
         if e.code == 404:
             raise ApiError(404, "Spotify tidak aktif. Buka Spotify dan putar lagu dulu") from None
-        if e.code == 403:
-            raise ApiError(403, "Spotify menolak: menambah antrian hanya untuk akun Premium") from None
+        if e.code == 403 and "premium" in str(e).lower():  # Spotify: "Premium required"
+            raise ApiError(403, "Akun Spotify ini bukan Premium. Spotify hanya mengizinkan aplikasi menambah "
+                                "antrian untuk akun Premium, jadi request diputar manual") from None
         raise
 
 

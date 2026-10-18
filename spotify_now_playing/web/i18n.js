@@ -398,6 +398,8 @@ window.SNPI18n = (() => {
     "Gagal mengecek versi terbaru. Dicoba lagi nanti.": "Couldn't check for the latest version. Will try again later.",
     "Folder data": "Data folder",
     "Putar otomatis lewat Spotify": "Auto-play with Spotify",
+    "Khusus Spotify Premium.": "Spotify Premium only.",
+    "Spotify hanya mengizinkan aplikasi menambah lagu ke antrian untuk akun Premium. Dengan akun Free, request tetap masuk antrian di sini dan tampil di overlay, tapi lagunya diputar manual.": "Spotify only lets apps add songs to the queue for Premium accounts. With a Free account, requests still go into the queue here and show on the overlay, but you play them yourself.",
     "Masukkan request ke antrian Spotify secara otomatis": "Add requests to the Spotify queue automatically",
     "Login ulang Akun Spotify": "Log in to Spotify again",
     "Atur di Sumber Musik": "Set up in Music source",

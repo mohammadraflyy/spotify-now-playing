@@ -190,6 +190,23 @@ class BestMatchTest(unittest.TestCase):
         self.assertIsNone(self.pick("apa saja", []))
 
 
+class PremiumErrorTest(unittest.TestCase):
+    def test_free_account_gets_a_clear_message(self):
+        from spotify_now_playing import spotify_api
+
+        def fail(msg):
+            def request(method, path):
+                raise spotify_api.ApiError(403, msg)
+            return SimpleNamespace(request=request)
+
+        with self.assertRaises(spotify_api.ApiError) as ctx:
+            spotify_api.add_to_queue(fail("Player command failed: Premium required"), "spotify:track:x")
+        self.assertIn("bukan Premium", str(ctx.exception))
+        with self.assertRaises(spotify_api.ApiError) as ctx:
+            spotify_api.add_to_queue(fail("Insufficient client scope"), "spotify:track:x")
+        self.assertNotIn("Premium", str(ctx.exception))  # 403 lain jangan disebut masalah Premium
+
+
 class MatchTest(unittest.TestCase):
     def test_request_shows_matched_song(self):
         q = RequestQueue(None)

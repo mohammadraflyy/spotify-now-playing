@@ -1,6 +1,8 @@
 """Baca Spotify Desktop (atau player lain) di PC ini lewat Windows Media Controls (tanpa API)."""
 
 import asyncio
+import queue
+import threading
 from datetime import datetime, timezone
 
 try:
@@ -52,6 +54,47 @@ def ad_info(playing, device):
             "duration": 0.0, "position": 0.0, "playing": playing, "device": device}
 
 
+class Watchdog:
+    """Jalankan panggilan ke objek yang bisa macet (Windows Media Controls saat player hang) di
+    thread sendiri, dengan batas waktu. Kalau macet, thread itu ditinggalkan dan objek baru dibuat
+    di thread baru, supaya overlay tidak ikut membeku sampai aplikasi di-restart."""
+
+    def __init__(self, factory, timeout=5.0):
+        self.factory, self.timeout = factory, timeout
+        self.restarts = 0
+        self._start()
+
+    def _start(self):
+        self.jobs = queue.Queue()
+        threading.Thread(target=self._worker, args=(self.jobs,), daemon=True).start()
+
+    def _worker(self, jobs):
+        obj = None
+        while True:
+            fn, box, done = jobs.get()
+            if fn is None:
+                return  # sudah diganti thread baru selagi macet
+            try:
+                if obj is None:
+                    obj = self.factory()  # dibuat di thread ini, dipakai hanya di thread ini
+                box["value"] = fn(obj)
+            except BaseException as e:  # noqa: BLE001  (diteruskan ke pemanggil)
+                box["error"] = e
+            done.set()
+
+    def call(self, fn):
+        box, done = {}, threading.Event()
+        self.jobs.put((fn, box, done))
+        if not done.wait(self.timeout):
+            self.jobs.put((None, None, None))
+            self.restarts += 1
+            self._start()
+            raise TimeoutError("player tidak merespons, menyambung ulang")
+        if "error" in box:
+            raise box["error"]
+        return box["value"]
+
+
 class LocalSpotify:
     def __init__(self, all_players=lambda: False):
         self._loop = asyncio.new_event_loop()
@@ -80,13 +123,18 @@ class LocalSpotify:
                 session, props = s, p
                 break
             if is_spotify(s) and status[id(s)] == PlaybackStatus.PLAYING:
-                return ad_info(True, "Spotify")  # Spotify berbunyi tanpa judul: iklan
+                info = ad_info(True, "Spotify")  # Spotify berbunyi tanpa judul: iklan
+                info["raw"] = _raw(s, p, status[id(s)])
+                return info
         if session is None:
             return None
 
         playing = status[id(session)] == PlaybackStatus.PLAYING
+        raw = _raw(session, props, status[id(session)])
         if is_spotify(session) and looks_like_ad(props.title, props.artist, props.album_title):
-            return ad_info(playing, "Spotify")
+            info = ad_info(playing, "Spotify")
+            info["raw"] = raw
+            return info
         tl = session.get_timeline_properties()
         duration = (tl.end_time - tl.start_time).total_seconds()
         position = tl.position.total_seconds()
@@ -111,7 +159,11 @@ class LocalSpotify:
             "position": position,
             "playing": playing,
             "device": player_name(session.source_app_user_model_id),
+            "raw": raw,
         }
+
+    def close(self):
+        self._loop.close()
 
     @staticmethod
     async def _read_thumb(thumb):
@@ -123,3 +175,13 @@ class LocalSpotify:
         buf = Buffer(stream.size)
         await stream.read_async(buf, stream.size, InputStreamOptions.READ_AHEAD)
         return bytes(memoryview(buf))
+
+
+def _raw(session, props, status):
+    """Data mentah dari Windows untuk info diagnosa (mis. memastikan bentuk iklan Spotify)."""
+    try:
+        kind = getattr(props.playback_type, "name", "") if props.playback_type is not None else ""
+    except Exception:  # noqa: BLE001  (tidak semua player mengisinya)
+        kind = ""
+    return {"app": session.source_app_user_model_id or "", "status": getattr(status, "name", str(status)), "title": props.title or "",
+            "artist": props.artist or "", "album": props.album_title or "", "type": kind}

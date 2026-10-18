@@ -13,10 +13,9 @@ import webbrowser
 
 from . import APP_NAME, __version__, i18n
 from .app import NowPlayingApp
-from .config import DATA_DIR, Config
+from .config import DATA_DIR, LOG_FILE, Config
 from .server import start_server
 
-LOG_FILE = DATA_DIR / "app.log"
 log = logging.getLogger("snp")
 
 
@@ -68,6 +67,8 @@ def main():
             pass
 
     cfg = Config()
+    if cfg.recovered:
+        log.warning("config.json rusak, dipulihkan dari %s", "cadangan" if cfg.recovered == "backup" else "pengaturan awal")
     port = args.port or cfg.get("port", 8765)  # --port hanya untuk sesi ini
     settings_url = f"http://127.0.0.1:{port}/settings"
 

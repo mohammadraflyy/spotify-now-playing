@@ -38,8 +38,9 @@ class NowPlayingApp:
     def __init__(self, config):
         self.cfg = config
         self.account = SpotifyAccount(config)
-        self.local = (local_media.LocalSpotify(lambda: config.get("players") == "all")
+        self.local = (local_media.Watchdog(lambda: local_media.LocalSpotify(lambda: config.get("players") == "all"))
                       if local_media.AVAILABLE else None)
+        self.last_raw = None  # data mentah lagu terakhir, untuk info diagnosa
         self.lyrics = LyricsProvider(cache_dir=DATA_DIR / "lyrics")
         self.updates = UpdateChecker(config)
         self.history = History(DATA_DIR / "history")
@@ -48,6 +49,7 @@ class NowPlayingApp:
         self.ad_audio = audio.AdAudio(config) if audio.AVAILABLE else None
         if self.ad_audio:
             atexit.register(self.ad_audio.shutdown)  # jangan tinggalkan Spotify dalam keadaan bisu
+            self.updates.before_install = self.ad_audio.shutdown  # installer menutup aplikasi paksa
         self.console = False  # True: tampilkan status di console (--console)
         self.lock = threading.Lock()
         self.state = {
@@ -105,7 +107,10 @@ class NowPlayingApp:
         if source == "local" or (source == "auto" and used != "account"):
             if self.local:
                 try:
-                    info = self.local.now_playing()
+                    info = self.local.call(lambda player: player.now_playing())
+                    if info:
+                        read_cover = info["cover"]  # cover juga dibaca lewat thread watchdog
+                        info["cover"] = lambda: self.local.call(lambda player: read_cover())
                     used, delay = "local", LOCAL_INTERVAL
                     if source == "auto" and self.account.logged_in and self._api_error:
                         error = f"{self._api_error} — sementara memakai Spotify Desktop lokal"
@@ -117,6 +122,8 @@ class NowPlayingApp:
         if error and error != self.status.get("error"):
             log.warning(error)
         self.status = {"source": used, "error": error}
+        if info:
+            self.last_raw = info.get("raw")
         self._apply(info)
         snap = self.snapshot()
         if self.ad_audio:

@@ -8,6 +8,8 @@ Shows the song you're playing on Spotify, with synced lyrics, as overlays in OBS
 
 ![Settings page in English](docs/screenshots/settings-en.png)
 
+![Song request queue overlay](docs/screenshots/requests.png)
+
 ## Features
 
 - **Now playing card**: cover, title, artist and progress bar. Four layouts (row, vertical, minimal, vinyl). Show it all the time or only for a few seconds when the song changes, and create several styles for different scenes.
@@ -76,12 +78,16 @@ Also:
 | `show=change` `showFor=8` | only show for 8 seconds when the song changes |
 | `preset=gaming` | use a style created on the settings page |
 
+## Updates, backup and diagnostics
+
+All in the **App** tab: **Update now** downloads and installs a new version in one click (the app restarts by itself). **Export** and **Import** move your card, lyrics, request overlay and chat settings to another PC, without logins or keys. **Copy diagnostic info** gives you a report to paste into [GitHub Issues](https://github.com/mohammadraflyy/spotify-now-playing/issues), with tokens and keys hidden. Settings are also backed up automatically, so a damaged `config.json` is restored from the last backup.
+
 ## Files
 
 | What | Where |
 |---|---|
 | App | `%LOCALAPPDATA%\Programs\Spotify Now Playing` |
-| Settings and login | `%APPDATA%\SpotifyNowPlaying\config.json` (don't share it, it holds your login token) |
+| Settings and login | `%APPDATA%\SpotifyNowPlaying\config.json`, backed up to `config.json.bak` (don't share it, it holds your login token) |
 | Lyrics cache, history, log | `%APPDATA%\SpotifyNowPlaying\lyrics\`, `history\`, `app.log` |
 | Text files and cover | `Documents\Spotify Now Playing` |
 
@@ -94,7 +100,7 @@ The app only connects to other services for features you use:
 - **Twitch chat listener**: only if you turn it on. The app reads the chat of the channel you enter, anonymously, without a login.
 - **YouTube chat listener**: only if you turn it on and log in with Google (read-only access), to read your live chat.
 - **TikTok listener**: only if you turn it on. Your TikTok username and API key are sent to Euler Stream to read your live chat.
-- **New version notifications**: off by default. When enabled, the app checks GitHub releases once a day.
+- **New version notifications**: off by default. When enabled, the app checks GitHub releases once a day. The installer is only downloaded when you click **Update now**, and its SHA-256 checksum is verified before it runs.
 
 The song history stays on your PC. There is no telemetry or analytics. Details are in the [privacy policy](docs/PRIVACY.md).
 

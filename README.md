@@ -30,6 +30,12 @@ Menampilkan lagu yang sedang diputar dan lirik tersinkron dari Spotify di OBS.
 
 ![Halaman pengaturan: memilih lirik](docs/screenshots/settings-lyrics.png)
 
+**Request lagu dari penonton**: antrian dari chat Twitch, YouTube, dan TikTok, dengan overlay yang bisa diatur
+
+| Overlay antrian | Kartu Request |
+|---|---|
+| ![Overlay antrian request lagu](docs/screenshots/requests.png) | ![Halaman pengaturan: kartu request](docs/screenshots/settings-requests.png) |
+
 - **Overlay now playing**: cover, judul, artis, dan progress bar, dengan 4 layout (baris, vertikal, minimal, vinyl). Bisa tampil terus atau hanya beberapa detik setiap ganti lagu, dan bisa punya beberapa gaya untuk scene berbeda
 - **Overlay lirik**: tampil seperti di Spotify, dengan latar mengikuti warna cover lagu. Liriknya dari [LRCLIB](https://lrclib.net), tersimpan di PC supaya tetap ada walaupun LRCLIB sedang down
 - **Bukan cuma Spotify**: opsional, bisa juga membaca YouTube Music, Apple Music, TIDAL, dan player lain di PC yang sama
@@ -223,7 +229,17 @@ Tab **Riwayat** mencatat setiap lagu yang diputar minimal 15 detik, lengkap deng
 2. Buka `http://127.0.0.1:8765/settings` dan lihat bagian **Status**. Kalau di sana lagunya muncul, berarti aplikasinya jalan.
 3. Di OBS, klik kanan source Browser → **Properties** → **Refresh cache of current page**.
 4. Untuk mode Lokal, lagu harus diputar di **Spotify Desktop di PC ini**, bukan di HP. Web player dan player lain hanya terbaca kalau **Baca juga player lain** dicentang.
-5. Kalau masih bermasalah, lihat `app.log` di folder data (tab **Aplikasi** → **Buka folder**).
+5. Kalau masih bermasalah, buka tab **Aplikasi** → **Salin info diagnosa**, lalu tempel di [GitHub Issues](https://github.com/mohammadraflyy/spotify-now-playing/issues). Isinya versi aplikasi, status, dan isi terakhir `app.log`, dengan token dan key disamarkan otomatis.
+
+### Update, cadangan, dan file teks
+
+Semuanya ada di tab **Aplikasi**:
+
+- **Update sekali klik**: kalau *Beri tahu kalau ada versi baru* dinyalakan dan ada versi baru, klik **Update sekarang** (atau dari menu tray). Installer di-download dari halaman rilis GitHub, dicocokkan dengan checksum SHA-256-nya, lalu dipasang. Aplikasi tertutup sebentar dan terbuka lagi sendiri.
+- **Cadangan pengaturan**: **Ekspor** menyimpan tampilan kartu, preset, lirik, overlay request, dan pengaturan chat ke satu file `.json`. **Impor** di PC lain untuk memakainya lagi. Login, token, Client Secret, dan API key tidak ikut disimpan.
+- **File teks untuk OBS**: folder file teks, format `nowplaying.txt`, dan URL `now.txt` untuk chatbot lain.
+
+Pengaturan juga dicadangkan otomatis setiap kali disimpan (`config.json.bak`). Kalau `config.json` rusak, misalnya karena PC mati mendadak, aplikasi memakai cadangannya dan memberi tahu lewat notifikasi.
 
 ---
 
@@ -232,7 +248,7 @@ Tab **Riwayat** mencatat setiap lagu yang diputar minimal 15 detik, lengkap deng
 | Apa | Lokasi |
 |---|---|
 | Aplikasi | `%LOCALAPPDATA%\Programs\Spotify Now Playing` |
-| Pengaturan dan login | `%APPDATA%\SpotifyNowPlaying\config.json`. Jangan dibagikan, karena berisi token login |
+| Pengaturan dan login | `%APPDATA%\SpotifyNowPlaying\config.json`, dengan cadangan `config.json.bak`. Jangan dibagikan, karena berisi token login |
 | Cache lirik, riwayat, dan log | `%APPDATA%\SpotifyNowPlaying\lyrics\`, `history\`, dan `app.log` |
 | File teks dan cover | `Documents\Spotify Now Playing` |
 
@@ -275,12 +291,15 @@ spotify_now_playing/
   chat_tiktok.py  listener chat TikTok LIVE (Euler Stream, WebSocket + protobuf)
   song_requests.py antrian request lagu
   server.py       web server lokal dan API JSON
-  updates.py      cek versi baru (opt-in)
+  updates.py      cek versi baru (opt-in) dan update sekali klik
+  audio.py        bisukan / kecilkan Spotify selama iklan (Windows Core Audio)
+  diagnostics.py  info diagnosa untuk laporan masalah (token disamarkan)
   startup.py      jalankan saat Windows menyala
-  config.py       lokasi file dan penyimpanan config
+  config.py       lokasi file, penyimpanan config dan cadangannya
   i18n.py         teks tray dan dialog (Indonesia / Inggris)
   web/            overlay.html, lyrics.html, requests.html, settings.html, i18n.js (terjemahan), font Inter
 tests/            unit test
+scripts/          smoke test exe, pembuat screenshot (screenshots.py), ikon
 installer.iss     script Inno Setup
 build.ps1         test, build PyInstaller, dan installer
 ```
@@ -296,7 +315,7 @@ Aplikasi ini tidak mengirim data apa pun ke luar kecuali untuk fitur yang kamu p
 - **Listener chat Twitch**: hanya kalau kamu menyalakannya. Aplikasi membaca chat channel yang kamu isi secara anonim, tanpa login.
 - **Listener chat YouTube**: hanya kalau kamu menyalakannya dan login dengan Google (izin hanya baca), untuk membaca chat live-mu.
 - **Listener TikTok**: hanya kalau kamu menyalakannya. Username TikTok dan API key-mu dikirim ke Euler Stream untuk membaca chat live-mu.
-- **Notifikasi versi baru**: mati secara default. Kalau dinyalakan di tab **Aplikasi**, aplikasi mengecek halaman rilis GitHub sehari sekali.
+- **Notifikasi versi baru**: mati secara default. Kalau dinyalakan di tab **Aplikasi**, aplikasi mengecek halaman rilis GitHub sehari sekali. Installer hanya di-download saat kamu klik **Update sekarang**.
 
 Riwayat lagu hanya disimpan di PC ini. Tidak ada telemetri atau analitik. Font sudah disertakan di aplikasi, jadi overlay tidak memuat apa pun dari Google Fonts. Web server lokal hanya bisa diakses dari PC ini (`127.0.0.1`). Detail lengkapnya ada di [kebijakan privasi](docs/PRIVACY.md).
 

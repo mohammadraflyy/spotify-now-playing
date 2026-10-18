@@ -5,10 +5,11 @@ import os
 import re
 import socket
 import threading
+import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import __version__, audio, i18n, local_media, lyrics, startup
+from . import __version__, audio, diagnostics, i18n, local_media, lyrics, startup, updates
 from .app import format_line
 from .config import DATA_DIR, OUTPUT_DIR, WEB_DIR
 
@@ -24,10 +25,31 @@ STATIC_TYPES = {"js": "text/javascript; charset=utf-8", "css": "text/css; charse
 PRESET_NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,23}$")
 CHAT_COMMAND = re.compile(r"^\S{1,30}$")
 MAX_BODY = 1_000_000
+# pengaturan yang ikut ekspor/impor (selain chat, yang disaring terpisah)
+EXPORT_KEYS = ("source", "players", "lang", "check_updates", "overlay", "presets", "lyrics", "requests_overlay", "text", "ads")
 
 
 def make_handler(app, port):
     allowed_origins = {f"http://127.0.0.1:{port}", f"http://localhost:{port}"}
+
+    def export_settings():
+        """Pengaturan tampilan & perilaku untuk dibawa ke PC lain. Tanpa login, token, secret, atau API key."""
+        cfg = app.cfg
+        out = {k: cfg.get(k) for k in EXPORT_KEYS if cfg.get(k) not in (None, {}, "")}
+        if not (out.get("ads") or {}).get("mode"):
+            out.pop("ads", None)
+        else:
+            out["ads"] = {k: v for k, v in out["ads"].items() if k in ("mode", "volume", "text")}
+        chat = cfg.get("chat") or {}
+        out["chat"] = {
+            **{k: chat[k] for k in ("request_enabled", "request_cmd", "request_max_user", "request_max_total") if k in chat},
+            **{name: {k: v for k, v in (chat.get(name) or {}).items() if k in keep}
+               for name, keep in (("twitch", ("enabled", "channel")), ("youtube", ("enabled", "client_id")),
+                                  ("tiktok", ("enabled", "username")))
+               if chat.get(name)},
+        }
+        return {"app": "spotify-now-playing", "version": __version__,
+                "exported": time.strftime("%Y-%m-%d %H:%M:%S"), "settings": out}
 
     def public_config():
         cfg = app.cfg
@@ -49,6 +71,8 @@ def make_handler(app, port):
             "check_updates": bool(cfg.get("check_updates", False)),
             "update": app.updates.available,
             "update_status": app.updates.status,
+            "update_install": getattr(app.updates, "install_status", None),
+            "can_install": updates.can_install(),
             "startup": {"supported": startup.supported(), "enabled": startup.is_enabled()},
             "data_dir": str(DATA_DIR),
             "text": cfg.get("text", {}),
@@ -105,6 +129,12 @@ def make_handler(app, port):
             elif path == "/api/now":
                 self._send(200, json.dumps(app.snapshot()).encode(), "application/json",
                            {"Access-Control-Allow-Origin": "*"})
+            elif path == "/api/settings/export":
+                name = f"spotify-now-playing-{time.strftime('%Y%m%d')}.json"
+                self._send(200, json.dumps(export_settings(), indent=2, ensure_ascii=False).encode("utf-8"),
+                           "application/json", {"Content-Disposition": f'attachment; filename="{name}"'})
+            elif path == "/api/diagnostics":
+                self._send(200, diagnostics.report(app).encode("utf-8"), "text/plain; charset=utf-8")
             elif path == "/api/now.txt":
                 # untuk chatbot lokal (Streamer.bot, Mix It Up): perintah !song
                 s = app.snapshot()
@@ -235,6 +265,27 @@ def make_handler(app, port):
                 os.startfile(OUTPUT_DIR)
             elif self.path == "/api/history/clear":
                 app.history.clear(str(body.get("date") or ""))
+            elif self.path == "/api/settings/import":
+                data = body.get("settings")
+                if body.get("app") != "spotify-now-playing" or not isinstance(data, dict):
+                    self._json({"error": "Bukan file pengaturan Spotify Now Playing"}, 400)
+                    return
+                err = self._save_config({k: data[k] for k in EXPORT_KEYS if k in data})
+                if not err and isinstance(data.get("chat"), dict):
+                    chat = data["chat"]
+                    # rahasia tidak pernah ikut diekspor; abaikan kalau file diedit manual
+                    for name, drop in (("youtube", "client_secret"), ("tiktok", "api_key")):
+                        if isinstance(chat.get(name), dict):
+                            chat[name] = {k: v for k, v in chat[name].items() if k != drop}
+                    err = self._save_chat(chat)
+                if err:
+                    self._json({"error": err}, 400)
+                    return
+            elif self.path == "/api/update/install":
+                err = app.updates.install()
+                if err:
+                    self._json({"error": err}, 400)
+                    return
             elif self.path == "/api/open-data":
                 DATA_DIR.mkdir(parents=True, exist_ok=True)
                 os.startfile(DATA_DIR)

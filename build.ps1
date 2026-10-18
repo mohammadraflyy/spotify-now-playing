@@ -12,7 +12,7 @@ if (-not (Test-Path ".venv\Scripts\python.exe")) {
 }
 $py = ".venv\Scripts\python.exe"
 & $py -m pip install --quiet --upgrade pip
-& $py -m pip install --quiet -r requirements.txt pyinstaller
+& $py -m pip install --quiet -r requirements.txt pyinstaller==6.22.3
 if ($LASTEXITCODE) { throw "pip install gagal" }
 
 # 2a. unit test dulu, jangan build kalau ada yang rusak
@@ -37,6 +37,9 @@ if (-not (Test-Path "assets\icon.ico")) { & $py scripts\make_icon.py }
     --hidden-import pystray._win32 `
     run.py
 if ($LASTEXITCODE) { throw "PyInstaller gagal" }
+
+# 3b. jalankan exe hasil build sebentar: server, halaman, dan API harus merespons
+& .\scripts\smoke_test.ps1
 
 # 4. installer
 $iscc = @(

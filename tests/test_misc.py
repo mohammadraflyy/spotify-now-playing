@@ -146,6 +146,37 @@ class ServerTest(unittest.TestCase):
                          "Judul oleh Artis")
         self.assertEqual(self.get("/api/now.txt?format=%7Btitle.x%7D")[2].decode(), "Artis - Judul")
 
+    def test_settings_export_import_without_secrets(self):
+        cfg = self.app.cfg
+        cfg.update(overlay={"layout": "vinyl"}, client_secret="rahasia", tiktok_api_key="kunci",
+                   ads={"mode": "quiet", "volume": 20, "text": "", "mute_pauses": True},
+                   chat={"request_cmd": "!sr", "twitch": {"enabled": True, "channel": "tulus"},
+                         "tiktok": {"enabled": False, "username": "tulus"}})
+        status, ctype, body = self.get("/api/settings/export")
+        text = body.decode()
+        self.assertNotIn("rahasia", text)
+        self.assertNotIn("kunci", text)
+        data = json.loads(text)
+        self.assertEqual(data["settings"]["overlay"], {"layout": "vinyl"})
+        self.assertNotIn("mute_pauses", data["settings"]["ads"])
+        cfg.update(overlay={"layout": "row"}, chat={})
+        data["settings"]["chat"]["tiktok"]["api_key"] = "disisipkan"  # file diedit manual
+        with mock.patch.object(self.app.chat.twitch, "restart"), mock.patch.object(self.app.chat.youtube, "restart"), \
+             mock.patch.object(self.app.chat.tiktok, "restart"):
+            status, _ = self.post("/api/settings/import", data)
+        self.assertEqual(status, 200)
+        self.assertEqual(cfg["overlay"], {"layout": "vinyl"})
+        self.assertEqual(cfg["chat"]["twitch"]["channel"], "tulus")
+        self.assertEqual(cfg["tiktok_api_key"], "kunci")  # tidak tertimpa isi file
+        self.assertEqual(self.post("/api/settings/import", {"settings": {}})[0], 400)
+
+    def test_diagnostics(self):
+        self.app.cfg.update(tiktok_api_key="kunci-rahasia-123")
+        status, ctype, body = self.get("/api/diagnostics")
+        self.assertEqual(status, 200)
+        self.assertIn("info diagnosa", body.decode())
+        self.assertNotIn("kunci-rahasia-123", body.decode())
+
     def test_history_endpoints(self):
         self.app.history.add({"time": 1792246000, "title": "Lagu", "artist": "Artis", "album": "", "player": ""})
         h = json.loads(self.get("/api/history")[2])

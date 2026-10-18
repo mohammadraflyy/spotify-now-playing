@@ -156,7 +156,7 @@ class SpotifyAccount:
         if data and data.get("currently_playing_type") == "ad":
             return {"id": "ad", "ad": True, "title": "", "artist": "", "album": "", "cover": lambda: b"",
                     "duration": 0.0, "position": 0.0, "playing": bool(data.get("is_playing")),
-                    "device": (data.get("device") or {}).get("name", "")}
+                    "device": (data.get("device") or {}).get("name", ""), "raw": {"type": "ad"}}
         if code == 204 or not data or not data.get("item"):
             return None
         item = data["item"]
@@ -179,4 +179,5 @@ class SpotifyAccount:
             "position": (data.get("progress_ms") or 0) / 1000,
             "playing": bool(data.get("is_playing")),
             "device": (data.get("device") or {}).get("name", ""),
+            "raw": {"type": data.get("currently_playing_type") or item.get("type") or "", "title": item.get("name", "")},
         }

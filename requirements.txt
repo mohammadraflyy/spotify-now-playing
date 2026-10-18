@@ -1,8 +1,11 @@
-winrt-runtime
-winrt-Windows.Media.Control
-winrt-Windows.Foundation
-winrt-Windows.Foundation.Collections
-winrt-Windows.Storage.Streams
-typing_extensions
-pystray
-pillow
+# Versi dikunci supaya build tidak rusak karena rilis library baru.
+# Naikkan secara sengaja, lalu cek: python -m unittest discover -s tests, build.ps1, dan smoke test.
+winrt-runtime==3.2.1
+winrt-Windows.Media.Control==3.2.1
+winrt-Windows.Foundation==3.2.1
+winrt-Windows.Foundation.Collections==3.2.1
+winrt-Windows.Storage.Streams==3.2.1
+typing_extensions==4.16.0
+pystray==0.19.5
+six==1.17.0
+pillow==13.0.0

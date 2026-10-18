@@ -248,7 +248,7 @@
 <main>
   <!-- ======================= BERANDA ======================= -->
   <section class="page" id="page-home">
-    <div class="banner info" id="home-update" hidden><svg class="i" style="color:var(--accent)"><use href="#i-download"/></svg><span id="home-update-text"></span><a class="btn primary sm" id="home-update-link" target="_blank" rel="noopener">Download</a></div>
+    <div class="banner info" id="home-update" hidden><svg class="i" style="color:var(--accent)"><use href="#i-download"/></svg><span id="home-update-text"></span><a class="btn primary sm" id="home-update-link" target="_blank" rel="noopener">Download</a><button class="primary sm" id="home-update-install" hidden>Update sekarang</button></div>
     <div class="banner warn" id="home-error" hidden><svg class="i" style="color:var(--warn);margin-top:2px"><use href="#i-alert"/></svg><span id="home-error-text"></span></div>
 
     <div class="panel">
@@ -487,7 +487,7 @@
           </div>
           <div class="size">Ukuran Browser Source: <span>Width <b>800</b></span><span>Height <b>340</b></span><span>(boleh diubah)</span></div>
           <a class="drag" id="ly-drag" draggable="true"><svg class="i"><use href="#i-grip"/></svg> <b>Atau seret kotak ini ke jendela preview OBS</b></a>
-          <p class="muted small" style="margin:10px 0 0">Mau teks biasa? Gunakan file <code>lyrics.txt</code>, ada di tab File Teks.</p>
+          <p class="muted small" style="margin:10px 0 0">Mau teks biasa? Gunakan file <code>lyrics.txt</code> di folder file teks (tab <a href="#app">Aplikasi</a>).</p>
         </div>
       </div>
     </div>
@@ -615,31 +615,6 @@
       </table>
     </div>
 
-    <div class="panel">
-      <div class="field">
-        <span class="label">Format nowplaying.txt</span>
-        <div class="row">
-          <input type="text" id="t-format" placeholder="{artist} - {title}" spellcheck="false">
-          <button class="primary" id="t-save">Simpan</button>
-        </div>
-        <div class="muted small" style="margin-top:6px">Bisa pakai <code>{title}</code> <code>{artist}</code> <code>{album}</code>. Contoh: <code>Now playing: {title} — {artist}</code></div>
-      </div>
-      <label class="check"><input type="checkbox" id="t-hide"> Kosongkan teks saat lagu di-pause</label>
-    </div>
-
-    <div class="panel">
-      <h3><svg class="i"><use href="#i-message"/></svg> Perintah !song untuk chatbot</h3>
-      <p class="muted small" style="margin:-4px 0 12px">URL ini berisi teks lagu yang sedang diputar, dengan format yang sama seperti <code>nowplaying.txt</code>. Pakai di chatbot yang berjalan di PC ini, seperti Streamer.bot atau Mix It Up.</p>
-      <div class="row">
-        <input type="text" class="mono" id="now-txt-url" readonly>
-        <button data-copy="now-txt-url">Salin</button>
-      </div>
-      <ol class="how" style="margin-top:12px">
-        <li><b>Streamer.bot</b>: buat Command <code>!song</code>, tambahkan sub-action <b>Core → Network → Fetch URL</b> dengan URL di atas, lalu kirim hasilnya lewat <b>Twitch/YouTube → Send Message</b>.</li>
-        <li>Format bisa diganti lewat URL, misalnya <code>?format=Sekarang: {title} oleh {artist}</code>.</li>
-        <li>Nightbot dan bot cloud lain <b>tidak bisa</b> memakai URL ini, karena hanya bisa diakses dari PC ini.</li>
-      </ol>
-    </div>
   </section>
 
   <!-- ======================= REQUEST ======================= -->
@@ -818,6 +793,54 @@
         <input type="text" class="mono" id="datadir" readonly>
         <button id="open-data"><svg class="i"><use href="#i-folder"/></svg> Buka folder</button>
       </div>
+    </div>
+
+    <div class="panel">
+      <h3><svg class="i"><use href="#i-file"/></svg> File teks untuk OBS</h3>
+      <p class="muted small" style="margin:-4px 0 12px">File <code>nowplaying.txt</code>, <code>title.txt</code>, <code>lyrics.txt</code>, dan <code>cover.jpg</code> ada di folder ini. Pakai di OBS lewat <b>Text (GDI+)</b> → <i>Read from file</i>, atau <b>Image</b> untuk cover.</p>
+      <div class="row" style="margin-bottom:14px">
+        <input type="text" class="mono" id="outdir2" readonly>
+        <button id="open-out2"><svg class="i"><use href="#i-folder"/></svg> Buka folder</button>
+      </div>
+      <div class="field">
+        <span class="label">Format nowplaying.txt</span>
+        <div class="row">
+          <input type="text" id="t-format" placeholder="{artist} - {title}" spellcheck="false">
+          <button class="primary" id="t-save">Simpan</button>
+        </div>
+        <div class="muted small" style="margin-top:6px">Bisa pakai <code>{title}</code> <code>{artist}</code> <code>{album}</code>. Contoh: <code>Now playing: {title} — {artist}</code></div>
+      </div>
+      <label class="check"><input type="checkbox" id="t-hide"> Kosongkan teks saat lagu di-pause</label>
+    </div>
+
+    <div class="panel">
+      <h3><svg class="i"><use href="#i-message"/></svg> Perintah !song untuk chatbot</h3>
+      <p class="muted small" style="margin:-4px 0 12px">URL ini berisi teks lagu yang sedang diputar, dengan format yang sama seperti <code>nowplaying.txt</code>. Pakai di chatbot yang berjalan di PC ini, seperti Streamer.bot atau Mix It Up.</p>
+      <div class="row">
+        <input type="text" class="mono" id="now-txt-url" readonly>
+        <button data-copy="now-txt-url">Salin</button>
+      </div>
+      <ol class="how" style="margin-top:12px">
+        <li><b>Streamer.bot</b>: buat Command <code>!song</code>, tambahkan sub-action <b>Core → Network → Fetch URL</b> dengan URL di atas, lalu kirim hasilnya lewat <b>Twitch/YouTube → Send Message</b>.</li>
+        <li>Format bisa diganti lewat URL, misalnya <code>?format=Sekarang: {title} oleh {artist}</code>.</li>
+        <li>Nightbot dan bot cloud lain <b>tidak bisa</b> memakai URL ini, karena hanya bisa diakses dari PC ini.</li>
+      </ol>
+    </div>
+
+    <div class="panel">
+      <h3>Cadangan pengaturan</h3>
+      <p class="muted small" style="margin:-6px 0 12px">Simpan tampilan kartu, preset, lirik, overlay request, dan pengaturan chat ke satu file, untuk dipindah ke PC lain atau berjaga-jaga. Login, token, Client Secret, dan API key tidak ikut disimpan.</p>
+      <div class="row">
+        <a class="btn" id="export-settings" href="/api/settings/export" download><svg class="i"><use href="#i-download"/></svg> Ekspor</a>
+        <button id="import-settings"><svg class="i"><use href="#i-upload"/></svg> Impor</button>
+        <input type="file" id="import-file" accept=".json,application/json" hidden>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Laporkan masalah</h3>
+      <p class="muted small" style="margin:-6px 0 12px">Info diagnosa berisi versi aplikasi, status sumber musik dan chat, data lagu dari Spotify, dan isi terakhir <code>app.log</code>. Token dan key disamarkan otomatis. Tempel di <a href="https://github.com/mohammadraflyy/spotify-now-playing/issues" target="_blank" rel="noopener">GitHub Issues</a> saat melaporkan masalah.</p>
+      <button id="copy-diag"><svg class="i"><use href="#i-copy"/></svg> Salin info diagnosa</button>
     </div>
 
     <div class="panel">
@@ -1211,6 +1234,32 @@ document.querySelectorAll('input[name="source"]').forEach(r => r.addEventListene
   try { renderConfig(await api("/api/config", { source: r.value })); toast("Sumber musik diubah"); }
   catch (e) { toast(e.message, true); }
 }));
+async function installUpdate() {
+  try { renderConfig(await api("/api/update/install", {})); }
+  catch (e) { toast(t(e.message), true); }
+}
+$("home-update-install").onclick = installUpdate;
+$("open-out2").onclick = () => api("/api/open-output", {}).then(() => toast("Folder dibuka")).catch(e => toast(e.message, true));
+$("import-settings").onclick = () => $("import-file").click();
+$("import-file").onchange = async () => {
+  const file = $("import-file").files[0];
+  $("import-file").value = "";
+  if (!file) return;
+  let data;
+  try { data = JSON.parse(await file.text()); }
+  catch { toast(t("Bukan file pengaturan Spotify Now Playing"), true); return; }
+  if (!confirm(t("Ganti pengaturan sekarang dengan isi file ini?"))) return;
+  try { await api("/api/settings/import", data); toast("Pengaturan diimpor"); setTimeout(() => location.reload(), 600); }
+  catch (e) { toast(t(e.message), true); }
+};
+$("copy-diag").onclick = async () => {
+  try {
+    const r = await fetch("/api/diagnostics", { cache: "no-store" });
+    if (!r.ok) throw new Error();
+    copy(await r.text(), t("Info diagnosa tersalin"));
+  } catch { toast(t("Gagal membuat info diagnosa"), true); }
+};
+
 function renderAds(c) {
   const a = c.ads || {};
   const mode = ["mute", "quiet", "off"].includes(a.mode) ? a.mode : "mute";
@@ -1568,7 +1617,7 @@ function renderConfig(c) {
   $("rq-url").value = base + "/requests";
   $("datadir").value = c.data_dir;
   $("redirect").value = c.redirect_uri;
-  $("outdir").value = c.output_dir;
+  $("outdir").value = $("outdir2").value = c.output_dir;
   $("ver").textContent = c.version;
 
   if (!loaded) {
@@ -1601,18 +1650,31 @@ function renderConfig(c) {
     : "Hanya tersedia di versi yang di-install.");
   $("app-updates").checked = c.check_updates;
   // dibangun ulang hanya kalau isinya berubah (refresh tiap 2 detik)
-  const upd = c.update ? `<b>${t("Versi {version} tersedia.", { version: c.update.version })}</b> <a target="_blank" rel="noopener">${t("Download di GitHub")}</a>`
+  const inst = c.update_install || { state: "idle" };
+  const canInstall = !!(c.update && c.can_install && c.update.asset_url);
+  const installText = { downloading: t("Mengunduh… {n}%", { n: inst.progress }), verifying: t("Memeriksa installer…"),
+                        starting: t("Memasang update. Aplikasi akan tertutup sebentar lalu terbuka lagi.") }[inst.state];
+  const upd = c.update && installText ? `<b>${installText}</b>`
+    : c.update ? `<b>${t("Versi {version} tersedia.", { version: c.update.version })}</b> `
+        + (canInstall ? `<button class="primary sm" data-install>${t("Update sekarang")}</button> ` : "")
+        + `<a target="_blank" rel="noopener">${t(canInstall ? "Lihat perubahan" : "Download di GitHub")}</a>`
+        + (inst.state === "error" ? `<br><span class="err-text">${esc(t(inst.error))}</span>` : "")
     : !c.check_updates ? ""
     : `<span class="muted">${t({ ok: "Kamu sudah memakai versi terbaru.", error: "Gagal mengecek versi terbaru. Dicoba lagi nanti." }[c.update_status] || "Mengecek versi terbaru…")}</span>`;
   if ($("app-update-status").dataset.html !== upd) {
     $("app-update-status").dataset.html = upd;
     $("app-update-status").innerHTML = upd;
-    if (c.update) $("app-update-status").querySelector("a").href = c.update.url;
+    if (c.update && !installText) $("app-update-status").querySelector("a").href = c.update.url;
+    $("app-update-status").querySelector("[data-install]")?.addEventListener("click", installUpdate);
   }
   $("home-update").hidden = !c.update;
   if (c.update) {
     $("home-update-text").textContent = t("Versi {version} sudah tersedia. Kamu memakai versi {current}.", { version: c.update.version, current: c.version });
     $("home-update-link").href = c.update.url;
+    $("home-update-link").hidden = canInstall;
+    $("home-update-install").hidden = !canInstall;
+    $("home-update-install").disabled = !!installText;
+    $("home-update-install").textContent = installText ? t("Memasang…") : t("Update sekarang");
   }
   $("local-ok").hidden = c.source !== "local";
   if (!$("cid").dataset.dirty) $("cid").value = c.client_id;

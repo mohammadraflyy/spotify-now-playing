@@ -23,8 +23,12 @@ def run_tray(app, settings_url, greet):
         os.startfile(OUTPUT_DIR)
 
     def open_update(icon, item):
-        if app.updates.available:
+        if not app.updates.available:
+            return
+        if app.updates.install():  # tidak bisa dipasang otomatis (mis. dari source): buka halaman rilis
             webbrowser.open(app.updates.available["url"])
+        else:
+            icon.notify(tr("installing", version=app.updates.available["version"]), APP_NAME)
 
     def open_donate(icon, item):
         webbrowser.open(DONATE_URL)
@@ -67,7 +71,9 @@ def run_tray(app, settings_url, greet):
         last = None
         while True:
             s = app.snapshot()
-            if s["active"]:
+            if s["active"] and s.get("ad"):
+                title = s["title"]
+            elif s["active"]:
                 state = "" if s["playing"] else tr("paused")
                 title = f"{s['artist']} — {s['title']}{state}"
             elif app.status.get("error"):
@@ -84,7 +90,9 @@ def run_tray(app, settings_url, greet):
         app.updates.on_found = on_update
         app.updates.start()  # setelah on_found terpasang, supaya notifikasi pertama tidak terlewat
         threading.Thread(target=watch_title, daemon=True).start()
-        if greet:
+        if app.cfg.recovered:
+            icon.notify(tr("config_" + app.cfg.recovered), APP_NAME)  # lebih penting dari sapaan
+        elif greet:
             icon.notify(tr("greet"), APP_NAME)
 
     icon.run(setup=setup)

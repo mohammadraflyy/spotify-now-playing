@@ -12,6 +12,7 @@ The connections the program makes are all part of features the user turns on or 
 | Google / YouTube (`accounts.google.com`, `oauth2.googleapis.com`, `www.googleapis.com`) | Only if the user turns on the YouTube chat listener with their own Google OAuth client and logs in | OAuth login with read-only access (`youtube.readonly`), then the app checks whether the user's channel is live and reads its live chat. Nothing is sent to the chat |
 | Euler Stream (`ws.eulerstream.com`), a third-party bridge to TikTok LIVE | Only if the user turns on the TikTok listener and enters their own Euler Stream API key | The user's TikTok username and API key, to receive chat messages from the user's own TikTok LIVE. Nothing is sent to TikTok chat |
 | GitHub (`api.github.com`) | Only if the user turns on *new version notifications* (off by default), once a day | A request for the latest release, with no user data |
+| GitHub (`github.com`, `objects.githubusercontent.com`) | Only when the user clicks *Update now* | Download of the new installer from the project's release page, with no user data. Its SHA-256 checksum is checked before it runs |
 
 - The program has no telemetry, analytics or crash reporting. Fonts are bundled, so no font service is contacted.
 - Errors are written to a local log file (`%APPDATA%\SpotifyNowPlaying\app.log`) that is never uploaded.

@@ -69,6 +69,8 @@ Type: files; Name: "{userstartup}\{#AppName}.lnk"
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+; update sekali klik dari aplikasi memakai /SILENT: jalankan lagi aplikasinya setelah selesai
+Filename: "{app}\{#AppExe}"; Parameters: "--no-browser"; Flags: nowait skipifnotsilent
 
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM {#AppExe}"; Flags: runhidden; RunOnceId: "KillApp"

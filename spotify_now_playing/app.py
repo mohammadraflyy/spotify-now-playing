@@ -64,6 +64,7 @@ class NowPlayingApp:
         self.cover = b""
         self.status = {"source": "idle", "error": ""}
         self._last_id = None
+        self._request_for = None  # penonton yang me-request lagu yang sedang diputar
         self._api_blocked_until = 0
         self._api_error = ""
 
@@ -76,6 +77,8 @@ class NowPlayingApp:
         if s["playing"]:
             s["position"] = min(s["position"] + time.time() - s["updated"], s["duration"] or 1e9)
         s["next"] = self.autoplay.next
+        req = self._request_for
+        s["request"] = {"user": req["user"], "platform": req["platform"]} if req and req["id"] == self._last_id else None
         return s
 
     # -------------------------------------------------------------- loop --
@@ -170,8 +173,10 @@ class NowPlayingApp:
                 self.state["cover_version"] += 1
             self._last_id = info["id"]
             done = self.chat.requests.match_playing(info["title"], info["artist"])
+            self._request_for = None
             if done:
                 log.info("request terpenuhi: %s (oleh %s)", done["text"], done["user"])
+                self._request_for = {"id": info["id"], "user": done["user"], "platform": done["platform"]}
             self.lyrics.track_changed(info["id"], info["title"], info["artist"],
                                       info["album"], info["duration"])
         with self.lock:

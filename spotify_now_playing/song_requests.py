@@ -68,7 +68,7 @@ class RequestQueue:
             self._next_id += 1
             self.items.append(item)
             self._save()
-            return "added", {"position": len(self.items), "text": text, "id": item["id"]}
+            return "added", {"position": len(self.items), "text": item["text"], "id": item["id"]}
 
     def remove(self, item_id):
         with self.lock:

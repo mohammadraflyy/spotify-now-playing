@@ -33,7 +33,12 @@ class AutoPlayer:
         self._tried = {}          # id request -> waktu pencarian terakhir yang gagal
 
     def enabled(self):
+        """Request dimasukkan ke antrian Spotify (butuh Premium + izin kontrol)."""
         return bool(self.app.chat.settings().get("request_autoplay")) and self.app.account.can_control
+
+    def can_search(self):
+        """Mencari lagu untuk request (judul rapi, filter durasi) cukup login Akun Spotify, Free pun bisa."""
+        return self.app.account.logged_in
 
     def start(self):
         if not self._started:
@@ -52,7 +57,7 @@ class AutoPlayer:
         snap = self.app.snapshot()
         items = self.app.chat.requests.list()
         auto = self.enabled()
-        if auto and self._resolve(items, now):
+        if self.can_search() and self._resolve(items, now):
             items = self.app.chat.requests.list()
         playing_song = snap.get("active") and not snap.get("ad")
         self.next = self._next(auto, items, snap, now) if playing_song else None

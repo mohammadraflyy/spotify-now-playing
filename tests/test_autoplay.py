@@ -64,8 +64,16 @@ class RequestTest(Setup):
         self.assertEqual(self.app.chat.handle("tiktok", "budi", "!request Pamit"), "added")
         self.assertNotIn("track", self.app.chat.requests.list()[0])
 
-    def test_off_without_premium_login(self):
-        self.app.account.can_control = False
+    def test_free_account_searches_but_does_not_queue(self):
+        self.app.account.can_control = False  # login Free: pencarian boleh, antrian Spotify tidak
+        self.app.chat.handle("tiktok", "budi", "!request Pamit")
+        self.assertEqual(self.app.chat.requests.list()[0]["text"], "Tulus - Pamit")
+        self.near_end()
+        self.ap.step(1)
+        self.assertEqual(self.queued, [])
+
+    def test_no_search_without_login(self):
+        self.app.account.logged_in = self.app.account.can_control = False
         self.app.chat.handle("tiktok", "budi", "!request Pamit")
         self.assertEqual(self.searches, [])
 
@@ -167,6 +175,66 @@ class NextTest(Setup):
         self.app.account = SimpleNamespace(logged_in=False, can_control=False)
         self.ap.step(0)
         self.assertIsNone(self.ap.next)
+
+
+class FilterAndEventTest(Setup):
+    def statuses(self):
+        return [(e["status"], e["song"]) for e in self.app.chat.recent_events()]
+
+    def test_events_for_overlay(self):
+        self.app.chat.handle("tiktok", "budi", "!request tolong pamit dong")
+        self.app.chat.handle("twitch", "ani", "!request pamit")
+        self.app.chat.handle("tiktok", "cici", "!request lagu entah apa")
+        self.app.chat.handle("tiktok", "dodi", "!request")
+        self.app.chat.handle("tiktok", "eka", "halo")  # bukan request: tidak dicatat
+        self.assertEqual(self.statuses(), [("added", "Tulus - Pamit"), ("duplicate", "Tulus - Pamit"),
+                                           ("not_found", "lagu entah apa"), ("empty", "")])
+        seqs = [e["seq"] for e in self.app.chat.recent_events()]
+        self.assertEqual(seqs, sorted(seqs))
+
+    def test_block_words_on_text_and_matched_song(self):
+        self.app.cfg["chat"] = {"request_block": "kata kasar,\nHindia"}
+        self.assertEqual(self.app.chat.handle("tiktok", "budi", "!request ini KATA KASAR"), "blocked")
+        self.assertEqual(self.app.chat.handle("tiktok", "budi", "!request evaluasi"), "blocked")  # artis hasil Spotify
+        self.assertEqual(self.app.chat.handle("tiktok", "budi", "!request pamit"), "added")
+        self.assertEqual(self.searches, ["evaluasi", "pamit"])  # teks yang diblokir tidak dicari
+
+    def test_max_duration(self):
+        CATALOG["panjang"] = dict(track("Panjang", "Band"), duration=15 * 60)
+        self.addCleanup(CATALOG.pop, "panjang")
+        self.assertEqual(self.app.chat.handle("tiktok", "budi", "!request panjang"), "too_long")
+        self.app.cfg["chat"] = {"request_max_minutes": 0}
+        self.assertEqual(self.app.chat.handle("tiktok", "budi", "!request panjang"), "added")
+
+    def test_recently_played_or_playing(self):
+        import time as _time
+        self.snap.update(title="Pamit", artist="Tulus")
+        self.assertEqual(self.app.chat.handle("tiktok", "budi", "!request pamit"), "recent")  # sedang diputar
+        self.snap.update(title="Lagu Lain", artist="X")
+        self.app.history = SimpleNamespace(entries=lambda day: [
+            {"time": _time.time() - 600, "title": "Pamit", "artist": "Tulus"},
+            {"time": _time.time() - 3 * 3600, "title": "Evaluasi", "artist": "Hindia"}])
+        self.assertEqual(self.app.chat.handle("tiktok", "budi", "!request pamit"), "recent")
+        self.assertEqual(self.app.chat.handle("tiktok", "budi", "!request evaluasi"), "added")  # sudah 3 jam
+        self.app.cfg["chat"] = {"request_recent_minutes": 0}
+        self.assertEqual(self.app.chat.handle("tiktok", "ani", "!request pamit"), "added")
+
+
+class HistoryRequestTest(unittest.TestCase):
+    def test_request_is_noted_in_history(self):
+        from spotify_now_playing.history import History
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        h = History(tmp.name)
+        snap = {"active": True, "playing": True, "title": "Pamit", "artist": "Tulus",
+                "request": {"user": "budi", "platform": "tiktok"}}
+        h.observe(snap, now=1000)
+        h.observe(snap, now=1004)
+        for t in range(1008, 1030, 4):
+            h.observe(snap, now=t)
+        date = h.dates()[0]
+        self.assertEqual(h.entries(date)[0]["request"], {"user": "budi", "platform": "tiktok"})
+        self.assertIn("Tulus - Pamit  (request budi)", h.text(date))
 
 
 class BestMatchTest(unittest.TestCase):

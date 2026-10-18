@@ -8,7 +8,7 @@
 <style>
   /* Default dari halaman pengaturan; bisa ditimpa lewat URL:
      ?width=420 ?size=17 ?count=5 ?radius=16 ?bg=dark|color|none ?color=181818 ?opacity=82 ?accent=1db954
-     ?header=0 ?user=0 ?platform=0 ?hint=0 ?hideEmpty=1 */
+     ?header=0 ?user=0 ?platform=0 ?hint=0 ?hideEmpty=1 ?notify=0 */
   :root { --w: 420px; --size: 17px; --r: 16px; --accent: #1db954; --bg: rgba(18,18,18,.82);
     --fg: #fff; --muted: rgba(255,255,255,.66); --line: rgba(255,255,255,.08); }
   html, body { margin: 0; background: transparent; overflow: hidden; font-family: Inter, "Segoe UI", sans-serif; }
@@ -35,6 +35,17 @@
   .more { color: var(--muted); font-size: .76em; padding-top: .35em; }
   .hint { margin-top: .75em; padding-top: .6em; border-top: 1px solid var(--line); font-size: .76em; color: var(--muted); }
   .hint b { color: var(--fg); }
+  /* notifikasi request baru: penonton tidak mendapat balasan di chat, jadi kabarnya di sini */
+  .note { display: flex; gap: .55em; align-items: center; margin-bottom: .75em; padding: .55em .7em; border-radius: calc(var(--r) * .6);
+    background: rgba(255,255,255,.08); font-size: .82em; animation: pop .35s ease both; }
+  .note[hidden] { display: none; }
+  .note.ok { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+  .note svg { flex: none; width: 1.25em; height: 1.25em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .note.ok svg { color: var(--accent); }
+  .note .nt { min-width: 0; }
+  .note .msg { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .note .by { color: var(--muted); font-size: .9em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @keyframes pop { from { opacity: 0; transform: translateY(-6px); } }
 </style>
 </head>
 <body>
@@ -43,6 +54,10 @@
     <!-- Ikon: Lucide list-music (ISC License) -->
     <svg viewBox="0 0 24 24"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></svg>
     <span id="title"></span><span class="count" id="count"></span>
+  </div>
+  <div class="note" id="note" hidden>
+    <svg viewBox="0 0 24 24" id="note-icon"></svg>
+    <div class="nt"><div class="msg" id="note-msg"></div><div class="by" id="note-by"></div></div>
   </div>
   <ol id="list"></ol>
   <div class="hint" id="hint"></div>
@@ -56,6 +71,19 @@
     id: { title: "Request lagu", empty: "Belum ada request", more: "+{n} lagi", hint: "Ketik <b>{cmd} judul lagu</b> di chat untuk request" },
     en: { title: "Song requests", empty: "No requests yet", more: "+{n} more", hint: "Type <b>{cmd} song title</b> in chat to request" },
   };
+  const NOTE = {
+    id: { added: "Masuk: {song}", duplicate: "Sudah ada di antrian: {song}", not_found: "Tidak ketemu di Spotify: {song}",
+          user_limit: "Batas request per orang tercapai", full: "Antrian sedang penuh", blocked: "Request ditolak",
+          too_long: "Lagu terlalu panjang: {song}", recent: "Baru saja diputar: {song}", empty: "Ketik judul lagunya setelah {cmd}" },
+    en: { added: "Added: {song}", duplicate: "Already in the queue: {song}", not_found: "Not found on Spotify: {song}",
+          user_limit: "Request limit per viewer reached", full: "The queue is full", blocked: "Request rejected",
+          too_long: "Song is too long: {song}", recent: "Played recently: {song}", empty: "Type the song title after {cmd}" },
+  };
+  // Lucide: circle-check (masuk) dan circle-alert (ditolak)
+  const ICON_OK = '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>';
+  const ICON_NO = '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>';
+  const NOTE_SECONDS = 6;
+  let lastSeq = null, noteUntil = 0;
   const SAMPLE = [
     ["Hindia - Evaluasi", "budi", "tiktok"], ["Nadin Amizah - Bertaut", "ani", "twitch"],
     ["Sal Priadi - Gala Bunga Matahari", "cici", "youtube"], ["Tulus - Interaksi", "dodi", "tiktok"],
@@ -76,7 +104,7 @@
       opacity: num(get("opacity", 82), 82, 0, 100) / 100, accent: String(get("accent", "1db954")).replace("#", ""),
       header: flag(get("header", true), true), user: flag(get("user", true), true),
       platform: flag(get("platform", true), true), hint: flag(get("hint", true), true),
-      hideEmpty: flag(get("hideEmpty", false), false),
+      hideEmpty: flag(get("hideEmpty", false), false), notify: flag(get("notify", true), true),
     };
     root.style.setProperty("--w", opts.width + "px");
     root.style.setProperty("--size", opts.size + "px");
@@ -106,7 +134,8 @@
       });
     }
     const T = TEXT[r.lang] || TEXT.id;
-    document.body.classList.toggle("hidden", !isPreview && (!r.enabled || (opts.hideEmpty && !items.length)));
+    const noting = showNote(r);
+    document.body.classList.toggle("hidden", !isPreview && !noting && (!r.enabled || (opts.hideEmpty && !items.length)));
     const key = JSON.stringify([items.map(i => [i.id, i.track?.uri]), r.lang, r.cmd]);
     if (key === last) return;
     last = key;
@@ -132,12 +161,39 @@
     hint.innerHTML = T.hint.replace("{cmd}", esc(r.cmd));
   }
 
+  /** Notifikasi request terakhir (6 detik). Return true selama notifikasi tampil. */
+  function showNote(r) {
+    const events = r.events || [];
+    const newest = events.length ? events[events.length - 1] : null;
+    if (lastSeq === null) lastSeq = newest ? newest.seq : 0;  // kejadian sebelum overlay dibuka tidak ditampilkan
+    let ev = null;
+    if (isPreview && opts.notify) ev = { status: "added", song: "Tulus - Pamit", user: "budi", platform: "tiktok" };
+    else if (newest && newest.seq > lastSeq) { lastSeq = newest.seq; ev = newest; noteUntil = Date.now() + NOTE_SECONDS * 1000; }
+    const note = document.getElementById("note");
+    if (ev && opts.notify) {
+      const L = NOTE[r.lang] || NOTE.id;
+      note.className = "note" + (ev.status === "added" ? " ok" : "");
+      document.getElementById("note-icon").innerHTML = ev.status === "added" ? ICON_OK : ICON_NO;
+      document.getElementById("note-msg").textContent = (L[ev.status] || ev.status).replace("{song}", ev.song).replace("{cmd}", r.cmd);
+      document.getElementById("note-by").textContent = [ev.user, PLATFORM[ev.platform]].filter(Boolean).join(" · ");
+      note.hidden = false;
+    }
+    const active = opts.notify && (isPreview || Date.now() < noteUntil);
+    if (!active) note.hidden = true;
+    return active;
+  }
+
   /** Tinggi Browser Source saat antrian penuh (dipakai halaman pengaturan untuk saran ukuran OBS). */
   window.fullHeight = () => document.getElementById("box").offsetHeight + 20;
 
   async function poll() {
     try {
       data = await (await fetch("/api/requests", { cache: "no-store" })).json();
+      const seq = (data.events || []).slice(-1)[0]?.seq;
+      if (seq !== undefined && seq !== lastSeq || (noteUntil && Date.now() >= noteUntil)) {
+        if (Date.now() >= noteUntil) noteUntil = noteUntil && 0;
+        last = "";  // paksa gambar ulang: notifikasi baru atau notifikasi lama habis
+      }
       render(data);
     } catch {
       document.body.classList.add("hidden");   // aplikasi tidak berjalan

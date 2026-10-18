@@ -55,10 +55,14 @@
   .ghost { background: transparent; }
   .danger { color: var(--err); background: transparent; }
   .sm { padding: 6px 12px; font-size: 12px; }
-  input[type=text], input[type=password], select {
+  .err-text { color: var(--err); font-size: 13px; }
+  .req-badge { margin-left: 8px; font-size: 11px; font-weight: 600; color: var(--accent); border: 1px solid rgba(29,185,84,.4);
+    border-radius: 99px; padding: 1px 8px; white-space: nowrap; }
+  input[type=text], input[type=password], select, textarea {
     width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: #0b0b0c; color: var(--fg); font: 13px Inter, sans-serif; }
   input.mono { font-family: ui-monospace, Consolas, monospace; }
   input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  textarea { resize: vertical; font: inherit; line-height: 1.5; }
   input[type=range] { accent-color: var(--accent); flex: 1; min-width: 80px; }
   input[type=color] { width: 40px; height: 32px; border: 1px solid var(--line); border-radius: 8px; background: none; padding: 2px; cursor: pointer; }
   input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
@@ -652,6 +656,14 @@
           <div class="slider"><span>Per orang</span><input type="range" id="rq-max-user" min="0" max="10" step="1"><span class="numwrap"><input type="number" class="num" id="rq-max-user-v" data-range="rq-max-user">lagu</span></div>
           <div class="slider"><span>Maksimal</span><input type="range" id="rq-max-total" min="0" max="200" step="1"><span class="numwrap"><input type="number" class="num" id="rq-max-total-v" data-range="rq-max-total">lagu</span></div>
           <p class="muted small" style="margin:0 0 14px">Isi 0 untuk tanpa batas. Tidak ada balasan di chat, jadi tampilkan overlay di stream supaya penonton tahu request-nya masuk.</p>
+          <span class="label">Filter</span>
+          <div class="slider"><span>Durasi</span><input type="range" id="rq-max-min" min="0" max="20" step="1"><span class="numwrap"><input type="number" class="num" id="rq-max-min-v" data-range="rq-max-min">menit</span></div>
+          <div class="slider"><span>Jeda</span><input type="range" id="rq-recent" min="0" max="180" step="5"><span class="numwrap"><input type="number" class="num" id="rq-recent-v" data-range="rq-recent">menit</span></div>
+          <p class="muted small" style="margin:0 0 12px">Durasi: tolak lagu yang lebih panjang dari ini (butuh login Akun Spotify). Jeda: tolak lagu yang sedang atau baru saja diputar dalam sekian menit. Isi 0 untuk mematikan.</p>
+          <div class="field">
+            <span class="label">Kata atau artis yang diblokir</span>
+            <textarea id="rq-block" rows="2" placeholder="pisahkan dengan koma" spellcheck="false"></textarea>
+          </div>
           <button class="primary" id="rq-save">Simpan</button>
         </div>
         <div class="panel">
@@ -680,6 +692,7 @@
             <label class="check"><input type="checkbox" id="ro-user"> Nama penonton</label>
             <label class="check"><input type="checkbox" id="ro-platform"> Platform (Twitch, YouTube, TikTok)</label>
             <label class="check"><input type="checkbox" id="ro-hint"> Petunjuk cara request</label>
+            <label class="check"><input type="checkbox" id="ro-notify"> Notifikasi saat ada request (masuk, tidak ketemu, ditolak)</label>
             <label class="check"><input type="checkbox" id="ro-hide"> Sembunyikan overlay saat antrian kosong</label>
           </div>
         </div>
@@ -1496,6 +1509,9 @@ async function loadRequests() {
       $("rq-cmd").value = c.request_cmd;
       $("rq-max-user").value = c.request_max_user; setNum("rq-max-user-v", c.request_max_user);
       $("rq-max-total").value = c.request_max_total; setNum("rq-max-total-v", c.request_max_total);
+      $("rq-max-min").value = c.request_max_minutes; setNum("rq-max-min-v", c.request_max_minutes);
+      $("rq-recent").value = c.request_recent_minutes; setNum("rq-recent-v", c.request_recent_minutes);
+      $("rq-block").value = c.request_block || "";
       loadRqLook(cfg?.requests_overlay || {});
       $("rq-frame").onload = () => updateRqLook(false);
       $("rq-frame").src = "/requests?preview=1";
@@ -1530,7 +1546,7 @@ function renderRequests(items) {
 }
 // tampilan overlay request
 const RQ_DEFAULT = { width: 420, size: 17, count: 5, radius: 16, bg: "dark", color: "181818", opacity: 82, accent: "1db954",
-  header: true, user: true, platform: true, hint: true, hideEmpty: false };
+  header: true, user: true, platform: true, hint: true, hideEmpty: false, notify: true };
 let rqBox = { w: 440, h: 380 }, rqTimer;
 function rqValues() {
   return {
@@ -1538,6 +1554,7 @@ function rqValues() {
     bg: radio("ro-bg") || "dark", color: $("ro-color").value.slice(1), opacity: +$("ro-opacity").value,
     accent: $("ro-accent").value.slice(1), header: $("ro-header").checked, user: $("ro-user").checked,
     platform: $("ro-platform").checked, hint: $("ro-hint").checked, hideEmpty: $("ro-hide").checked,
+    notify: $("ro-notify").checked,
   };
 }
 function loadRqLook(o) {
@@ -1545,7 +1562,7 @@ function loadRqLook(o) {
   ["width", "size", "count", "radius", "opacity"].forEach(k => $("ro-" + k).value = o[k]);
   setRadio("ro-bg", o.bg); $("ro-color").value = "#" + o.color; $("ro-accent").value = "#" + o.accent;
   $("ro-header").checked = o.header; $("ro-user").checked = o.user; $("ro-platform").checked = o.platform;
-  $("ro-hint").checked = o.hint; $("ro-hide").checked = o.hideEmpty;
+  $("ro-hint").checked = o.hint; $("ro-hide").checked = o.hideEmpty; $("ro-notify").checked = o.notify;
 }
 function measureRq() {
   const o = rqValues();
@@ -1570,7 +1587,7 @@ function updateRqLook(save = true) {
     } catch (e) { toast(e.message, true); }
   }, 200);
 }
-["ro-width", "ro-size", "ro-count", "ro-radius", "ro-color", "ro-opacity", "ro-accent", "ro-header", "ro-user", "ro-platform", "ro-hint", "ro-hide"]
+["ro-width", "ro-size", "ro-count", "ro-radius", "ro-color", "ro-opacity", "ro-accent", "ro-header", "ro-user", "ro-platform", "ro-hint", "ro-hide", "ro-notify"]
   .forEach(id => $(id).addEventListener("input", () => updateRqLook()));
 document.querySelectorAll('input[name="ro-bg"]').forEach(r => r.addEventListener("change", () => updateRqLook()));
 $("ro-reset").onclick = () => { loadRqLook(RQ_DEFAULT); updateRqLook(); toast("Tampilan overlay dikembalikan ke default"); };
@@ -1657,8 +1674,10 @@ $("ap-enabled").onchange = () => chatAction("config", { request_autoplay: $("ap-
 $("rq-save").onclick = () => chatAction("config", {
   request_enabled: $("rq-enabled").checked, request_cmd: $("rq-cmd").value,
   request_max_user: +$("rq-max-user").value, request_max_total: +$("rq-max-total").value,
+  request_max_minutes: +$("rq-max-min").value, request_recent_minutes: +$("rq-recent").value,
+  request_block: $("rq-block").value,
 }, "Tersimpan").then(loadRequests);
-["rq-max-user", "rq-max-total"].forEach(id => $(id).addEventListener("input", () => setNum(id + "-v", $(id).value)));
+["rq-max-user", "rq-max-total", "rq-max-min", "rq-recent"].forEach(id => $(id).addEventListener("input", () => setNum(id + "-v", $(id).value)));
 
 // ---------------------------------------------------------- riwayat --
 
@@ -1711,6 +1730,12 @@ function renderHistoryPage() {
     song.innerHTML = "<b></b> <span class='muted'></span>";
     song.children[0].textContent = e.title;
     song.children[1].textContent = "— " + e.artist;
+    if (e.request?.user) {
+      const req = document.createElement("span");
+      req.className = "req-badge";
+      req.textContent = t("request {user}", { user: e.request.user });
+      song.appendChild(req);
+    }
     const player = document.createElement("span");
     player.className = "h-player";
     player.textContent = e.player || "";

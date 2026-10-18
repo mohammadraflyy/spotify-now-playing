@@ -35,8 +35,11 @@ class History:
         self._last = now
         if not self._logged and self._played >= MIN_PLAY:
             self._logged = True
-            self.add({"time": self._start, "title": s["title"], "artist": s["artist"],
-                      "album": s.get("album", ""), "player": s.get("device", "")})
+            entry = {"time": self._start, "title": s["title"], "artist": s["artist"],
+                     "album": s.get("album", ""), "player": s.get("device", "")}
+            if s.get("request"):
+                entry["request"] = s["request"]  # {"user", "platform"}: lagu ini request penonton
+            self.add(entry)
 
     def _file(self, date):
         return self.folder / f"{date}.jsonl"
@@ -76,7 +79,8 @@ class History:
 
     def text(self, date):
         """'21:03  Tulus - Hati-Hati di Jalan' per baris, untuk deskripsi VOD."""
-        return "".join(f"{datetime.fromtimestamp(e['time']).strftime('%H:%M')}  {e['artist']} - {e['title']}\n"
+        return "".join(f"{datetime.fromtimestamp(e['time']).strftime('%H:%M')}  {e['artist']} - {e['title']}"
+                       + (f"  (request {e['request']['user']})" if (e.get("request") or {}).get("user") else "") + "\n"
                        for e in self.entries(date))
 
     def clear(self, date):

@@ -202,7 +202,11 @@ Aplikasi hanya **mendengarkan** chat, tidak pernah mengirim pesan, jadi tidak ad
 
 Lainnya:
 - **Overlay OBS** `http://127.0.0.1:8765/requests` menampilkan antrian di stream, supaya penonton, termasuk dari TikTok, tahu request-nya masuk. Tampilannya bisa diatur seperti kartu Now Playing: lebar, ukuran teks, jumlah lagu, sudut, latar (gelap, warna tetap, transparan), warna aksen, serta judul, nama penonton, platform, dan petunjuk perintah yang bisa ditampilkan atau disembunyikan. Ukuran Browser Source untuk OBS dihitung otomatis.
+- **Notifikasi di overlay**: setiap request memunculkan pesan singkat, misalnya *Masuk: Tulus - Pamit*, *Tidak ketemu di Spotify*, *Sudah ada di antrian*, atau *Baru saja diputar*. Ini pengganti balasan di chat, supaya penonton tahu nasib request-nya.
 - Perintah, batas request per penonton, dan panjang antrian bisa diatur.
+- **Filter**: tolak lagu yang lebih panjang dari batas durasi (default 10 menit), lagu yang sedang atau baru saja diputar (default 30 menit), dan kata atau artis yang diblokir.
+- **Riwayat** menandai lagu yang berasal dari request beserta nama penontonnya, juga di file `.txt` untuk deskripsi VOD, misalnya `21:03  Tulus - Pamit  (request budi)`.
+- Kalau login Akun Spotify (Free pun bisa), request dicocokkan dengan lagu di Spotify dan ditampilkan sebagai "Artis - Judul".
 
 #### Putar otomatis lewat Spotify (Premium)
 

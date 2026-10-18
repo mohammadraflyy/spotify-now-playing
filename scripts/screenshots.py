@@ -106,8 +106,13 @@ def demo_app(tmp):
         chat.restart = lambda: None
     app.chat.twitch.state = "connected"
     app.chat.tiktok.state = "waiting"
-    for i, (title, artist) in enumerate([("Pagi Tadi", "Langit Biru"), ("Cerita Kita", "Ayu"), ("Jalan Pulang", "Lintas Nada")]):
-        app.history.add({"time": time.time() - 600 * (i + 1), "title": title, "artist": artist, "album": "", "player": "Spotify"})
+    played = [("Jalan Pulang", "Lintas Nada", None), ("Cerita Kita", "Ayu", None),
+              ("Pagi Tadi", "Langit Biru", {"user": "Dimas Pratama", "platform": "youtube"})]
+    for i, (title, artist, req) in enumerate(played):  # urut dari yang paling lama, seperti aslinya
+        entry = {"time": time.time() - 600 * (len(played) - i), "title": title, "artist": artist, "album": "", "player": "Spotify"}
+        if req:
+            entry["request"] = req
+        app.history.add(entry)
     return app
 
 

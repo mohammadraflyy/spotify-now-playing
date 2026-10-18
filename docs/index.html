@@ -129,6 +129,9 @@
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
   <symbol id="i-layout" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-skip" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-archive" viewBox="0 0 24 24"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></symbol>
   <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></symbol>
   <symbol id="i-languages" viewBox="0 0 24 24"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></symbol>
 </svg>
@@ -177,7 +180,7 @@
           <p data-en="Line by line, like in Spotify. Lyrics come from LRCLIB and are cached on your PC. Wrong lyrics can be swapped from the settings page.">Baris per baris seperti di Spotify. Liriknya dari LRCLIB dan tersimpan di PC. Lirik yang salah bisa diganti dari halaman pengaturan.</p></div>
         <div class="card"><span class="ic"><svg class="i"><use href="#i-list-music"/></svg></span>
           <h3 data-en="Viewer song requests">Request lagu dari penonton</h3>
-          <p data-en="Viewers type !request in chat on Twitch, YouTube or TikTok. Requests go into a queue with its own overlay, and leave it when the song plays.">Penonton mengetik !request di chat Twitch, YouTube, atau TikTok. Request masuk antrian dengan overlay sendiri, dan hilang saat lagunya diputar.</p></div>
+          <p data-en="Viewers type !request in chat on Twitch, YouTube or TikTok. With Spotify Premium, requests play automatically through your Spotify queue, then your playlist carries on.">Penonton mengetik !request di chat Twitch, YouTube, atau TikTok. Dengan Spotify Premium, request diputar otomatis lewat antrian Spotify, lalu playlist kamu lanjut lagi.</p></div>
         <div class="card"><span class="ic"><svg class="i"><use href="#i-pause"/></svg></span>
           <h3 data-en="Handles Spotify Free ads">Aman saat iklan Spotify Free</h3>
           <p data-en="During an ad the card shows a short-break message and Spotify is muted or turned down, then everything goes back when the music returns.">Saat iklan, kartu menampilkan pesan jeda dan suara Spotify dibisukan atau dikecilkan, lalu kembali normal saat lagu diputar lagi.</p></div>
@@ -187,6 +190,15 @@
         <div class="card"><span class="ic"><svg class="i"><use href="#i-monitor"/></svg></span>
           <h3 data-en="Not just Spotify">Bukan cuma Spotify</h3>
           <p data-en="Reads Spotify Desktop without any login. Optionally reads YouTube Music, Apple Music, TIDAL and other players on the same PC too.">Membaca Spotify Desktop tanpa login. Opsional, bisa juga membaca YouTube Music, Apple Music, TIDAL, dan player lain di PC yang sama.</p></div>
+        <div class="card"><span class="ic"><svg class="i"><use href="#i-skip"/></svg></span>
+          <h3 data-en="Up next">Lagu selanjutnya</h3>
+          <p data-en="A small card that shows the next request and who asked for it, or the next song in your Spotify queue.">Kartu kecil yang menampilkan request berikutnya beserta nama penontonnya, atau lagu berikutnya di antrian Spotify.</p></div>
+        <div class="card"><span class="ic"><svg class="i"><use href="#i-refresh"/></svg></span>
+          <h3 data-en="One-click updates">Update sekali klik</h3>
+          <p data-en="When a new version is out, click Update now. The installer is checked against its SHA-256 checksum, and the app restarts by itself.">Kalau ada versi baru, klik Update sekarang. Installer dicocokkan dengan checksum SHA-256-nya, lalu aplikasi terbuka lagi sendiri.</p></div>
+        <div class="card"><span class="ic"><svg class="i"><use href="#i-archive"/></svg></span>
+          <h3 data-en="Settings that stay safe">Pengaturan aman</h3>
+          <p data-en="Settings are backed up automatically and restored if the file gets damaged. Export them to move to another PC, without logins or keys.">Pengaturan dicadangkan otomatis dan dipulihkan kalau file-nya rusak. Bisa diekspor untuk dipindah ke PC lain, tanpa login atau key.</p></div>
       </div>
     </div>
   </section>
@@ -209,7 +221,12 @@
         <img src="screenshots/requests.png" width="460" height="262" loading="lazy" alt="Overlay antrian request lagu" data-en-alt="Song request queue overlay" style="max-width:460px;justify-self:center;border:0">
         <div>
           <h3 data-en="Requests from every platform">Request dari semua platform</h3>
-          <p data-en="The app only listens to chat and never posts anything. Viewers see their request appear on the queue overlay.">Aplikasi hanya mendengarkan chat dan tidak pernah mengirim apa pun. Penonton melihat request-nya muncul di overlay antrian.</p>
+          <p data-en="The app only listens to chat and never posts anything. Each request is matched to the right song on Spotify, and the overlay tells viewers whether it was added, not found or rejected.">Aplikasi hanya mendengarkan chat dan tidak pernah mengirim apa pun. Setiap request dicocokkan dengan lagu yang benar di Spotify, dan overlay memberi tahu penonton apakah request-nya masuk, tidak ketemu, atau ditolak.</p>
+          <ul class="ticks">
+            <li><svg class="i"><use href="#i-check"/></svg><span data-en="Auto-play through the Spotify queue (Premium)">Putar otomatis lewat antrian Spotify (Premium)</span></li>
+            <li><svg class="i"><use href="#i-check"/></svg><span data-en="Limits per viewer, max song length, blocked words">Batas per penonton, durasi maksimal, blokir kata</span></li>
+            <li><svg class="i"><use href="#i-check"/></svg><span data-en="Requests are marked in the song history">Request ditandai di riwayat lagu</span></li>
+          </ul>
           <div class="platforms"><span class="chip">Twitch</span><span class="chip">YouTube</span><span class="chip">TikTok</span></div>
         </div>
       </div>

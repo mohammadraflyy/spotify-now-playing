@@ -66,6 +66,9 @@ The app only **listens** to chat and never sends messages, so there are no chat 
 Also:
 - **OBS overlay** `http://127.0.0.1:8765/requests` shows the queue on stream, so viewers (including TikTok) can see their request was added. Its look can be customized like the Now Playing card: width, text size, number of songs, corners, background (dark, fixed color, transparent), accent color, and whether to show the title, viewer names, platform and command hint. The OBS Browser Source size is calculated for you.
 - **Auto-play with Spotify Premium**: log in with a Spotify Premium account in the **Music source** tab (the source can stay Spotify Desktop). Requests are looked up on Spotify when they arrive, and the top request is added to the Spotify queue about 15 seconds before the current song ends. When there are no more requests, Spotify continues with your playlist. Turn it on or off in the **Requests card** tab.
+- **Request notifications** on the overlay tell viewers whether their request was added, not found, already queued or played recently.
+- **Filters**: max song length, a replay gap for recently played songs, and blocked words or artists.
+- The **history** marks songs that came from requests, with the viewer's name.
 - **Up next** overlay `http://127.0.0.1:8765/next`, customizable in the **Up next card** tab, shows the next request, or the next song in your Spotify queue. Also written to `next.txt`.
 
 ### Card URL parameters

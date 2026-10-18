@@ -44,7 +44,8 @@ def make_handler(app, port):
         chat = cfg.get("chat") or {}
         out["chat"] = {
             **{k: chat[k] for k in ("request_enabled", "request_cmd", "request_max_user", "request_max_total",
-                                    "request_autoplay") if k in chat},
+                                    "request_autoplay", "request_block", "request_max_minutes",
+                                    "request_recent_minutes") if k in chat},
             **{name: {k: v for k, v in (chat.get(name) or {}).items() if k in keep}
                for name, keep in (("twitch", ("enabled", "channel")), ("youtube", ("enabled", "client_id")),
                                   ("tiktok", ("enabled", "username")))
@@ -177,6 +178,7 @@ def make_handler(app, port):
                 self._send(200, json.dumps({
                     "items": app.chat.requests.list(), "enabled": bool(s.get("request_enabled")),
                     "cmd": s.get("request_cmd", ""), "lang": i18n.lang(app.cfg),
+                    "events": app.chat.recent_events(),
                 }).encode(), "application/json", {"Access-Control-Allow-Origin": "*"})
             elif path == "/api/chat":
                 self._json(app.chat.status())
@@ -362,7 +364,10 @@ def make_handler(app, port):
                 if cmd and not CHAT_COMMAND.match(cmd):
                     return "Perintah harus satu kata tanpa spasi, maksimal 30 karakter"
                 cur["request_cmd"] = cmd
-            for key, top in (("request_max_user", 20), ("request_max_total", 200)):
+            if "request_block" in body:
+                cur["request_block"] = str(body["request_block"] or "")[:1000]
+            for key, top in (("request_max_user", 20), ("request_max_total", 200),
+                             ("request_max_minutes", 60), ("request_recent_minutes", 600)):
                 if key in body:
                     try:
                         cur[key] = max(0, min(top, int(body[key])))

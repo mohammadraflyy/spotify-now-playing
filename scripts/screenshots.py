@@ -147,6 +147,7 @@ def main():
         shoot(chrome, f"{base}/settings#card", "settings-card.png", 1100, 860)
         shoot(chrome, f"{base}/settings#lyrics", "settings-lyrics.png", 1100, 860)
         shoot(chrome, f"{base}/settings#requests", "settings-requests.png", 1100, 900)
+        shoot(chrome, f"{base}/settings#next", "settings-next.png", 1100, 700)
         shoot(chrome, f"{base}/overlay", "overlay.png", 500, 150, bg="00000000")
         shoot(chrome, f"{base}/requests", "requests.png", 460, 330, bg="00000000")
         shoot(chrome, f"{base}/next", "next.png", 480, 110, bg="00000000")

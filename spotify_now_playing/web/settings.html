@@ -223,6 +223,7 @@
   <symbol id="i-list-music" viewBox="0 0 24 24"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></symbol>
   <symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
   <symbol id="i-done" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-skip" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/></symbol>
   <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></symbol>
 </svg>
 <header>
@@ -238,6 +239,7 @@
       <button data-tab="card"><svg class="i"><use href="#i-music"/></svg>Kartu Now Playing</button>
       <button data-tab="lyrics"><svg class="i"><use href="#i-mic"/></svg>Kartu Lirik</button>
       <button data-tab="requests"><svg class="i"><use href="#i-list-music"/></svg>Kartu Request</button>
+      <button data-tab="next"><svg class="i"><use href="#i-skip"/></svg>Kartu Selanjutnya</button>
       <button data-tab="history"><svg class="i"><use href="#i-history"/></svg>Riwayat</button>
       <button data-tab="source"><svg class="i"><use href="#i-plug"/></svg>Sumber Musik</button>
       <button data-tab="app"><svg class="i"><use href="#i-settings"/></svg>Aplikasi</button>
@@ -681,16 +683,6 @@
           </div>
         </div>
         <button class="ghost sm" id="ro-reset"><svg class="i"><use href="#i-reset"/></svg> Kembalikan ke default</button>
-        <div class="panel" style="margin-top:16px">
-          <h3>Lagu selanjutnya</h3>
-          <p class="muted small" style="margin:-6px 0 12px">Overlay kecil "Selanjutnya: Artis - Judul". Isinya request berikutnya, atau lagu berikutnya di antrian Spotify kalau sudah login Akun Spotify. Sembunyi sendiri kalau tidak ada lagu berikutnya. Juga ditulis ke <code>next.txt</code>.</p>
-          <div class="row">
-            <input type="text" class="mono" id="next-url" readonly>
-            <button class="primary" data-copy="next-url">Salin</button>
-          </div>
-          <div class="size" style="margin-top:10px">Ukuran Browser Source: <span>Width <b>460</b></span><span>Height <b>90</b></span></div>
-          <p class="muted small" id="next-now" style="margin:10px 0 0"></p>
-        </div>
       </div>
       <div class="sticky">
         <div class="preview" id="rq-preview-box"><span class="tag">preview</span><iframe id="rq-frame" title="Preview request"></iframe></div>
@@ -767,6 +759,55 @@
           </ol>
           <p class="muted small" style="margin:10px 0 0">Euler Stream adalah layanan pihak ketiga yang menyambungkan aplikasi ke chat TikTok LIVE. Username TikTok dan API key-mu dikirim ke sana. Saat kamu belum live, aplikasi mengecek ulang setiap 3 menit.</p>
         </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= KARTU SELANJUTNYA ======================= -->
+  <section class="page" id="page-next">
+    <h2 class="page-title">Kartu Selanjutnya</h2>
+    <p class="page-sub">Kartu kecil <b>Selanjutnya: Artis - Judul</b>. Isinya request penonton berikutnya, atau lagu berikutnya di antrian Spotify kalau sudah login Akun Spotify. Kartu sembunyi sendiri kalau tidak ada lagu berikutnya. Teksnya juga ditulis ke <code>next.txt</code>.</p>
+
+    <div class="editor">
+      <div>
+        <div class="panel">
+          <div class="field">
+            <span class="label">Ukuran</span>
+            <div class="slider"><span>Lebar</span><input type="range" id="nx-width" min="200" max="1200" step="1"><span class="numwrap"><input type="number" class="num" id="nx-width-v" data-range="nx-width">px</span></div>
+            <div class="slider"><span>Teks</span><input type="range" id="nx-size" min="10" max="48" step="1"><span class="numwrap"><input type="number" class="num" id="nx-size-v" data-range="nx-size">px</span></div>
+            <div class="slider"><span>Sudut</span><input type="range" id="nx-radius" min="0" max="60" step="1"><span class="numwrap"><input type="number" class="num" id="nx-radius-v" data-range="nx-radius">px</span></div>
+          </div>
+          <div class="field">
+            <span class="label">Latar</span>
+            <div class="seg">
+              <label><input type="radio" name="nx-bg" value="dark">Gelap</label>
+              <label><input type="radio" name="nx-bg" value="color">Warna tetap</label>
+              <label><input type="radio" name="nx-bg" value="none">Transparan</label>
+            </div>
+            <div class="slider" id="nx-color-wrap" style="margin-top:12px"><span>Warna</span><input type="color" id="nx-color" value="#181818"></div>
+            <div class="slider" id="nx-opacity-wrap" style="margin-top:8px"><span>Opasitas</span><input type="range" id="nx-opacity" min="0" max="100" step="1"><span class="numwrap"><input type="number" class="num" id="nx-opacity-v" data-range="nx-opacity">%</span></div>
+            <div class="slider" style="margin-top:8px"><span>Aksen</span><input type="color" id="nx-accent" value="#1db954"><span class="muted small">warna tulisan "Selanjutnya" dan ikon</span></div>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <span class="label">Tampilkan</span>
+            <label class="check"><input type="checkbox" id="nx-user"> Nama penonton yang me-request</label>
+            <label class="check"><input type="checkbox" id="nx-icon"> Ikon</label>
+          </div>
+        </div>
+        <button class="ghost sm" id="nx-reset"><svg class="i"><use href="#i-reset"/></svg> Kembalikan ke default</button>
+      </div>
+      <div class="sticky">
+        <div class="preview" id="nx-preview-box"><span class="tag">preview</span><iframe id="nx-frame" title="Preview lagu selanjutnya"></iframe></div>
+        <div class="obs">
+          <h3><svg class="i"><use href="#i-plus"/></svg> Tambahkan ke OBS</h3>
+          <div class="row">
+            <input type="text" class="mono" id="next-url" readonly>
+            <button class="primary" data-copy="next-url">Salin</button>
+          </div>
+          <div class="size">Ukuran Browser Source: <span>Width <b id="nx-w">460</b></span><span>Height <b id="nx-h">90</b></span></div>
+          <a class="drag" id="nx-drag" draggable="true"><svg class="i"><use href="#i-grip"/></svg> <b>Atau seret kotak ini ke jendela preview OBS</b></a>
+          <p class="muted small" id="next-now" style="margin:10px 0 0"></p>
+        </div>
       </div>
     </div>
   </section>
@@ -916,6 +957,7 @@ function showTab(name) {
   if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
   if (name === "history") loadHistory(historyDate);
   if (name === "requests") { loadChat(); loadRequests(); }
+  if (name === "next") loadNext();
   requestAnimationFrame(fitPreviews);
 }
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { showTab(b.dataset.tab); scrollTo(0, 0); });
@@ -956,6 +998,7 @@ function fitPreviews() {
   fitPreview($("card-preview"), $("card-frame"), box.w, box.h);
   fitPreview($("ly-preview-box"), $("ly-frame"), 800, 340);
   fitPreview($("rq-preview-box"), $("rq-frame"), rqBox.w, rqBox.h);
+  fitPreview($("nx-preview-box"), $("nx-frame"), nxBox.w, nxBox.h);
 }
 window.addEventListener("resize", fitPreviews);
 
@@ -1531,6 +1574,63 @@ function updateRqLook(save = true) {
 document.querySelectorAll('input[name="ro-bg"]').forEach(r => r.addEventListener("change", () => updateRqLook()));
 $("ro-reset").onclick = () => { loadRqLook(RQ_DEFAULT); updateRqLook(); toast("Tampilan overlay dikembalikan ke default"); };
 
+// tampilan kartu selanjutnya
+const NX_DEFAULT = { width: 440, size: 16, radius: 14, bg: "dark", color: "181818", opacity: 82, accent: "1db954", user: true, icon: true };
+let nxBox = { w: 460, h: 90 }, nxTimer, nxLoaded = false;
+function nxValues() {
+  return {
+    width: +$("nx-width").value, size: +$("nx-size").value, radius: +$("nx-radius").value, bg: radio("nx-bg") || "dark",
+    color: $("nx-color").value.slice(1), opacity: +$("nx-opacity").value, accent: $("nx-accent").value.slice(1),
+    user: $("nx-user").checked, icon: $("nx-icon").checked,
+  };
+}
+function loadNxLook(o) {
+  o = { ...NX_DEFAULT, ...o };
+  ["width", "size", "radius", "opacity"].forEach(k => $("nx-" + k).value = o[k]);
+  setRadio("nx-bg", o.bg); $("nx-color").value = "#" + o.color; $("nx-accent").value = "#" + o.accent;
+  $("nx-user").checked = o.user; $("nx-icon").checked = o.icon;
+}
+function measureNx() {
+  const o = nxValues();
+  const h = $("nx-frame").contentWindow?.fullHeight?.();
+  nxBox = { w: o.width + 20, h: Math.ceil(h || 90) };
+  $("nx-w").textContent = nxBox.w; $("nx-h").textContent = nxBox.h;
+  makeDrag($("nx-drag"), $("next-url").value, "Up Next", nxBox.w, nxBox.h);
+  fitPreview($("nx-preview-box"), $("nx-frame"), nxBox.w, nxBox.h);
+}
+function updateNxLook(save = true) {
+  const o = nxValues();
+  ["width", "size", "radius", "opacity"].forEach(k => setNum("nx-" + k + "-v", o[k]));
+  $("nx-color-wrap").hidden = o.bg !== "color";
+  $("nx-opacity-wrap").hidden = o.bg === "none";
+  if (!save) return setTimeout(measureNx, 150);
+  clearTimeout(nxTimer);
+  nxTimer = setTimeout(async () => {
+    try {
+      await api("/api/config", { next_overlay: o });
+      await $("nx-frame").contentWindow?.loadConfig?.();
+      setTimeout(measureNx, 100);
+    } catch (e) { toast(e.message, true); }
+  }, 200);
+}
+function renderNextNow() {
+  const n = lastNow?.next;
+  $("next-now").textContent = n ? t("Sekarang: {song}", { song: `${n.artist} - ${n.title}` }) : t("Belum ada lagu berikutnya.");
+}
+function loadNext() {
+  if (!nxLoaded && cfg) {
+    nxLoaded = true;
+    loadNxLook(cfg.next_overlay || {});
+    $("nx-frame").onload = () => updateNxLook(false);
+    $("nx-frame").src = "/next?preview=1";
+  }
+  renderNextNow();
+}
+["nx-width", "nx-size", "nx-radius", "nx-color", "nx-opacity", "nx-accent", "nx-user", "nx-icon"]
+  .forEach(id => $(id).addEventListener("input", () => updateNxLook()));
+document.querySelectorAll('input[name="nx-bg"]').forEach(r => r.addEventListener("change", () => updateNxLook()));
+$("nx-reset").onclick = () => { loadNxLook(NX_DEFAULT); updateNxLook(); toast("Tampilan kartu dikembalikan ke default"); };
+
 $("rq-clear").onclick = async () => {
   if (!confirm(t("Hapus semua request di antrian?"))) return;
   renderRequests((await api("/api/requests/clear", {})).items);
@@ -1549,8 +1649,6 @@ function renderAutoplay(c) {
     : "Aktif. Request dicari di Spotify saat masuk, lalu dimasukkan ke antrian Spotify 15 detik sebelum lagu selesai. Setelah request habis, Spotify lanjut ke playlist.");
   $("ap-error").hidden = !a.error || !a.active;
   $("ap-error").textContent = a.error || "";
-  const n = cfg && lastNow?.next;
-  $("next-now").textContent = n ? t("Sekarang: {song}", { song: `${n.artist} - ${n.title}` }) : t("Belum ada lagu berikutnya.");
 }
 $("ap-enabled").onchange = () => chatAction("config", { request_autoplay: $("ap-enabled").checked },
   $("ap-enabled").checked ? "Putar otomatis dinyalakan" : "Putar otomatis dimatikan").then(loadRequests);
@@ -1771,6 +1869,7 @@ async function refresh() {
     renderStatus(c, now);
     renderLyricsStatus(ly);
     if ($("page-requests").classList.contains("active")) { loadChat(); loadRequests(); }
+    if ($("page-next").classList.contains("active")) loadNext();  // juga inisialisasi kalau dibuka langsung di #next
   } catch {
     $("pill-dot").className = "dot err";
     $("pill-text").textContent = t("Aplikasi tidak berjalan");

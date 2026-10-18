@@ -214,7 +214,7 @@ Kalau login **Akun Spotify Premium** di tab **Sumber Musik**, request bisa diput
 
 Nyalakan atau matikan di tab **Kartu Request** → **Putar otomatis lewat Spotify**. Kalau sebelumnya sudah login Akun Spotify, login ulang sekali untuk memberi izin menambah antrian. Spotify hanya mengizinkan ini untuk akun Premium.
 
-**Lagu selanjutnya**: overlay `http://127.0.0.1:8765/next` (ukuran 460 × 90) menampilkan *Selanjutnya: Artis - Judul*. Isinya request berikutnya, atau lagu berikutnya di antrian Spotify kalau sudah login. Juga ditulis ke `next.txt`.
+**Lagu selanjutnya**: tab **Kartu Selanjutnya** berisi overlay `http://127.0.0.1:8765/next` yang menampilkan *Selanjutnya: Artis - Judul*, dengan editor ukuran, latar, warna, dan preview seperti kartu lainnya. Isinya request berikutnya, atau lagu berikutnya di antrian Spotify kalau sudah login. Juga ditulis ke `next.txt`.
 
 ### Saat iklan Spotify
 

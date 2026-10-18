@@ -6,17 +6,19 @@
 <link href="/static/fonts.css" rel="stylesheet">
 <link rel="icon" href="/favicon.ico">
 <style>
-  /* Bisa diatur lewat URL: ?width=440 ?size=16 ?radius=14 ?bg=dark|none ?accent=1db954 ?user=0 ?preview=1 */
-  :root { --w: 440px; --size: 16px; --r: 14px; --accent: #1db954; }
+  /* Default dari halaman pengaturan (tab Kartu Selanjutnya); bisa ditimpa lewat URL:
+     ?width=440 ?size=16 ?radius=14 ?bg=dark|color|none ?color=181818 ?opacity=82 ?accent=1db954 ?user=0 ?icon=0 */
+  :root { --w: 440px; --size: 16px; --r: 14px; --accent: #1db954; --bg: rgba(18,18,18,.82); }
   html, body { margin: 0; background: transparent; overflow: hidden; font-family: Inter, "Segoe UI", sans-serif; }
   body { padding: 10px; }
   .box { box-sizing: border-box; width: var(--w); display: flex; align-items: center; gap: .75em;
-    padding: .8em 1em; border-radius: var(--r); color: #fff; background: rgba(18,18,18,.82);
+    padding: .8em 1em; border-radius: var(--r); color: #fff; background: var(--bg);
     box-shadow: 0 8px 28px rgba(0,0,0,.4); font-size: var(--size); transition: opacity .4s, transform .4s; }
-  .bg-none .box { background: none; box-shadow: none; padding-left: 0; padding-right: 0; }
+  .bg-none .box { box-shadow: none; padding-left: 0; padding-right: 0; }
   .bg-none .box * { text-shadow: 0 2px 8px rgba(0,0,0,.75); }
   .hidden .box { opacity: 0; transform: translateY(6px); }
   svg { flex: none; width: 1.4em; height: 1.4em; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .no-icon svg { display: none; }
   .text { min-width: 0; flex: 1; }
   .label { font-size: .7em; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
   .song { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -25,7 +27,7 @@
 </style>
 </head>
 <body class="hidden">
-<div class="box">
+<div class="box" id="box">
   <!-- Lucide: skip-forward -->
   <svg viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/></svg>
   <div class="text">
@@ -34,41 +36,66 @@
     <div class="who" id="who"></div>
   </div>
 </div>
+<script src="/static/color.js"></script>
 <script>
   const q = new URLSearchParams(location.search);
   const root = document.documentElement;
+  const isPreview = q.has("preview");
   const num = (v, d, min, max) => { v = parseFloat(v); return isNaN(v) ? d : Math.min(max, Math.max(min, v)); };
-  root.style.setProperty("--w", num(q.get("width"), 440, 200, 1200) + "px");
-  root.style.setProperty("--size", num(q.get("size"), 16, 10, 48) + "px");
-  root.style.setProperty("--r", num(q.get("radius"), 14, 0, 60) + "px");
-  root.style.setProperty("--accent", "#" + (q.get("accent") || "1db954").replace("#", ""));
-  const bgNone = q.get("bg") === "none";
-  const showUser = q.get("user") !== "0";
-  const preview = q.has("preview");
+  const flag = (v, d) => v === undefined || v === null ? d : v === true || v === "1" || v === "true";
   const PLATFORM = { twitch: "Twitch", youtube: "YouTube", tiktok: "TikTok" };
-  const T = { id: { label: "Selanjutnya", by: "request dari {user}" }, en: { label: "Up next", by: "requested by {user}" } };
-  let lang = "id";
+  const TEXT = { id: { label: "Selanjutnya", by: "request dari {user}" }, en: { label: "Up next", by: "requested by {user}" } };
+  const SAMPLE = { title: "Pamit", artist: "Tulus", source: "request", user: "budi", platform: "tiktok" };
+  let opts = { user: true, icon: true, bg: "dark" }, lang = "id";
+
+  function applyOpts(c) {
+    const get = (k, d) => q.get(k) ?? c[k] ?? d;
+    opts = {
+      width: num(get("width", 440), 440, 200, 1200), size: num(get("size", 16), 16, 10, 48),
+      radius: num(get("radius", 14), 14, 0, 60), bg: get("bg", "dark"),
+      color: String(get("color", "181818")).replace("#", ""), opacity: num(get("opacity", 82), 82, 0, 100) / 100,
+      accent: String(get("accent", "1db954")).replace("#", ""),
+      user: flag(get("user", true), true), icon: flag(get("icon", true), true),
+    };
+    root.style.setProperty("--w", opts.width + "px");
+    root.style.setProperty("--size", opts.size + "px");
+    root.style.setProperty("--r", opts.radius + "px");
+    root.style.setProperty("--accent", "#" + opts.accent);
+    let bg = `rgba(18,18,18,${opts.opacity})`;
+    if (opts.bg === "none") bg = "transparent";
+    else if (opts.bg === "color") { const [h, s, l] = SNPColor.hexToHsl(opts.color); bg = SNPColor.hsl(h, s, l, opts.opacity); }
+    root.style.setProperty("--bg", bg);
+  }
+
+  async function loadConfig() {
+    try {
+      const c = await (await fetch("/api/config", { cache: "no-store" })).json();
+      lang = c.lang === "en" ? "en" : "id";
+      applyOpts(c.next_overlay || {});
+      poll();
+    } catch {}
+  }
 
   async function poll() {
-    try {
-      const [s, c] = await Promise.all([
-        fetch("/api/now", { cache: "no-store" }).then(r => r.json()),
-        lang ? Promise.resolve(null) : fetch("/api/config", { cache: "no-store" }).then(r => r.json()),
-      ]);
-      const n = s.next || (preview ? { title: "Pamit", artist: "Tulus", source: "request", user: "budi", platform: "tiktok" } : null);
-      document.getElementById("label").textContent = T[lang].label;
-      if (n) {
-        document.getElementById("song").textContent = `${n.artist} - ${n.title}`;
-        document.getElementById("who").textContent = showUser && n.source === "request" && n.user
-          ? T[lang].by.replace("{user}", n.user) + (PLATFORM[n.platform] ? ` · ${PLATFORM[n.platform]}` : "") : "";
-      }
-      document.body.className = (bgNone ? "bg-none " : "") + (n && (s.active || preview) ? "" : "hidden");
-    } catch {
-      document.body.className = "hidden";  // aplikasi mati
+    let s = null;
+    try { s = await (await fetch("/api/now", { cache: "no-store" })).json(); }
+    catch { document.body.className = "hidden"; return; }  // aplikasi mati
+    const n = s.next || (isPreview ? SAMPLE : null);
+    const T = TEXT[lang];
+    document.getElementById("label").textContent = T.label;
+    if (n) {
+      document.getElementById("song").textContent = `${n.artist} - ${n.title}`;
+      document.getElementById("who").textContent = opts.user && n.source === "request" && n.user
+        ? T.by.replace("{user}", n.user) + (PLATFORM[n.platform] ? ` · ${PLATFORM[n.platform]}` : "") : "";
     }
+    const visible = n && (s.active || isPreview);
+    document.body.className = [opts.bg === "none" ? "bg-none" : "", opts.icon ? "" : "no-icon", visible ? "" : "hidden"].join(" ");
   }
-  fetch("/api/config", { cache: "no-store" }).then(r => r.json()).then(c => { lang = c.lang === "en" ? "en" : "id"; }).catch(() => {});
-  poll();
+
+  window.loadConfig = loadConfig;
+  window.fullHeight = () => document.getElementById("box").offsetHeight + 20;
+  loadConfig();
+  setInterval(loadConfig, 3000);   // ikut perubahan dari halaman pengaturan
   setInterval(poll, 2000);
 </script>
 </body>

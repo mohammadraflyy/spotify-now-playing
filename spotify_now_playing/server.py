@@ -27,7 +27,7 @@ PRESET_NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,23}$")
 CHAT_COMMAND = re.compile(r"^\S{1,30}$")
 MAX_BODY = 1_000_000
 # pengaturan yang ikut ekspor/impor (selain chat, yang disaring terpisah)
-EXPORT_KEYS = ("source", "players", "lang", "check_updates", "overlay", "presets", "lyrics", "requests_overlay", "text", "ads")
+EXPORT_KEYS = ("source", "players", "lang", "check_updates", "overlay", "presets", "lyrics", "requests_overlay", "next_overlay", "text", "ads")
 
 
 def make_handler(app, port):
@@ -68,6 +68,7 @@ def make_handler(app, port):
             "overlay": cfg.get("overlay", {}),
             "presets": cfg.get("presets", {}),
             "requests_overlay": cfg.get("requests_overlay", {}),
+            "next_overlay": cfg.get("next_overlay", {}),
             "players": cfg.get("players", "spotify"),
             "lang": i18n.lang(cfg),
             "check_updates": bool(cfg.get("check_updates", False)),
@@ -428,6 +429,8 @@ def make_handler(app, port):
                 cfg.update(overlay=body["overlay"])
             if isinstance(body.get("requests_overlay"), dict):
                 cfg.update(requests_overlay=body["requests_overlay"])
+            if isinstance(body.get("next_overlay"), dict):
+                cfg.update(next_overlay=body["next_overlay"])
             if isinstance(body.get("presets"), dict):
                 presets = body["presets"]
                 if len(presets) > 20:

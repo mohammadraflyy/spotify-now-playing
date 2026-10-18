@@ -18,6 +18,7 @@ PAGES = {
     "/settings": "settings.html", "/settings.html": "settings.html",
     "/lyrics": "lyrics.html", "/lyrics.html": "lyrics.html",
     "/requests": "requests.html", "/requests.html": "requests.html",
+    "/next": "next.html", "/next.html": "next.html",
 }
 STATIC = re.compile(r"^/static/((?:fonts/)?[\w.-]+\.(js|css|woff2|txt))$")
 STATIC_TYPES = {"js": "text/javascript; charset=utf-8", "css": "text/css; charset=utf-8",
@@ -42,7 +43,8 @@ def make_handler(app, port):
             out["ads"] = {k: v for k, v in out["ads"].items() if k in ("mode", "volume", "text")}
         chat = cfg.get("chat") or {}
         out["chat"] = {
-            **{k: chat[k] for k in ("request_enabled", "request_cmd", "request_max_user", "request_max_total") if k in chat},
+            **{k: chat[k] for k in ("request_enabled", "request_cmd", "request_max_user", "request_max_total",
+                                    "request_autoplay") if k in chat},
             **{name: {k: v for k, v in (chat.get(name) or {}).items() if k in keep}
                for name, keep in (("twitch", ("enabled", "channel")), ("youtube", ("enabled", "client_id")),
                                   ("tiktok", ("enabled", "username")))
@@ -352,6 +354,8 @@ def make_handler(app, port):
             cur = dict(cfg.get("chat") or {})
             if "request_enabled" in body:
                 cur["request_enabled"] = bool(body["request_enabled"])
+            if "request_autoplay" in body:
+                cur["request_autoplay"] = bool(body["request_autoplay"])
             if "request_cmd" in body:
                 cmd = str(body["request_cmd"] or "").strip()
                 if cmd and not CHAT_COMMAND.match(cmd):

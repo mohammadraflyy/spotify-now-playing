@@ -5,12 +5,16 @@ sendiri (chat_twitch.py, chat_youtube.py, chat_tiktok.py) dan memanggil ChatBot.
 yang valid masuk ke antrian (song_requests.py) yang tampil di halaman pengaturan dan overlay OBS.
 """
 
+import logging
+
 from .chat_tiktok import TikTokChat
 from .chat_twitch import TwitchChat
 from .chat_youtube import YouTubeChat
 from .song_requests import RequestQueue
 
-DEFAULTS = {"request_enabled": True, "request_cmd": "!request", "request_max_user": 2, "request_max_total": 50}
+DEFAULTS = {"request_enabled": True, "request_cmd": "!request", "request_max_user": 2, "request_max_total": 50,
+            "request_autoplay": True}
+log = logging.getLogger("snp")
 
 
 class ChatBot:
@@ -53,7 +57,17 @@ class ChatBot:
         if song is None:
             return None
         s = self.settings()
-        status, _ = self.requests.add(song, user, platform, s["request_max_user"], s["request_max_total"])
+        track = None
+        autoplay = getattr(self.app, "autoplay", None)
+        if autoplay and autoplay.enabled() and song.strip():
+            try:
+                track = autoplay.find(song)
+            except Exception as e:  # noqa: BLE001  (Spotify bermasalah: tetap masuk antrian, diputar manual)
+                log.warning("pencarian Spotify gagal untuk %r: %s", song, e)
+            else:
+                if track is None:
+                    return "not_found"  # jangan isi antrian dengan lagu yang tidak ada di Spotify
+        status, _ = self.requests.add(song, user, platform, s["request_max_user"], s["request_max_total"], track=track)
         return status
 
     def start(self):
@@ -66,6 +80,8 @@ class ChatBot:
         return {
             "request_enabled": bool(s["request_enabled"]), "request_cmd": s["request_cmd"],
             "request_max_user": s["request_max_user"], "request_max_total": s["request_max_total"],
+            "request_autoplay": bool(s["request_autoplay"]),
+            "autoplay": self.app.autoplay.status() if getattr(self.app, "autoplay", None) else None,
             "twitch": self.twitch.status(),
             "youtube": self.youtube.status(),
             "tiktok": self.tiktok.status(),

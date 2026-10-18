@@ -74,7 +74,9 @@ def demo_app(tmp):
 
     def snapshot():
         return {"active": True, "playing": True, "ad": False, "device": "Spotify", **SONG,
-                "position": (time.time() - start) % SONG["duration"], "updated": time.time(), "cover_version": 1}
+                "position": (time.time() - start) % SONG["duration"], "updated": time.time(), "cover_version": 1,
+                "next": {"title": "Jalan Pulang", "artist": "Lintas Nada", "source": "request", "user": "rani_art",
+                         "platform": "twitch"}}
 
     synced = {"status": "synced", "plain": "", "source": "lrclib", "lrclib_id": 1,
               "lines": [{"t": 70.0 + i * 4.5, "text": line} for i, line in enumerate(LINES)]}
@@ -88,13 +90,18 @@ def demo_app(tmp):
 
     app = SimpleNamespace(
         cfg=cfg, status={"source": "local", "error": ""}, cover=make_cover(), snapshot=snapshot,
-        account=SimpleNamespace(logged_in=False, redirect_uri="", logout=lambda: None),
+        account=SimpleNamespace(logged_in=True, can_control=True, redirect_uri="", logout=lambda: None),
         lyrics=provider, history=History(Path(tmp) / "history"), last_raw=None,
         updates=SimpleNamespace(available=None, status="ok", check_now=lambda: None,
                                 install_status={"state": "idle", "progress": 0, "error": ""}))
+    app.autoplay = SimpleNamespace(enabled=lambda: True, next=None, status=lambda: {
+        "enabled": True, "logged_in": True, "can_control": True, "active": True, "error": ""})
     app.chat = ChatBot(app, tmp)
-    for text, user, platform in REQUESTS:
-        app.chat.requests.add(text, user, platform)
+    for n, (text, user, platform) in enumerate(REQUESTS):
+        artist, _, title = text.rpartition(" - ")
+        found = {"uri": f"spotify:track:demo{n}", "title": title or text, "artist": artist or "Lintas Nada"}
+        app.chat.requests.add(text, user, platform, track=found)
+    app.chat.requests.mark_queued(app.chat.requests.list()[0]["id"])
     for chat in (app.chat.twitch, app.chat.youtube, app.chat.tiktok):
         chat.restart = lambda: None
     app.chat.twitch.state = "connected"
@@ -142,6 +149,7 @@ def main():
         shoot(chrome, f"{base}/settings#requests", "settings-requests.png", 1100, 900)
         shoot(chrome, f"{base}/overlay", "overlay.png", 500, 150, bg="00000000")
         shoot(chrome, f"{base}/requests", "requests.png", 460, 330, bg="00000000")
+        shoot(chrome, f"{base}/next", "next.png", 480, 110, bg="00000000")
         app.cfg["lang"] = "en"
         shoot(chrome, f"{base}/settings#home", "settings-en.png", 1100, 800)
     finally:

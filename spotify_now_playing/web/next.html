@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Up Next</title>
+<link href="/static/fonts.css" rel="stylesheet">
+<link rel="icon" href="/favicon.ico">
+<style>
+  /* Bisa diatur lewat URL: ?width=440 ?size=16 ?radius=14 ?bg=dark|none ?accent=1db954 ?user=0 ?preview=1 */
+  :root { --w: 440px; --size: 16px; --r: 14px; --accent: #1db954; }
+  html, body { margin: 0; background: transparent; overflow: hidden; font-family: Inter, "Segoe UI", sans-serif; }
+  body { padding: 10px; }
+  .box { box-sizing: border-box; width: var(--w); display: flex; align-items: center; gap: .75em;
+    padding: .8em 1em; border-radius: var(--r); color: #fff; background: rgba(18,18,18,.82);
+    box-shadow: 0 8px 28px rgba(0,0,0,.4); font-size: var(--size); transition: opacity .4s, transform .4s; }
+  .bg-none .box { background: none; box-shadow: none; padding-left: 0; padding-right: 0; }
+  .bg-none .box * { text-shadow: 0 2px 8px rgba(0,0,0,.75); }
+  .hidden .box { opacity: 0; transform: translateY(6px); }
+  svg { flex: none; width: 1.4em; height: 1.4em; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .text { min-width: 0; flex: 1; }
+  .label { font-size: .7em; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+  .song { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .who { font-size: .75em; color: rgba(255,255,255,.66); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .who:empty { display: none; }
+</style>
+</head>
+<body class="hidden">
+<div class="box">
+  <!-- Lucide: skip-forward -->
+  <svg viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/></svg>
+  <div class="text">
+    <div class="label" id="label">Selanjutnya</div>
+    <div class="song" id="song"></div>
+    <div class="who" id="who"></div>
+  </div>
+</div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const root = document.documentElement;
+  const num = (v, d, min, max) => { v = parseFloat(v); return isNaN(v) ? d : Math.min(max, Math.max(min, v)); };
+  root.style.setProperty("--w", num(q.get("width"), 440, 200, 1200) + "px");
+  root.style.setProperty("--size", num(q.get("size"), 16, 10, 48) + "px");
+  root.style.setProperty("--r", num(q.get("radius"), 14, 0, 60) + "px");
+  root.style.setProperty("--accent", "#" + (q.get("accent") || "1db954").replace("#", ""));
+  const bgNone = q.get("bg") === "none";
+  const showUser = q.get("user") !== "0";
+  const preview = q.has("preview");
+  const PLATFORM = { twitch: "Twitch", youtube: "YouTube", tiktok: "TikTok" };
+  const T = { id: { label: "Selanjutnya", by: "request dari {user}" }, en: { label: "Up next", by: "requested by {user}" } };
+  let lang = "id";
+
+  async function poll() {
+    try {
+      const [s, c] = await Promise.all([
+        fetch("/api/now", { cache: "no-store" }).then(r => r.json()),
+        lang ? Promise.resolve(null) : fetch("/api/config", { cache: "no-store" }).then(r => r.json()),
+      ]);
+      const n = s.next || (preview ? { title: "Pamit", artist: "Tulus", source: "request", user: "budi", platform: "tiktok" } : null);
+      document.getElementById("label").textContent = T[lang].label;
+      if (n) {
+        document.getElementById("song").textContent = `${n.artist} - ${n.title}`;
+        document.getElementById("who").textContent = showUser && n.source === "request" && n.user
+          ? T[lang].by.replace("{user}", n.user) + (PLATFORM[n.platform] ? ` · ${PLATFORM[n.platform]}` : "") : "";
+      }
+      document.body.className = (bgNone ? "bg-none " : "") + (n && (s.active || preview) ? "" : "hidden");
+    } catch {
+      document.body.className = "hidden";  // aplikasi mati
+    }
+  }
+  fetch("/api/config", { cache: "no-store" }).then(r => r.json()).then(c => { lang = c.lang === "en" ? "en" : "id"; }).catch(() => {});
+  poll();
+  setInterval(poll, 2000);
+</script>
+</body>
+</html>

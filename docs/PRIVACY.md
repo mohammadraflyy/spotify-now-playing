@@ -7,7 +7,7 @@ The connections the program makes are all part of features the user turns on or 
 | Service | When | Data sent |
 |---|---|---|
 | [LRCLIB](https://lrclib.net) | To fetch lyrics for the song currently playing | Track title, artist, album and duration |
-| Spotify (`accounts.spotify.com`, `api.spotify.com`) | Only in *Spotify account* mode, after the user enters their own Client ID and logs in | OAuth requests and the user's access token, to read the current track |
+| Spotify (`accounts.spotify.com`, `api.spotify.com`) | Only after the user enters their own Client ID and logs in with their Spotify account | OAuth requests and the user's access token, to read the current track and the playback queue. If *auto-play requests* is on, the text of viewer song requests is sent to Spotify search, and the matching song is added to the user's Spotify queue |
 | Twitch (`irc.chat.twitch.tv`) | Only if the user turns on the Twitch chat listener | An anonymous, read-only chat connection to the channel name the user entered. No login, and nothing is sent to the chat |
 | Google / YouTube (`accounts.google.com`, `oauth2.googleapis.com`, `www.googleapis.com`) | Only if the user turns on the YouTube chat listener with their own Google OAuth client and logs in | OAuth login with read-only access (`youtube.readonly`), then the app checks whether the user's channel is live and reads its live chat. Nothing is sent to the chat |
 | Euler Stream (`ws.eulerstream.com`), a third-party bridge to TikTok LIVE | Only if the user turns on the TikTok listener and enters their own Euler Stream API key | The user's TikTok username and API key, to receive chat messages from the user's own TikTok LIVE. Nothing is sent to TikTok chat |

@@ -549,6 +549,7 @@
     </div>
 
     <div id="account-box" hidden>
+      <p class="muted small" id="acc-local-note" hidden style="margin:0 0 12px">Mode Spotify Desktop tidak butuh login. Login Akun Spotify di bawah hanya diperlukan untuk <b>putar otomatis request</b> (Spotify Premium).</p>
       <div class="panel">
         <h3>Status akun</h3>
         <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:12px">
@@ -628,6 +629,16 @@
           <div class="p-head"><h3>Antrian</h3><button class="danger sm" id="rq-clear" hidden><svg class="i"><use href="#i-trash"/></svg> Hapus semua</button></div>
           <div id="rq-list"></div>
         </div>
+        <div class="panel" id="ap-box">
+          <h3><svg class="i"><use href="#i-music"/></svg> Putar otomatis lewat Spotify</h3>
+          <label class="check"><input type="checkbox" id="ap-enabled"> Masukkan request ke antrian Spotify secara otomatis</label>
+          <p class="muted small" id="ap-status" style="margin:6px 0 0 26px"></p>
+          <div class="row" id="ap-actions" style="margin:10px 0 0 26px" hidden>
+            <a class="btn primary sm" id="ap-login" href="/login">Login ulang Akun Spotify</a>
+            <button class="sm" id="ap-setup" data-goto="source">Atur di Sumber Musik</button>
+          </div>
+          <p class="err-text" id="ap-error" style="margin:8px 0 0 26px" hidden></p>
+        </div>
         <div class="panel">
           <h3>Pengaturan</h3>
           <label class="check"><input type="checkbox" id="rq-enabled"> Terima request lagu</label>
@@ -670,6 +681,16 @@
           </div>
         </div>
         <button class="ghost sm" id="ro-reset"><svg class="i"><use href="#i-reset"/></svg> Kembalikan ke default</button>
+        <div class="panel" style="margin-top:16px">
+          <h3>Lagu selanjutnya</h3>
+          <p class="muted small" style="margin:-6px 0 12px">Overlay kecil "Selanjutnya: Artis - Judul". Isinya request berikutnya, atau lagu berikutnya di antrian Spotify kalau sudah login Akun Spotify. Sembunyi sendiri kalau tidak ada lagu berikutnya. Juga ditulis ke <code>next.txt</code>.</p>
+          <div class="row">
+            <input type="text" class="mono" id="next-url" readonly>
+            <button class="primary" data-copy="next-url">Salin</button>
+          </div>
+          <div class="size" style="margin-top:10px">Ukuran Browser Source: <span>Width <b>460</b></span><span>Height <b>90</b></span></div>
+          <p class="muted small" id="next-now" style="margin:10px 0 0"></p>
+        </div>
       </div>
       <div class="sticky">
         <div class="preview" id="rq-preview-box"><span class="tag">preview</span><iframe id="rq-frame" title="Preview request"></iframe></div>
@@ -1436,6 +1457,7 @@ async function loadRequests() {
       $("rq-frame").src = "/requests?preview=1";
     }
     $("rq-example").textContent = (r.cmd || "!request") + " " + t("judul lagu");
+    renderAutoplay(c);
     renderRequests(r.items);
   } catch (e) { toast(e.message, true); }
 }
@@ -1449,9 +1471,11 @@ function renderRequests(items) {
     row.innerHTML = `<span class="n">${n + 1}</span><div class="t"><b></b><span></span></div><div class="acts">` +
       `<button class="ghost" data-a="up"><svg class="i"><use href="#i-up"/></svg></button>` +
       `<button class="ghost" data-a="done"><svg class="i"><use href="#i-done"/></svg></button></div>`;
-    row.querySelector("b").textContent = it.text;
+    row.querySelector("b").textContent = it.track ? `${it.track.artist} - ${it.track.title}` : it.text;
     row.querySelector(".t span").textContent = [it.user, PLATFORM_NAMES[it.platform] || it.platform,
-      new Date(it.time * 1000).toLocaleTimeString(LANG === "en" ? "en-GB" : "id-ID", { hour: "2-digit", minute: "2-digit" }).replace(".", ":")].join(" · ");
+      new Date(it.time * 1000).toLocaleTimeString(LANG === "en" ? "en-GB" : "id-ID", { hour: "2-digit", minute: "2-digit" }).replace(".", ":"),
+      it.queued ? t("di antrian Spotify") : it.not_found ? t("tidak ada di Spotify") : "",
+      it.track && normKey(it.text) !== normKey(`${it.track.artist} ${it.track.title}`) ? `"${it.text}"` : ""].filter(Boolean).join(" · ");
     const [up, done] = row.querySelectorAll("button");
     up.title = t("Naikkan"); done.title = t("Selesai diputar");
     up.disabled = n === 0;
@@ -1511,6 +1535,26 @@ $("rq-clear").onclick = async () => {
   if (!confirm(t("Hapus semua request di antrian?"))) return;
   renderRequests((await api("/api/requests/clear", {})).items);
 };
+function normKey(s) { return String(s).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim(); }
+function renderAutoplay(c) {
+  const a = c.autoplay || {};
+  $("ap-enabled").checked = !!c.request_autoplay;
+  const need = !a.logged_in ? "login" : !a.can_control ? "relogin" : "";
+  $("ap-actions").hidden = !c.request_autoplay || !need;
+  $("ap-login").hidden = need !== "relogin";
+  $("ap-setup").hidden = need !== "login";
+  $("ap-status").textContent = t(!c.request_autoplay ? "Mati. Request diputar manual di Spotify."
+    : need === "login" ? "Butuh login Akun Spotify Premium (cukup sekali). Sumber musik tetap bisa Spotify Desktop."
+    : need === "relogin" ? "Login ulang Akun Spotify sekali lagi untuk memberi izin menambah lagu ke antrian."
+    : "Aktif. Request dicari di Spotify saat masuk, lalu dimasukkan ke antrian Spotify 15 detik sebelum lagu selesai. Setelah request habis, Spotify lanjut ke playlist.");
+  $("ap-error").hidden = !a.error || !a.active;
+  $("ap-error").textContent = a.error || "";
+  const n = cfg && lastNow?.next;
+  $("next-now").textContent = n ? t("Sekarang: {song}", { song: `${n.artist} - ${n.title}` }) : t("Belum ada lagu berikutnya.");
+}
+$("ap-enabled").onchange = () => chatAction("config", { request_autoplay: $("ap-enabled").checked },
+  $("ap-enabled").checked ? "Putar otomatis dinyalakan" : "Putar otomatis dimatikan").then(loadRequests);
+
 $("rq-save").onclick = () => chatAction("config", {
   request_enabled: $("rq-enabled").checked, request_cmd: $("rq-cmd").value,
   request_max_user: +$("rq-max-user").value, request_max_total: +$("rq-max-total").value,
@@ -1615,6 +1659,7 @@ function renderConfig(c) {
   $("lyrics-url").value = base + "/lyrics";
   $("now-txt-url").value = base + "/api/now.txt";
   $("rq-url").value = base + "/requests";
+  $("next-url").value = base + "/next";
   $("datadir").value = c.data_dir;
   $("redirect").value = c.redirect_uri;
   $("outdir").value = $("outdir2").value = c.output_dir;
@@ -1638,7 +1683,8 @@ function renderConfig(c) {
 
   setRadio("source", c.source);
   if (!c.local_available) { $("src-local").classList.add("disabled"); $("src-local").querySelector("input").disabled = true; }
-  $("account-box").hidden = c.source === "local";
+  $("account-box").hidden = false;  // juga di mode lokal: login dipakai untuk putar otomatis request
+  $("acc-local-note").hidden = c.source !== "local";
   $("players-box").hidden = c.source === "account" || !c.local_available;
   $("players-all").checked = c.players === "all";
   $("ads-box").hidden = !c.audio_available;
@@ -1716,9 +1762,11 @@ function renderStatus(c, now) {
     : t("Buka Spotify Desktop di PC ini dan putar lagu apa saja.");
 }
 
+let lastNow = null;
 async function refresh() {
   try {
     const [c, now, ly] = await Promise.all([api("/api/config"), api("/api/now"), api("/api/lyrics")]);
+    lastNow = now;
     renderConfig(c);
     renderStatus(c, now);
     renderLyricsStatus(ly);

@@ -204,6 +204,18 @@ Lainnya:
 - **Overlay OBS** `http://127.0.0.1:8765/requests` menampilkan antrian di stream, supaya penonton, termasuk dari TikTok, tahu request-nya masuk. Tampilannya bisa diatur seperti kartu Now Playing: lebar, ukuran teks, jumlah lagu, sudut, latar (gelap, warna tetap, transparan), warna aksen, serta judul, nama penonton, platform, dan petunjuk perintah yang bisa ditampilkan atau disembunyikan. Ukuran Browser Source untuk OBS dihitung otomatis.
 - Perintah, batas request per penonton, dan panjang antrian bisa diatur.
 
+#### Putar otomatis lewat Spotify (Premium)
+
+Kalau login **Akun Spotify Premium** di tab **Sumber Musik**, request bisa diputar otomatis. Sumber musiknya tetap boleh *Spotify Desktop*, karena login ini hanya dipakai untuk mengontrol antrian.
+
+1. Saat request masuk, aplikasi mencari lagunya di Spotify. Antrian menampilkan lagu yang ketemu. Request yang lagunya tidak ada di Spotify ditolak, dan lagu yang sama tidak bisa di-request dua kali.
+2. Sekitar 15 detik sebelum lagu yang sedang diputar selesai, request teratas dimasukkan ke antrian Spotify, lalu diputar setelahnya.
+3. Request dikirim satu per satu, jadi urutan dan hapus di tab **Kartu Request** tetap berlaku. Setelah request habis, Spotify lanjut ke playlist seperti biasa.
+
+Nyalakan atau matikan di tab **Kartu Request** → **Putar otomatis lewat Spotify**. Kalau sebelumnya sudah login Akun Spotify, login ulang sekali untuk memberi izin menambah antrian. Spotify hanya mengizinkan ini untuk akun Premium.
+
+**Lagu selanjutnya**: overlay `http://127.0.0.1:8765/next` (ukuran 460 × 90) menampilkan *Selanjutnya: Artis - Judul*. Isinya request berikutnya, atau lagu berikutnya di antrian Spotify kalau sudah login. Juga ditulis ke `next.txt`.
+
 ### Saat iklan Spotify
 
 Untuk Spotify Free. Iklan **tidak di-skip**, karena itu melanggar ketentuan Spotify. Yang diatur aplikasi hanya tampilan dan suaranya di stream:

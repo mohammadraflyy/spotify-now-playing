@@ -107,7 +107,7 @@
     }
     const T = TEXT[r.lang] || TEXT.id;
     document.body.classList.toggle("hidden", !isPreview && (!r.enabled || (opts.hideEmpty && !items.length)));
-    const key = JSON.stringify([items.map(i => i.id), r.lang, r.cmd]);
+    const key = JSON.stringify([items.map(i => [i.id, i.track?.uri]), r.lang, r.cmd]);
     if (key === last) return;
     last = key;
     document.getElementById("title").textContent = T.title;
@@ -117,7 +117,7 @@
     items.slice(0, opts.count).forEach((it, n) => {
       const who = [opts.user ? it.user : "", opts.platform ? PLATFORM[it.platform] || "" : ""].filter(Boolean).join(" · ");
       const li = document.createElement("li");
-      li.innerHTML = `<span class="num">${n + 1}</span><span class="song">${esc(it.text)}</span>` +
+      li.innerHTML = `<span class="num">${n + 1}</span><span class="song">${esc(it.track ? `${it.track.artist} - ${it.track.title}` : it.text)}</span>` +
         (who ? `<span class="who">${esc(who)}</span>` : "");
       list.appendChild(li);
     });

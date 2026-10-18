@@ -18,7 +18,7 @@ log = logging.getLogger("snp")
 API_BACKOFF = 60     # detik jeda ke API setelah gagal (mode otomatis)
 API_INTERVAL = 2.0   # jangan terlalu sering ke Web API (rate limit)
 LOCAL_INTERVAL = 0.5
-TEXT_FILES = ("nowplaying.txt", "title.txt", "artist.txt", "album.txt", "progress.txt", "lyrics.txt")
+TEXT_FILES = ("nowplaying.txt", "title.txt", "artist.txt", "album.txt", "progress.txt", "lyrics.txt", "next.txt")
 
 
 def format_line(fmt, s):
@@ -46,6 +46,8 @@ class NowPlayingApp:
         self.history = History(DATA_DIR / "history")
         from .chatbot import ChatBot  # import di sini: chatbot memakai app.snapshot / app.history
         self.chat = ChatBot(self, DATA_DIR)
+        from .autoplay import AutoPlayer
+        self.autoplay = AutoPlayer(self)
         self.ad_audio = audio.AdAudio(config) if audio.AVAILABLE else None
         if self.ad_audio:
             atexit.register(self.ad_audio.shutdown)  # jangan tinggalkan Spotify dalam keadaan bisu
@@ -73,12 +75,14 @@ class NowPlayingApp:
             s = dict(self.state)
         if s["playing"]:
             s["position"] = min(s["position"] + time.time() - s["updated"], s["duration"] or 1e9)
+        s["next"] = self.autoplay.next
         return s
 
     # -------------------------------------------------------------- loop --
 
     def run(self):
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        self.autoplay.start()
         while True:
             try:
                 delay = self.tick()
@@ -196,6 +200,8 @@ class NowPlayingApp:
         _write_text("progress.txt", f"{fmt_time(s['position'])} / {fmt_time(s['duration'])}" if s["duration"] else "")
         offset = float(self.cfg.get("lyrics", {}).get("offset") or 0)
         _write_text("lyrics.txt", self.lyrics.line_at(s["position"], offset))
+        nxt = s.get("next")
+        _write_text("next.txt", f"{nxt['artist']} - {nxt['title']}" if nxt else "")
 
     def _render_console(self, s):
         if not self.console:

@@ -26,7 +26,7 @@ try {
     if (-not $cfg) { throw "Server tidak merespons dalam 30 detik" }
     if ($cfg.version -ne $expected) { throw "Versi $($cfg.version), seharusnya $expected" }
 
-    $paths = "/settings", "/overlay", "/lyrics", "/requests", "/api/now", "/api/lyrics", "/api/requests",
+    $paths = "/settings", "/overlay", "/lyrics", "/requests", "/next", "/api/now", "/api/lyrics", "/api/requests",
              "/api/chat", "/api/history", "/api/diagnostics", "/static/fonts/inter-latin.woff2", "/static/i18n.js"
     foreach ($path in $paths) {
         $r = Invoke-WebRequest "$base$path" -UseBasicParsing -TimeoutSec 5

@@ -43,15 +43,18 @@ class RequestQueue:
         with self.lock:
             return [dict(i) for i in self.items]
 
-    def add(self, text, user, platform, max_per_user=2, max_total=50):
-        """Return (status, info). status: added | duplicate | user_limit | full | empty."""
+    def add(self, text, user, platform, max_per_user=2, max_total=50, track=None):
+        """Return (status, info). status: added | duplicate | user_limit | full | empty.
+
+        track: lagu hasil pencarian Spotify ({uri, title, artist, ...}) kalau putar otomatis aktif."""
         text = " ".join((text or "").split())[:MAX_TEXT]
         key = normalize(text)
         if not key:
             return "empty", {}
+        uri = (track or {}).get("uri")
         with self.lock:
             for pos, item in enumerate(self.items, 1):
-                if normalize(item["text"]) == key:
+                if normalize(item["text"]) == key or (uri and (item.get("track") or {}).get("uri") == uri):
                     return "duplicate", {"position": pos, "text": item["text"]}
             mine = [i for i in self.items if i["user"].lower() == user.lower() and i["platform"] == platform]
             if max_per_user and len(mine) >= max_per_user:
@@ -59,6 +62,8 @@ class RequestQueue:
             if max_total and len(self.items) >= max_total:
                 return "full", {"max": max_total}
             item = {"id": self._next_id, "text": text, "user": user, "platform": platform, "time": time.time()}
+            if track:
+                item["track"] = track
             self._next_id += 1
             self.items.append(item)
             self._save()
@@ -83,6 +88,19 @@ class RequestQueue:
             self._save()
             return True
 
+    def update(self, item_id, **fields):
+        with self.lock:
+            for item in self.items:
+                if item["id"] == item_id:
+                    item.update(fields)
+                    self._save()
+                    return True
+            return False
+
+    def mark_queued(self, item_id):
+        """Request sudah dimasukkan ke antrian Spotify (jangan dikirim dua kali)."""
+        return self.update(item_id, queued=True)
+
     def clear(self):
         with self.lock:
             self.items = []
@@ -96,7 +114,13 @@ class RequestQueue:
         artists = [normalize(a) for a in (artist or "").split(",") if normalize(a)]
         with self.lock:
             for item in self.items:
-                if _leftover(normalize(item["text"]), t, artists) <= FILLER_WORDS:
+                track = item.get("track")
+                if track:  # lagu pasti dari Spotify: cocokkan judul dan artis utamanya
+                    hit = normalize(track["title"]) == t and (
+                        not artists or normalize(track["artist"].split(",")[0]) in artists)
+                else:
+                    hit = _leftover(normalize(item["text"]), t, artists) <= FILLER_WORDS
+                if hit:
                     self.items.remove(item)
                     self._save()
                     return item

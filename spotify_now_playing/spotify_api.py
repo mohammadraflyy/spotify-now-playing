@@ -15,8 +15,10 @@ import urllib.request
 AUTH_URL = "https://accounts.spotify.com/authorize"
 TOKEN_URL = "https://accounts.spotify.com/api/token"
 API_URL = "https://api.spotify.com/v1"
-SCOPES = "user-read-currently-playing user-read-playback-state"
-TOKEN_KEYS = ("access_token", "refresh_token", "expires_at", "auth_type", "user")
+# user-modify-playback-state: request penonton dimasukkan ke antrian Spotify (khusus akun Premium)
+CONTROL_SCOPE = "user-modify-playback-state"
+SCOPES = f"user-read-currently-playing user-read-playback-state {CONTROL_SCOPE}"
+TOKEN_KEYS = ("access_token", "refresh_token", "expires_at", "auth_type", "user", "scope")
 
 
 class ApiError(RuntimeError):
@@ -56,6 +58,11 @@ class SpotifyAccount:
     @property
     def logged_in(self):
         return bool(self.cfg.get("client_id") and self.cfg.get("refresh_token"))
+
+    @property
+    def can_control(self):
+        """Login dengan izin mengontrol pemutaran. Login dari versi lama belum punya izin ini."""
+        return self.logged_in and CONTROL_SCOPE in (self.cfg.get("scope") or "").split()
 
     def logout(self):
         self.cfg.update(**{k: None for k in TOKEN_KEYS})
@@ -122,6 +129,8 @@ class SpotifyAccount:
                         expires_at=time.time() + tok.get("expires_in", 3600) - 60)
         if tok.get("refresh_token"):
             self.cfg.update(refresh_token=tok["refresh_token"])
+        if tok.get("scope") is not None:
+            self.cfg.update(scope=tok["scope"])
 
     def _access_token(self):
         if time.time() >= self.cfg.get("expires_at", 0):
@@ -133,14 +142,20 @@ class SpotifyAccount:
     # --------------------------------------------------------------- api --
 
     def get(self, path):
+        return self.request("GET", path)
+
+    def request(self, method, path):
         """Return (status, json|None). 401 -> refresh token lalu coba sekali lagi."""
         for attempt in range(2):
-            req = urllib.request.Request(API_URL + path, headers={
-                "Authorization": f"Bearer {self._access_token()}"})
+            req = urllib.request.Request(API_URL + path, method=method, data=b"" if method != "GET" else None,
+                                         headers={"Authorization": f"Bearer {self._access_token()}"})
             try:
                 with urllib.request.urlopen(req, timeout=10) as r:
                     raw = r.read()
-                    return r.status, (json.loads(raw) if raw else None)
+                    try:
+                        return r.status, (json.loads(raw) if raw else None)
+                    except ValueError:  # mis. POST antrian membalas teks kosong / bukan JSON
+                        return r.status, None
             except urllib.error.HTTPError as e:
                 if e.code == 401 and attempt == 0:
                     self.cfg.update(expires_at=0)
@@ -181,3 +196,36 @@ class SpotifyAccount:
             "device": (data.get("device") or {}).get("name", ""),
             "raw": {"type": data.get("currently_playing_type") or item.get("type") or "", "title": item.get("name", "")},
         }
+
+
+def _track(item):
+    """Item track dari Web API -> info ringkas untuk antrian request."""
+    return {"uri": item.get("uri", ""), "id": item.get("id", ""), "title": item.get("name", ""),
+            "artist": ", ".join(a.get("name", "") for a in item.get("artists") or []),
+            "album": (item.get("album") or {}).get("name", ""), "duration": (item.get("duration_ms") or 0) / 1000}
+
+
+def search_track(account, query):
+    """Lagu teratas di Spotify untuk teks request, atau None kalau tidak ketemu."""
+    q = urllib.parse.urlencode({"q": query, "type": "track", "limit": 1, "market": "from_token"})
+    _, data = account.get(f"/search?{q}")
+    items = ((data or {}).get("tracks") or {}).get("items") or []
+    return _track(items[0]) if items and items[0].get("uri") else None
+
+
+def add_to_queue(account, uri):
+    try:
+        account.request("POST", "/me/player/queue?" + urllib.parse.urlencode({"uri": uri}))
+    except ApiError as e:
+        if e.code == 404:
+            raise ApiError(404, "Spotify tidak aktif. Buka Spotify dan putar lagu dulu") from None
+        if e.code == 403:
+            raise ApiError(403, "Spotify menolak: menambah antrian hanya untuk akun Premium") from None
+        raise
+
+
+def queue_next(account):
+    """Lagu berikutnya di antrian Spotify (termasuk lanjutan playlist), atau None."""
+    _, data = account.get("/me/player/queue")
+    items = [i for i in (data or {}).get("queue") or [] if i and i.get("type", "track") == "track"]
+    return _track(items[0]) if items else None

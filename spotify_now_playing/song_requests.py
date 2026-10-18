@@ -54,7 +54,8 @@ class RequestQueue:
         uri = (track or {}).get("uri")
         with self.lock:
             for pos, item in enumerate(self.items, 1):
-                if normalize(item["text"]) == key or (uri and (item.get("track") or {}).get("uri") == uri):
+                same_text = key in (normalize(item["text"]), normalize(item.get("asked", "")))
+                if same_text or (uri and (item.get("track") or {}).get("uri") == uri):
                     return "duplicate", {"position": pos, "text": item["text"]}
             mine = [i for i in self.items if i["user"].lower() == user.lower() and i["platform"] == platform]
             if max_per_user and len(mine) >= max_per_user:
@@ -63,7 +64,7 @@ class RequestQueue:
                 return "full", {"max": max_total}
             item = {"id": self._next_id, "text": text, "user": user, "platform": platform, "time": time.time()}
             if track:
-                item["track"] = track
+                _apply_track(item, track)
             self._next_id += 1
             self.items.append(item)
             self._save()
@@ -92,6 +93,8 @@ class RequestQueue:
         with self.lock:
             for item in self.items:
                 if item["id"] == item_id:
+                    if fields.get("track"):
+                        _apply_track(item, fields.pop("track"))
                     item.update(fields)
                     self._save()
                     return True
@@ -128,6 +131,13 @@ class RequestQueue:
 
 
 FILLER_WORDS = 2  # kata lain yang boleh ada di request, mis. "tolong ... dong"
+
+
+def _apply_track(item, track):
+    """Lagu dari Spotify ketemu: tampilkan "Artis - Judul", simpan teks asli penonton di "asked"."""
+    item.setdefault("asked", item["text"])
+    item["track"] = track
+    item["text"] = f"{track['artist']} - {track['title']}"[:MAX_TEXT]
 
 
 def _remove_once(words, phrase):

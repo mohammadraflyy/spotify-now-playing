@@ -169,7 +169,38 @@ class NextTest(Setup):
         self.assertIsNone(self.ap.next)
 
 
+class BestMatchTest(unittest.TestCase):
+    def pick(self, query, rows):
+        from spotify_now_playing.spotify_api import best_match
+        got = best_match(query, [track(t, a) for a, t in rows])
+        return f"{got['artist']} - {got['title']}" if got else None
+
+    def test_picks_title_named_in_request(self):
+        rows = [("Tulus", "Hati-Hati di Jalan"), ("Tulus", "Pamit"), ("Tulus", "Pamit - Live")]
+        self.assertEqual(self.pick("tulus pamit", rows), "Tulus - Pamit")
+        self.assertEqual(self.pick("tolong putar pamit dong kak", rows), "Tulus - Pamit")
+        self.assertEqual(self.pick("tulus pamit live", rows), "Tulus - Pamit - Live")  # versi diminta
+
+    def test_title_must_not_be_just_the_artist_name(self):
+        rows = [("Nadin Amizah", "Nadin Amizah"), ("Nadin Amizah", "Bertaut")]
+        self.assertEqual(self.pick("nadin amizah bertaut", rows), "Nadin Amizah - Bertaut")
+
+    def test_falls_back_to_spotify_order(self):
+        self.assertEqual(self.pick("tlus pamitt", [("Tulus", "Pamit"), ("X", "Y")]), "Tulus - Pamit")
+        self.assertIsNone(self.pick("apa saja", []))
+
+
 class MatchTest(unittest.TestCase):
+    def test_request_shows_matched_song(self):
+        q = RequestQueue(None)
+        q.add("tolong putar pamit dong", "budi", "tiktok", track=track("Pamit", "Tulus"))
+        item = q.list()[0]
+        self.assertEqual((item["text"], item["asked"]), ("Tulus - Pamit", "tolong putar pamit dong"))
+        self.assertEqual(q.add("tolong putar pamit dong", "ani", "tiktok")[0], "duplicate")  # teks asli sama
+        q.add("evaluasi", "cici", "twitch")
+        q.update(q.list()[1]["id"], track=track("Evaluasi", "Hindia"))  # dicari belakangan
+        self.assertEqual(q.list()[1]["text"], "Hindia - Evaluasi")
+
     def test_match_uses_spotify_track(self):
         q = RequestQueue(None)
         q.add("tolong putar lagu galau dari tulus dong", "budi", "tiktok", track=track("Pamit", "Tulus"))

@@ -205,13 +205,48 @@ def _track(item):
             "album": (item.get("album") or {}).get("name", ""), "duration": (item.get("duration_ms") or 0) / 1000}
 
 
+# kata yang menandai versi lain; diturunkan peringkatnya kecuali penonton memintanya
+VERSION_WORDS = {"live", "remix", "instrumental", "reprise", "acoustic", "akustik", "karaoke", "cover", "version",
+                 "versi", "remaster", "remastered", "sped", "slowed", "edit", "mix", "demo", "akapela", "acapella"}
+
+
+def best_match(query, tracks):
+    """Pilih lagu yang paling cocok dengan teks request dari hasil pencarian Spotify.
+
+    Judul (tanpa embel-embel "- Live", "(feat. ...)") harus ada utuh di request; artis yang disebut
+    menambah nilai; versi live/remix/instrumental diturunkan kecuali diminta. Kalau tidak ada judul
+    yang cocok (mis. salah ketik), hasil teratas Spotify yang dipakai."""
+    from .lyrics import clean_title
+    from .song_requests import normalize
+
+    words = normalize(query).split()
+    text = f" {' '.join(words)} "
+    best, best_score = None, 0.0
+    for rank, t in enumerate(tracks):
+        base = normalize(clean_title(t["title"]))
+        artists = [normalize(a) for a in t["artist"].split(",") if normalize(a)]
+        rest = text
+        for a in artists:  # judul harus ada di luar nama artis ("nadin amizah bertaut" bukan lagu "Nadin Amizah")
+            rest = rest.replace(f" {a} ", " ", 1)
+        if not base or f" {base} " not in rest:
+            continue
+        score = 10 + len(base.split()) - rank * 0.1
+        score += sum(5 for a in artists if f" {a} " in text)
+        versions = set(normalize(t["title"]).split()) & VERSION_WORDS
+        score += 2 * len(versions & set(words)) - 3 * len(versions - set(words))  # versi yang diminta vs tidak
+        if score > best_score:
+            best, best_score = t, score
+    return best or (tracks[0] if tracks else None)
+
+
 def search_track(account, query):
-    """Lagu teratas di Spotify untuk teks request, atau None kalau tidak ketemu."""
-    # tanpa market=from_token: parameter itu butuh izin user-read-private (Spotify membalas 403)
-    q = urllib.parse.urlencode({"q": query, "type": "track", "limit": 1})
+    """Lagu yang paling cocok di Spotify untuk teks request, atau None kalau tidak ketemu."""
+    # limit 10, bukan 1: dengan limit=1 Spotify sering memberi lagu lain dari artis yang sama.
+    # Tanpa market=from_token: parameter itu butuh izin user-read-private (Spotify membalas 403).
+    q = urllib.parse.urlencode({"q": query, "type": "track", "limit": 10})
     _, data = account.get(f"/search?{q}")
     items = ((data or {}).get("tracks") or {}).get("items") or []
-    return _track(items[0]) if items and items[0].get("uri") else None
+    return best_match(query, [_track(i) for i in items if i and i.get("uri")])
 
 
 def add_to_queue(account, uri):

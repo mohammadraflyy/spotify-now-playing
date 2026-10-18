@@ -1518,7 +1518,7 @@ function renderRequests(items) {
     row.querySelector(".t span").textContent = [it.user, PLATFORM_NAMES[it.platform] || it.platform,
       new Date(it.time * 1000).toLocaleTimeString(LANG === "en" ? "en-GB" : "id-ID", { hour: "2-digit", minute: "2-digit" }).replace(".", ":"),
       it.queued ? t("di antrian Spotify") : it.not_found ? t("tidak ada di Spotify") : "",
-      it.track && normKey(it.text) !== normKey(`${it.track.artist} ${it.track.title}`) ? `"${it.text}"` : ""].filter(Boolean).join(" · ");
+      it.asked && normKey(it.asked) !== normKey(it.text) ? `"${it.asked}"` : ""].filter(Boolean).join(" · ");
     const [up, done] = row.querySelectorAll("button");
     up.title = t("Naikkan"); done.title = t("Selesai diputar");
     up.disabled = n === 0;

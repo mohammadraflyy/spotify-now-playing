@@ -181,6 +181,30 @@ class WebSocketTest(unittest.TestCase):
 
 
 class TikTokListenerTest(unittest.TestCase):
+    def test_json_text_frames(self):
+        # format Euler Stream yang sebenarnya: frame teks JSON (schema v2), bisa berisi beberapa pesan
+        import json
+        now = int(time.time() * 1000)
+
+        def chat(nick, uid, comment, created):
+            return {"type": "WebcastChatMessage", "data": {"common": {"createTime": str(created)},
+                    "user": {"nickname": nick, "uniqueId": uid}, "comment": comment}}
+
+        frame = json.dumps({"messages": [
+            chat("Lama", "lama01", "!request Lagu Lama", now - 5 * 60_000),  # riwayat sebelum tersambung
+            {"type": "WebcastLikeMessage", "data": {}},
+            chat("Budi", "budi01", "!request Tulus - Pamit", now),
+            chat("", "ani02", "halo", now),
+        ], "timestamp": now})
+        got = []
+        t = chat_tiktok.TikTokChat(FakeConfig(), lambda p, u, c: got.append((p, u, c)))
+        t.since = now - 10_000
+        t.handle_text(frame)
+        self.assertEqual(got, [("tiktok", "Budi", "!request Tulus - Pamit"), ("tiktok", "ani02", "halo")])
+        t.handle_text("bukan json")
+        t.handle_text(json.dumps({"messages": [{"type": "workerInfo", "data": {}}]}))
+        self.assertEqual(len(got), 2)
+
     def test_close_codes(self):
         cfg = FakeConfig(chat={"tiktok": {"enabled": True, "username": "tulus"}}, tiktok_api_key="k")
         got = []

@@ -1,18 +1,21 @@
 """Listener chat TikTok LIVE (hanya membaca, tidak mengirim) lewat WebSocket Euler Stream.
 
 TikTok tidak punya API resmi untuk chat LIVE. Euler Stream (https://www.eulerstream.com) menjembatani
-koneksinya; setiap user memakai API key gratis miliknya sendiri. Pesan datang sebagai protobuf,
-jadi di sini ada pembaca WebSocket dan protobuf kecil (tanpa library tambahan).
+koneksinya; setiap user memakai API key gratis miliknya sendiri. Euler mengirim pesan sebagai JSON
+(frame teks, schema v2); pembaca protobuf tetap ada untuk frame biner. WebSocket ditulis sendiri,
+tanpa library tambahan.
 """
 
 import base64
 import gzip
+import json
 import logging
 import os
 import socket
 import ssl
 import struct
 import threading
+import time
 import urllib.parse
 import zlib
 
@@ -20,6 +23,7 @@ log = logging.getLogger("snp")
 
 WS_HOST = "ws.eulerstream.com"
 NOT_LIVE_RETRY = 180   # detik: cek ulang apakah sudah live (hemat kuota gratis)
+HISTORY_GRACE = 10     # detik: chat yang dibuat sesaat sebelum tersambung masih diterima
 
 # kode penutupan dari Euler Stream
 CLOSE_NOT_LIVE, CLOSE_STREAM_END = 4404, 4005
@@ -121,6 +125,32 @@ def decode_frame(data):
         except (ValueError, OSError, EOFError):
             return []
     return []
+
+
+def decode_json(text):
+    """Frame teks Euler {"messages": [{"type", "data"}]} -> daftar (nama, komentar, waktu_ms) untuk chat.
+
+    waktu_ms = common.createTime (0 kalau tidak ada), dipakai untuk membuang riwayat chat lama yang
+    dikirim ulang setiap kali baru tersambung."""
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return []
+    out = []
+    for msg in (data.get("messages") or []) if isinstance(data, dict) else []:
+        if not isinstance(msg, dict) or msg.get("type") != "WebcastChatMessage":
+            continue
+        body = msg.get("data") or {}
+        user = body.get("user") or {}
+        comment = body.get("comment")
+        if not isinstance(comment, str) or not comment.strip():
+            continue
+        try:
+            created = int((body.get("common") or {}).get("createTime") or 0)
+        except (TypeError, ValueError):
+            created = 0
+        out.append((user.get("nickname") or user.get("uniqueId") or "", comment, created))
+    return out
 
 
 def decode_chat(payload):
@@ -233,6 +263,7 @@ class WebSocket:
 class TikTokChat:
     def __init__(self, cfg, on_message):
         self.cfg = cfg
+        self.since = 0  # ms: chat sebelum waktu ini diabaikan (riwayat saat baru tersambung)
         self.on_message = on_message
         self.state = "off"      # off | setup | waiting | connected | error
         self.error = ""
@@ -310,15 +341,24 @@ class TikTokChat:
         query = urllib.parse.urlencode({"uniqueId": self.username(), "apiKey": self.cfg.get("tiktok_api_key")})
         ws = self.connect(WS_HOST, "/?" + query)
         self._ws = ws
+        self.since = time.time() * 1000 - HISTORY_GRACE * 1000
         try:
             self.state, self.error = "connected", ""
             while not self.wake.is_set():
                 msg = ws.recv()
                 if isinstance(msg, bytes):
                     self.handle_frame(msg)
+                else:
+                    self.handle_text(msg)
         finally:
             self._ws = None
             ws.close()
+
+    def handle_text(self, text):
+        for user, comment, created in decode_json(text):
+            if created and created < self.since:
+                continue  # riwayat chat sebelum tersambung: request lama jangan masuk lagi
+            self.on_message("tiktok", user, comment)  # listener: balasan tidak dikirim ke TikTok
 
     def handle_frame(self, data):
         for kind, payload in decode_frame(data):

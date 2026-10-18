@@ -180,6 +180,36 @@ class WebSocketTest(unittest.TestCase):
         self.assertTrue(sent[1] & 0x80)  # frame dari klien wajib di-mask
 
 
+class QuietChatTest(unittest.TestCase):
+    def make(self, chunks):
+        class Sock:
+            def __init__(self):
+                self.sent = b""
+
+            def recv(self, n):
+                item = chunks.pop(0)
+                if item is TimeoutError:
+                    raise TimeoutError("timed out")
+                return item
+
+            def sendall(self, b):
+                self.sent += b
+
+        ws = chat_tiktok.WebSocket.__new__(chat_tiktok.WebSocket)
+        ws.sock, ws.buf = Sock(), b""
+        return ws
+
+    def test_quiet_chat_sends_ping_instead_of_disconnecting(self):
+        ws = self.make([TimeoutError, server_frame(0x1, b"halo")])
+        self.assertEqual(ws.recv(), "halo")
+        self.assertEqual(ws.sock.sent[0], 0x89)  # ping
+
+    def test_no_answer_after_ping_is_a_disconnect(self):
+        ws = self.make([TimeoutError, TimeoutError])
+        with self.assertRaises(ConnectionError):
+            ws.recv()
+
+
 class TikTokListenerTest(unittest.TestCase):
     def test_json_text_frames(self):
         # format Euler Stream yang sebenarnya: frame teks JSON (schema v2), bisa berisi beberapa pesan

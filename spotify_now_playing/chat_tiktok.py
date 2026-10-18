@@ -172,7 +172,7 @@ class WebSocketClosed(Exception):
 class WebSocket:
     """Klien WebSocket (RFC 6455) minimal: cukup untuk menerima pesan dan membalas ping."""
 
-    def __init__(self, host, path, timeout=60):
+    def __init__(self, host, path, timeout=40):
         raw = socket.create_connection((host, 443), timeout=15)
         self.sock = ssl.create_default_context().wrap_socket(raw, server_hostname=host)
         key = base64.b64encode(os.urandom(16)).decode()
@@ -192,10 +192,19 @@ class WebSocket:
         self.sock.settimeout(timeout)
 
     def _read(self, n):
+        idle = False
         while len(self.buf) < n:
-            chunk = self.sock.recv(65536)
+            try:
+                chunk = self.sock.recv(65536)
+            except TimeoutError:  # chat sepi: kirim ping, jangan langsung dianggap putus
+                if idle:
+                    raise ConnectionError("tidak ada balasan dari Euler Stream") from None
+                idle = True
+                self._send(0x9, b"keepalive")  # juga mencegah Euler menutup koneksi yang diam
+                continue
             if not chunk:
                 raise ConnectionError("koneksi terputus")
+            idle = False
             self.buf += chunk
         out, self.buf = self.buf[:n], self.buf[n:]
         return out

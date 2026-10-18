@@ -207,7 +207,8 @@ def _track(item):
 
 def search_track(account, query):
     """Lagu teratas di Spotify untuk teks request, atau None kalau tidak ketemu."""
-    q = urllib.parse.urlencode({"q": query, "type": "track", "limit": 1, "market": "from_token"})
+    # tanpa market=from_token: parameter itu butuh izin user-read-private (Spotify membalas 403)
+    q = urllib.parse.urlencode({"q": query, "type": "track", "limit": 1})
     _, data = account.get(f"/search?{q}")
     items = ((data or {}).get("tracks") or {}).get("items") or []
     return _track(items[0]) if items and items[0].get("uri") else None

@@ -110,6 +110,19 @@ class PushTest(Setup):
         self.assertEqual(len(self.queued), 1)
         self.assertTrue(self.app.chat.requests.list()[0]["not_found"])
 
+    def test_search_url_needs_no_extra_scope(self):
+        from spotify_now_playing import spotify_api
+        paths = []
+        acc = type("A", (), {"get": lambda self, path: paths.append(path) or (200, {"tracks": {"items": []}})})()
+        self.assertIsNone(spotify_api.search_track(acc, "Pamit"))
+        self.assertNotIn("market=", paths[0])  # market=from_token butuh izin user-read-private
+
+    def test_request_without_track_is_resolved_for_next(self):
+        self.app.chat.requests.add("Evaluasi", "budi", "tiktok")  # masuk saat pencarian gagal
+        self.ap.step(0)
+        self.assertEqual((self.ap.next["title"], self.ap.next["source"]), ("Evaluasi", "request"))
+        self.assertEqual(self.queued, [])  # belum dikirim: lagu sekarang masih lama
+
     def test_nothing_during_ads_or_pause(self):
         self.app.chat.handle("tiktok", "budi", "!request Pamit")
         self.near_end()

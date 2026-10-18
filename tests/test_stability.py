@@ -124,6 +124,19 @@ class UpdateInstallTest(unittest.TestCase):
         self.assertIn("Checksum", u.install_status["error"])
         self.assertEqual(u.ran, [])
 
+    def test_installer_breaks_away_from_job_with_fallback(self):
+        calls = []
+
+        def popen(args, **kw):
+            calls.append(kw["creationflags"])
+            if len(calls) == 1:
+                raise OSError("akses ditolak")  # job tidak mengizinkan breakaway
+
+        with mock.patch.object(updates.subprocess, "Popen", popen):
+            updates._run_installer("setup.exe")
+        self.assertTrue(calls[0] & updates.CREATE_BREAKAWAY_FROM_JOB)
+        self.assertFalse(calls[1] & updates.CREATE_BREAKAWAY_FROM_JOB)
+
     def test_not_from_source(self):
         u = self.make("ab" * 32)
         with mock.patch.object(updates, "can_install", return_value=False):

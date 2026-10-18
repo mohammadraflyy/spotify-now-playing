@@ -161,7 +161,16 @@ def _download(url, path, size, progress):
     return sha.hexdigest()
 
 
+CREATE_BREAKAWAY_FROM_JOB = 0x01000000
+
+
 def _run_installer(path):
-    # /SILENT: tampil progress saja; installer menutup aplikasi ini lalu menjalankannya lagi
+    # /SILENT: tampil progress saja; installer menutup aplikasi ini lalu menjalankannya lagi.
+    # Lepas dari job object milik proses induk (kalau ada), supaya installer tidak ikut mati
+    # saat aplikasi ini ditutup olehnya.
+    args = [path, "/SILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-"]
     flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-    subprocess.Popen([path, "/SILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-"], close_fds=True, creationflags=flags)
+    try:
+        subprocess.Popen(args, close_fds=True, creationflags=flags | CREATE_BREAKAWAY_FROM_JOB)
+    except OSError:  # job tidak mengizinkan breakaway
+        subprocess.Popen(args, close_fds=True, creationflags=flags)
